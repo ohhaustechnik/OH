@@ -509,10 +509,16 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt.";
 
     $resp = oh_ki($system, $ctx, 1800);
-    if (!$resp) { $err = 'KI-Analyse nicht verfügbar (Anthropic-Schlüssel prüfen).'; return null; }
-    if (!preg_match('/<reco>([\s\S]*?)<\/reco>/', $resp, $mch)) { $err = 'KI-Antwort unlesbar.'; return null; }
-    $list = json_decode(trim($mch[1]), true);
-    if (!is_array($list)) { $err = 'KI-Daten ungültig.'; return null; }
+    if (!$resp) { $err = 'KI-Analyse nicht verfügbar (Anthropic-Schlüssel/Guthaben prüfen).'; return null; }
+
+    // JSON robust herausschälen (egal ob <reco>-Tags, ```-Blöcke oder Prosa drumherum)
+    $json = $resp;
+    if (preg_match('/<reco>([\s\S]*?)<\/reco>/', $resp, $mch)) $json = $mch[1];
+    $json = preg_replace('/```(json)?/i', '', $json);
+    $lb = strpos($json, '['); $rb = strrpos($json, ']');
+    if ($lb !== false && $rb !== false && $rb > $lb) $json = substr($json, $lb, $rb - $lb + 1);
+    $list = json_decode(trim($json), true);
+    if (!is_array($list) || !count($list)) { $err = 'Die KI hat gerade keine klaren Empfehlungen geliefert – bitte nochmal „Markt neu prüfen".'; return null; }
 
     // IDs + Status vergeben und speichern
     $alt = oh_read('ads_reco', []);

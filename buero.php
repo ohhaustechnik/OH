@@ -56,6 +56,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'login') {
 // ---------------------------------------------------------------------------
 if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
     header('Content-Type: application/json; charset=utf-8');
+    session_write_close(); // Session-Sperre früh lösen, damit lange KI-Analysen parallele Abfragen nicht blockieren
     $a = $_POST['action'];
     $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
 
