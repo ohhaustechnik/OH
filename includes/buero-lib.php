@@ -427,3 +427,103 @@ function oh_ads_report(?string &$err = null): ?array {
     return ['zeitraum' => 'Letzte 7 Tage', 'kampagnen' => $kampagnen, 'summe' => $sum];
 }
 
+/** Suchbegriffe der letzten 30 Tage (wonach Leute wirklich gesucht haben). */
+function oh_ads_search_terms(?string &$err = null): ?array {
+    $gaql = "SELECT search_term_view.search_term, metrics.cost_micros, metrics.clicks, "
+          . "metrics.conversions FROM search_term_view WHERE segments.date DURING LAST_30_DAYS "
+          . "ORDER BY metrics.cost_micros DESC LIMIT 40";
+    $rows = oh_ads_search($gaql, $err);
+    if ($rows === null) return null;
+    $out = [];
+    foreach ($rows as $r) {
+        $m = $r['metrics'] ?? [];
+        $out[] = [
+            'begriff' => $r['searchTermView']['searchTerm'] ?? '–',
+            'kosten'  => round(($m['costMicros'] ?? 0) / 1e6, 2),
+            'klicks'  => (int)($m['clicks'] ?? 0),
+            'conv'    => round((float)($m['conversions'] ?? 0), 1),
+        ];
+    }
+    return $out;
+}
+
+/** Keywords der letzten 30 Tage mit Leistung. */
+function oh_ads_keywords(?string &$err = null): ?array {
+    $gaql = "SELECT ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type, "
+          . "metrics.cost_micros, metrics.clicks, metrics.conversions, metrics.ctr "
+          . "FROM keyword_view WHERE segments.date DURING LAST_30_DAYS "
+          . "ORDER BY metrics.cost_micros DESC LIMIT 40";
+    $rows = oh_ads_search($gaql, $err);
+    if ($rows === null) return null;
+    $out = [];
+    foreach ($rows as $r) {
+        $m = $r['metrics'] ?? [];
+        $kw = $r['adGroupCriterion']['keyword'] ?? [];
+        $out[] = [
+            'keyword' => $kw['text'] ?? '–',
+            'match'   => $kw['matchType'] ?? '',
+            'kosten'  => round(($m['costMicros'] ?? 0) / 1e6, 2),
+            'klicks'  => (int)($m['clicks'] ?? 0),
+            'conv'    => round((float)($m['conversions'] ?? 0), 1),
+            'ctr'     => round(((float)($m['ctr'] ?? 0)) * 100, 2),
+        ];
+    }
+    return $out;
+}
+
+/**
+ * KI-Geschäftsführer: analysiert Ads-Daten und liefert konkrete Empfehlungen.
+ * Speichert sie in daten/ads_reco.json und gibt sie zurück.
+ */
+function oh_ads_recommendations(?string &$err = null): ?array {
+    $rep = oh_ads_report($err);   if ($rep === null) return null;
+    $terms = oh_ads_search_terms($e2);
+    $kws   = oh_ads_keywords($e3);
+
+    // Datenkontext kompakt aufbereiten
+    $s = $rep['summe'];
+    $ctx = "ZAHLEN (7 Tage): Kosten " . $s['kosten'] . "€, Klicks " . $s['klicks']
+         . ", Anfragen " . $s['conv'] . ", Kosten pro Anfrage " . ($s['cpl'] ?? '–') . "€\n\nKAMPAGNEN:\n";
+    foreach ($rep['kampagnen'] as $k) $ctx .= "- {$k['name']}: {$k['kosten']}€, {$k['klicks']} Klicks, {$k['conv']} Anfragen, CTR {$k['ctr']}%\n";
+    if ($kws) { $ctx .= "\nKEYWORDS (30 Tage, teuerste zuerst):\n"; foreach (array_slice($kws, 0, 20) as $k) $ctx .= "- \"{$k['keyword']}\" [{$k['match']}]: {$k['kosten']}€, {$k['klicks']} Kl., {$k['conv']} Anfr.\n"; }
+    if ($terms) { $ctx .= "\nSUCHBEGRIFFE (wonach Leute wirklich gesucht haben, 30 Tage):\n"; foreach (array_slice($terms, 0, 25) as $t) $ctx .= "- \"{$t['begriff']}\": {$t['kosten']}€, {$t['klicks']} Kl., {$t['conv']} Anfr.\n"; }
+
+    $system = "Du bist der digitale Geschäftsführer von OH Haustechnik (Elektriker Nürnberg, Kleinunternehmer). "
+        . "ZIEL: möglichst viele HOCHWERTIGE Anfragen für Altbausanierung, Wohnungsmodernisierung, komplette Elektro-Sanierung (3-4 Zimmer), Zähleranlagen, Unterverteilungen und Smart-Home. "
+        . "Qualität vor Menge. Werbekosten senken, profitable Aufträge gewinnen.\n"
+        . "Analysiere die Google-Ads-Daten wie ein cleverer Profi und finde die wichtigsten Optimierungen. "
+        . "Sprich EINFACH, wie ein guter Mitarbeiter zum Chef – KEINE Fachbegriffe, kurze Sätze, immer mit 'Chef' anreden.\n"
+        . "Gib AUSSCHLIESSLICH einen JSON-Block in genau diesem Format zurück (3-6 Empfehlungen, wichtigste zuerst), nichts davor/danach:\n"
+        . "<reco>[{\"titel\":\"Chef, ...\",\"was\":\"<was genau ändern>\",\"warum\":\"<warum, einfach>\",\"anfragen\":\"<z.B. 2-4 pro Woche>\",\"wahrscheinlichkeit\":\"<hoch|mittel|niedrig>\",\"dringlichkeit\":\"<rot|gelb|gruen>\",\"typ\":\"<negativ_keyword|keyword|budget|gebot|standort|zeit|anzeige|info>\",\"wert\":\"<z.B. das auszuschließende Suchwort oder das neue Keyword>\",\"schritte\":\"<1-2 ganz einfache Schritte zum Umsetzen>\"}]</reco>\n"
+        . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'), starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt.";
+
+    $resp = oh_ki($system, $ctx, 1800);
+    if (!$resp) { $err = 'KI-Analyse nicht verfügbar (Anthropic-Schlüssel prüfen).'; return null; }
+    if (!preg_match('/<reco>([\s\S]*?)<\/reco>/', $resp, $mch)) { $err = 'KI-Antwort unlesbar.'; return null; }
+    $list = json_decode(trim($mch[1]), true);
+    if (!is_array($list)) { $err = 'KI-Daten ungültig.'; return null; }
+
+    // IDs + Status vergeben und speichern
+    $alt = oh_read('ads_reco', []);
+    $altStatus = [];
+    foreach ($alt as $a) $altStatus[md5(($a['titel'] ?? '') . ($a['wert'] ?? ''))] = $a['status'] ?? 'offen';
+    $reco = [];
+    foreach ($list as $i => $r) {
+        $key = md5(($r['titel'] ?? '') . ($r['wert'] ?? ''));
+        $reco[] = array_merge($r, [
+            'id'      => 'R' . date('ymd') . $i,
+            'status'  => $altStatus[$key] ?? 'offen',   // offen | uebernommen | spaeter
+            'created' => time(),
+        ]);
+    }
+    oh_write('ads_reco', $reco);
+    return $reco;
+}
+
+/** Dokumentiert eine übernommene Änderung. */
+function oh_ads_log_change(array $entry): void {
+    $log = oh_read('ads_changes', []);
+    array_unshift($log, array_merge(['ts' => time()], $entry));
+    oh_write('ads_changes', $log);
+}
+

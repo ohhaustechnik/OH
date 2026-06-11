@@ -17,6 +17,7 @@ $API_KEY = isset($cfg0['anthropic_key']) ? $cfg0['anthropic_key'] : (getenv('CLA
 if (isset($_POST['login_pw'])) {
     if ($_POST['login_pw'] === $PASSWORT) {
         $_SESSION['eingeloggt'] = true;
+        $_SESSION['login_time'] = time();
     } else {
         $login_fehler = true;
     }
@@ -27,12 +28,22 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
+// Sicherheit: kein Dauer-Login. Nach Inaktivität automatisch abmelden,
+// damit bei jedem Start das Passwort neu verlangt wird.
+$OH_TIMEOUT = 1800; // 30 Minuten
+if (!empty($_SESSION['eingeloggt'])) {
+    if (empty($_SESSION['login_time']) || (time() - $_SESSION['login_time']) > $OH_TIMEOUT) {
+        $_SESSION = [];
+    }
+}
+
 // AJAX-Login (vor der Session-Schranke)
 if (isset($_POST['action']) && $_POST['action'] === 'login') {
     header('Content-Type: application/json; charset=utf-8');
     $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
     if (($in['pw'] ?? '') === $PASSWORT) {
         $_SESSION['eingeloggt'] = true;
+        $_SESSION['login_time'] = time();
         echo json_encode(['ok' => true]);
     } else {
         echo json_encode(['ok' => false]);
@@ -101,6 +112,30 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $err = null;
         $rep = oh_ads_report($err);
         echo json_encode($rep !== null ? ['ok' => true, 'report' => $rep] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'ads_reco') {
+        // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
+        echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
+    } elseif ($a === 'ads_reco_fresh') {
+        // neue KI-Analyse anstoßen
+        $err = null;
+        $reco = oh_ads_recommendations($err);
+        echo json_encode($reco !== null ? ['ok' => true, 'reco' => $reco] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'ads_apply' || $a === 'ads_later') {
+        $id = $in['id'] ?? '';
+        $reco = oh_read('ads_reco', []);
+        $hit = null;
+        foreach ($reco as &$r) {
+            if (($r['id'] ?? '') === $id) {
+                $r['status'] = ($a === 'ads_apply') ? 'uebernommen' : 'spaeter';
+                $hit = $r;
+            }
+        }
+        unset($r);
+        oh_write('ads_reco', $reco);
+        if ($a === 'ads_apply' && $hit) {
+            oh_ads_log_change(['titel' => $hit['titel'] ?? '', 'was' => $hit['was'] ?? '', 'typ' => $hit['typ'] ?? '', 'wert' => $hit['wert'] ?? '']);
+        }
+        echo json_encode(['ok' => true]);
     } else {
         echo json_encode(['error' => 'unbekannte Aktion']);
     }
@@ -280,6 +315,26 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .ads-tbl td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--txt);}
 .ads-tbl td:nth-child(n+2){text-align:right;white-space:nowrap;}
 .spinner-mini{font-size:12px;color:var(--txt-dim);}
+/* KI-Empfehlungen */
+.reco{background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px;}
+.reco.rot{border-left:3px solid var(--red);box-shadow:0 0 16px rgba(255,93,108,.12);}
+.reco.gelb{border-left:3px solid var(--gold);}
+.reco.gruen{border-left:3px solid var(--green);}
+.reco-prio{font-family:'SF Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--txt-dim);margin-bottom:6px;}
+.reco-tit{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.35;}
+.reco-line{font-size:13px;color:var(--txt);margin-bottom:5px;line-height:1.5;}
+.reco-line b{color:var(--cyan);}
+.reco-meta{font-size:12px;color:var(--green);margin:8px 0;font-weight:600;}
+.reco-steps{font-size:12px;color:var(--txt-dim);background:rgba(57,214,255,.06);border-radius:9px;padding:8px 10px;margin-bottom:10px;line-height:1.5;}
+.reco-btns{display:flex;gap:8px;}
+.reco-btns .btn{padding:11px;font-size:13px;width:auto;}
+.reco-ok{flex:2;}
+.reco-later{flex:1;}
+/* Morgen-Briefing */
+.briefing{margin:8px 14px 0;background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;backdrop-filter:blur(12px);}
+.briefing h3{font-size:13px;color:var(--cyan);margin-bottom:8px;font-family:'SF Mono',monospace;letter-spacing:1px;}
+.briefing .bl{font-size:13px;color:var(--txt);padding:5px 0;display:flex;gap:9px;line-height:1.4;}
+.briefing .bl b{color:#fff;}
 
 /* --- KACHELN --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px;}
@@ -417,6 +472,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <div class="dash-stats" id="dashStats"></div>
   </div>
   <div id="kiAlert" class="ki-alert" style="display:none"></div>
+  <div id="briefing" class="briefing" style="display:none"></div>
 
   <div class="section-title">// Offene Aufgaben</div>
   <div id="dashTasks">
@@ -473,11 +529,15 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
 <!-- GOOGLE ADS -->
 <div id="s-ads" style="display:none">
   <div class="card">
-    <h2>&#128200; Google Ads · Überwachung</h2>
-    <p class="intro">Auswertung Deiner Kampagnen der letzten 7 Tage – direkt aus Deinem Google-Ads-Konto.</p>
+    <h2>&#129302; Dein KI-Geschäftsführer</h2>
+    <p class="intro">Findet Chancen, mehr hochwertige Anfragen zu gewinnen (Altbau, Sanierung, Smart-Home) und Werbekosten zu senken.</p>
+    <div id="recoBody"><div class="prio-empty">Lade Empfehlungen …</div></div>
+    <button class="btn btn-cyan" style="margin-top:12px" id="recoFreshBtn" onclick="recoFresh()">🔍 Markt jetzt neu prüfen</button>
+  </div>
+  <div class="card">
+    <h2>&#128200; Deine Ads-Zahlen (7 Tage)</h2>
     <div id="adsBody"><div class="spinner-mini">Lade …</div></div>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadAds()">↻ Aktualisieren</button>
-    <button class="btn btn-cyan" style="margin-top:10px" id="adsKiBtn" onclick="adsAnalyse()" disabled>🧠 Von KI analysieren lassen</button>
   </div>
   <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
 </div>
@@ -659,6 +719,24 @@ async function loadDashboard(){
     renderKiAlert(d.ki_alert||{alert:false});
   }catch(e){/* offline – Dashboard bleibt leer */}
   try{serverCfg=await api('config_get');}catch(e){}
+  await loadBriefing();
+}
+/* Morgen-Briefing: „Guten Morgen Chef" + heute wichtig */
+let briefingText='';
+async function loadBriefing(){
+  try{
+    const d=await api('ads_reco');
+    const reco=(d.reco||[]).filter(r=>r.status==='offen');
+    const rot=reco.filter(r=>r.dringlichkeit==='rot').length;
+    const hot=(leadsCache||[]).filter(l=>l.stufe==='HOT'&&l.status==='neu').length;
+    const std=new Date().getHours();
+    const gruss=std<11?'Guten Morgen':std<18?'Hallo':'Guten Abend';
+    let bl=`<h3>// ${gruss}, Chef · Heute wichtig</h3>`;
+    bl+=`<div class="bl">📈 <span><b>Google Ads:</b> ${reco.length} Optimierung${reco.length===1?'':'en'} gefunden${rot?`, davon ${rot} sofort übernehmen`:''}</span></div>`;
+    bl+=`<div class="bl">📊 <span><b>Leads:</b> ${hot} heiße Anfrage${hot===1?'':'n'} offen</span></div>`;
+    gl('briefing').innerHTML=bl; gl('briefing').style.display='block';
+    briefingText=`${gruss} Chef. `+(reco.length?`Ich habe ${reco.length} Optimierung${reco.length===1?'':'en'} für die Werbung gefunden${rot?`, ${rot} davon solltest Du sofort übernehmen`:''}. `:'Bei der Werbung ist gerade nichts dringend. ')+(hot?`Außerdem ${hot} heiße Anfrage${hot===1?'':'n'}. `:'');
+  }catch(e){gl('briefing').style.display='none';}
 }
 function renderKiAlert(a){
   const el=gl('kiAlert');
@@ -857,7 +935,54 @@ function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow
 
 /* ============ GOOGLE ADS ============ */
 let lastAdsReport=null;
-function openAds(){showSection('ads');loadAds();}
+function openAds(){showSection('ads');loadReco();loadAds();}
+
+/* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */
+const PRIO={rot:{t:'🔴 SOFORT übernehmen',c:'rot'},gelb:{t:'🟡 Diese Woche',c:'gelb'},gruen:{t:'🟢 Optional',c:'gruen'}};
+async function loadReco(){
+  gl('recoBody').innerHTML='<div class="prio-empty">Lade Empfehlungen …</div>';
+  try{const d=await api('ads_reco'); renderReco(d.reco||[]);}catch(e){gl('recoBody').innerHTML='<div class="prio-empty">Noch keine Analyse. Tipp auf „Markt jetzt neu prüfen".</div>';}
+}
+async function recoFresh(){
+  const b=gl('recoFreshBtn'); b.disabled=true; b.textContent='🔍 KI prüft den Markt … (dauert kurz)';
+  gl('recoBody').innerHTML='<div class="prio-empty">Der Geschäftsführer schaut sich alles an …</div>';
+  try{
+    const d=await api('ads_reco_fresh');
+    if(!d.ok){gl('recoBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}</div>`;}
+    else renderReco(d.reco||[]);
+  }catch(e){gl('recoBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+  b.disabled=false; b.textContent='🔍 Markt jetzt neu prüfen';
+}
+function ordPrio(p){return p==='rot'?0:p==='gelb'?1:2;}
+function renderReco(list){
+  const offen=(list||[]).filter(r=>r.status==='offen').sort((a,b)=>ordPrio(a.dringlichkeit)-ordPrio(b.dringlichkeit));
+  if(!offen.length){gl('recoBody').innerHTML='<div class="prio-empty">✅ Aktuell keine offenen Empfehlungen, Chef. Tipp „Markt neu prüfen" für eine frische Analyse.</div>';return;}
+  gl('recoBody').innerHTML=offen.map(r=>{
+    const p=PRIO[r.dringlichkeit]||PRIO.gelb;
+    return `<div class="reco ${p.c}">
+      <div class="reco-prio">${p.t}</div>
+      <div class="reco-tit">${esc(r.titel||'')}</div>
+      <div class="reco-line"><b>Was:</b> ${esc(r.was||'')}</div>
+      <div class="reco-line"><b>Warum:</b> ${esc(r.warum||'')}</div>
+      <div class="reco-meta">📈 ca. ${esc(r.anfragen||'?')} mehr Anfragen · Erfolg: ${esc(r.wahrscheinlichkeit||'?')}</div>
+      ${r.schritte?`<div class="reco-steps">🛠️ ${esc(r.schritte)}</div>`:''}
+      <div class="reco-btns">
+        <button class="btn btn-cyan reco-ok" onclick="recoApply('${r.id}',this)">✅ Übernehmen</button>
+        <button class="btn btn-ghost reco-later" onclick="recoLater('${r.id}',this)">Später</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function recoApply(id,btn){
+  btn.disabled=true; btn.textContent='✓ Übernommen';
+  await api('ads_apply',{id});
+  setTimeout(loadReco,700);
+}
+async function recoLater(id,btn){
+  btn.disabled=true;
+  await api('ads_later',{id});
+  setTimeout(loadReco,400);
+}
 async function loadAds(){
   lastAdsReport=null; gl('adsKiBtn').disabled=true;
   gl('adsBody').innerHTML='<div class="prio-empty">Lade Kampagnen-Daten …</div>';
@@ -1027,6 +1152,7 @@ function speak(txt){
 }
 function cleanSpeech(s){return (s||'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu,'').replace(/\s+/g,' ').trim();}
 function speakDashboard(){
+  if(briefingText){ speak(briefingText+'Ich bin bereit, wenn Du es bist.'); return; }
   const t=lastTasks||{rot:[],gelb:[],gruen:[]};
   let s='Willkommen zurück, '+(currentTitle||'Chef')+'. ';
   const r=(t.rot||[]).length, g=(t.gelb||[]).length;

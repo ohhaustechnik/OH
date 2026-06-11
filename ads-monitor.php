@@ -42,10 +42,21 @@ $system = "Du bist der Google-Ads-Experte von OH Haustechnik (Elektriker Nürnbe
 $analyse = oh_ki($system, $txt, 700);
 if (!$analyse) $analyse = "(KI-Analyse nicht verfügbar – Anthropic-Schlüssel prüfen.)\n\n" . $txt;
 
+// Frische Empfehlungen für das Dashboard erzeugen
+$rerr = null;
+$reco = oh_ads_recommendations($rerr);
+$recoZeile = '';
+if (is_array($reco)) {
+    $offen = array_filter($reco, function($r){ return ($r['status'] ?? '') === 'offen'; });
+    $rot = array_filter($offen, function($r){ return ($r['dringlichkeit'] ?? '') === 'rot'; });
+    $recoZeile = "\n\nKI-GESCHÄFTSFÜHRER: " . count($offen) . " Optimierung(en) gefunden"
+               . (count($rot) ? ', ' . count($rot) . ' davon SOFORT' : '') . " – im Büro unter „Google Ads“ ansehen & übernehmen.";
+}
+
 // E-Mail an den Chef
 $cfg = oh_config();
 $empfaenger = $cfg['gmail_user'] ?? 'oh.haustechnik@gmail.com';
-$body = "Dein täglicher Google-Ads-Check\n==============================\n\n" . $analyse . "\n\n---\nZahlen:\n" . $txt;
+$body = "Dein täglicher Google-Ads-Check\n==============================\n\n" . $analyse . $recoZeile . "\n\n---\nZahlen:\n" . $txt;
 $res = oh_send_mail($empfaenger, 'Google Ads Tagescheck – OH Haustechnik', $body, $empfaenger);
 
 $log = '[' . date('Y-m-d H:i') . '] Ads-Monitor: Kosten ' . $s['kosten'] . '€, ' . $s['conv'] . ' Anfragen, Mail ' . ($res['ok'] ? 'ok' : 'FEHLER: ' . $res['info']);
