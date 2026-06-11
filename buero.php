@@ -27,6 +27,19 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
+// AJAX-Login (vor der Session-Schranke)
+if (isset($_POST['action']) && $_POST['action'] === 'login') {
+    header('Content-Type: application/json; charset=utf-8');
+    $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
+    if (($in['pw'] ?? '') === $PASSWORT) {
+        $_SESSION['eingeloggt'] = true;
+        echo json_encode(['ok' => true]);
+    } else {
+        echo json_encode(['ok' => false]);
+    }
+    exit;
+}
+
 // ---------------------------------------------------------------------------
 // Büro-API: Dashboard, Leads, E-Mail, Konfiguration (nur eingeloggt)
 // ---------------------------------------------------------------------------
@@ -314,25 +327,28 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
 <div class="bg-fx"><div class="glow"></div><div class="glow2"></div><div class="grid"></div><div class="scan"></div></div>
 <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
 
-<?php if (!$eingeloggt): ?>
-<div class="login-wrap">
+<!-- Hintergrund-Song (eigene Datei nach assets/audio/ hochladen) -->
+<audio id="bgm" loop preload="auto">
+  <source src="assets/audio/oh-intro.mp3" type="audio/mpeg">
+  <source src="assets/audio/oh-intro.m4a" type="audio/mp4">
+  <source src="assets/audio/oh-intro.ogg" type="audio/ogg">
+</audio>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap"<?= $eingeloggt ? ' style="display:none"' : '' ?>>
   <div class="login-card">
     <div class="login-logo">OH</div>
     <div class="login-sub">SYSTEM · ZUGANG</div>
-    <form method="POST">
-      <input type="password" name="login_pw" placeholder="• • • •" autofocus inputmode="text">
+    <form id="loginForm" method="POST">
+      <input type="password" name="login_pw" id="loginPw" placeholder="• • • •" autofocus inputmode="text">
       <button type="submit" class="btn btn-cyan">Authentifizieren</button>
     </form>
-    <?php if (!empty($login_fehler)): ?>
-      <div class="fehler" style="margin-top:16px">Zugang verweigert.</div>
-    <?php endif; ?>
+    <div class="fehler" id="loginErr" style="margin-top:16px;display:<?= !empty($login_fehler) ? 'block' : 'none' ?>">Zugang verweigert.</div>
   </div>
 </div>
 
-<?php else: ?>
-
 <!-- BOOT / WILLKOMMEN -->
-<div id="boot">
+<div id="boot" style="display:none">
   <div class="ring"><div class="core"></div></div>
   <div class="lines" id="bootLines"></div>
   <div class="greet" id="greet"></div>
@@ -342,6 +358,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
 <header>
   <div class="brand"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
   <div class="hbtns">
+    <button class="icobtn" id="muteBtn" onclick="toggleMute()" title="Ton an/aus">&#128266;</button>
     <button class="icobtn" onclick="toggleSettings()" title="Einstellungen">&#9881;</button>
     <a href="?logout=1" class="icobtn" title="Abmelden">&#10162;</a>
   </div>
@@ -544,6 +561,7 @@ Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Ma
 let mode='kalk';
 let history={}; // pro modus: [{role,content}]
 let leadsCache=[];
+let lastTasks=null;
 let serverCfg={has_anthropic:false,has_gmail_pass:false,gmail_user:''};
 
 /* ============ SERVER-API ============ */
@@ -569,6 +587,7 @@ function renderStats(s){
     `<div class="stat hot"><div class="n">${s.hot||0}</div><div class="l">🔥 Heiß &amp; offen</div></div>`;
 }
 function renderTasks(t){
+  lastTasks=t;
   const map={rot:'taskRot',gelb:'taskGelb',gruen:'taskGruen'};
   let total=0;
   Object.keys(map).forEach(p=>{
@@ -637,10 +656,11 @@ function renderIntro(ctx){
 }
 
 /* ============ BOOT / WILLKOMMEN ============ */
+let currentTitle='Chef';
 function boot(){
-  playIntro();
   const titel=['großer Meister','große Herrschaft','Chef','Kommandant','Boss'];
   const t=titel[Math.floor(Math.random()*titel.length)];
+  currentTitle=t;
   const seq=['> Initialisiere OH-System…','> KI-Kerne geladen ✓','> Module: Kalkulator · Marketing · Leads ✓','> Verbindung gesichert ✓','> Alle Systeme bereit ✓'];
   const lines=gl('bootLines'); let i=0;
   const iv=setInterval(()=>{
@@ -650,10 +670,11 @@ function boot(){
       const g=gl('greet');
       g.innerHTML=`Willkommen, <b>${t}</b>.<small>OH HAUSTECHNIK · SYSTEM ZU DEINEN DIENSTEN</small>`;
       g.style.opacity='1';
-      setTimeout(()=>{
+      setTimeout(async ()=>{
         gl('boot').style.opacity='0';
         gl('app').style.visibility='visible';
-        loadDashboard();
+        await loadDashboard();
+        speakDashboard();
         setTimeout(()=>gl('boot').remove(),700);
       },1700);
     }
@@ -813,12 +834,71 @@ async function send(){
   gl('sendBtn').disabled=false;
 }
 
+/* ============ AUDIO (eigener Song) + STIMME ============ */
+let audioUnlocked=false, isMuted=false;
+function unlockAudio(){
+  const b=gl('bgm'); if(!b)return;
+  b.muted=isMuted; b.volume=isMuted?0:0.22;
+  const p=b.play(); if(p&&p.catch)p.catch(()=>{});
+  audioUnlocked=true;
+  // Sprachausgabe „aufwecken“ (iOS verlangt eine Geste)
+  try{ if('speechSynthesis' in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(' '));} }catch(e){}
+}
+function toggleMute(){
+  isMuted=!isMuted; const b=gl('bgm');
+  if(b){b.muted=isMuted; b.volume=isMuted?0:0.22; if(!isMuted&&b.paused)b.play().catch(()=>{});}
+  if(isMuted)try{speechSynthesis.cancel();}catch(e){}
+  gl('muteBtn').innerHTML=isMuted?'&#128263;':'&#128266;';
+}
+function duck(on){ const b=gl('bgm'); if(b&&!isMuted) b.volume= on?0.07:0.22; }
+function speak(txt){
+  try{
+    if(isMuted||!('speechSynthesis' in window))return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang='de-DE'; u.rate=1; u.pitch=1;
+    const vs=speechSynthesis.getVoices().filter(v=>/de(-|_)/i.test(v.lang));
+    if(vs.length)u.voice=vs[0];
+    duck(true); u.onend=()=>duck(false); u.onerror=()=>duck(false);
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function cleanSpeech(s){return (s||'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu,'').replace(/\s+/g,' ').trim();}
+function speakDashboard(){
+  const t=lastTasks||{rot:[],gelb:[],gruen:[]};
+  let s='Willkommen zurück, '+(currentTitle||'Chef')+'. ';
+  const r=(t.rot||[]).length, g=(t.gelb||[]).length;
+  if(r>0){ s+=r+(r===1?' dringende Aufgabe':' dringende Aufgaben')+' sofort. ';
+    (t.rot||[]).slice(0,3).forEach(x=>{s+=cleanSpeech(x.titel)+'. ';}); }
+  else { s+='Keine dringenden Aufgaben. '; }
+  if(g>0) s+=g+(g===1?' weitere Aufgabe':' weitere Aufgaben')+' bald. ';
+  s+='Ich bin bereit, wenn Du es bist.';
+  speak(s);
+}
+
+/* ============ LOGIN (per AJAX, damit der Song bei der Geste startet) ============ */
+const LOGGED_IN=<?= $eingeloggt ? 'true' : 'false' ?>;
+function startSession(){
+  gl('loginWrap').style.display='none';
+  gl('boot').style.display='flex';
+  boot();
+}
+gl('loginForm').addEventListener('submit',async function(e){
+  e.preventDefault();
+  unlockAudio(); // genau hier (Geste) startet Dein Song
+  const pw=gl('loginPw').value;
+  try{
+    const r=await api('login',{pw});
+    if(r&&r.ok){ gl('loginErr').style.display='none'; startSession(); }
+    else { gl('loginErr').style.display='block'; const b=gl('bgm'); if(b)b.pause(); }
+  }catch(err){ gl('loginErr').style.display='block'; }
+});
+
 /* ============ START ============ */
-boot();
 clock();setInterval(clock,1000);
-// Falls der Browser Autoplay blockiert: Sound beim ersten Antippen nachholen
-['touchstart','click'].forEach(ev=>document.addEventListener(ev,function once(){playIntro();document.removeEventListener(ev,once);},{once:true}));
+if(LOGGED_IN){ startSession(); }   // schon eingeloggt -> direkt rein (Ton ab 1. Tipp)
+// Schon eingeloggt (Seite neu geladen): Song beim ersten Antippen nachholen
+['touchstart','click'].forEach(ev=>document.addEventListener(ev,function once(){if(LOGGED_IN&&!audioUnlocked)unlockAudio();document.removeEventListener(ev,once);},{once:true}));
 </script>
 </body>
 </html>
-<?php endif; ?>
