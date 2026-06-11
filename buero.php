@@ -598,13 +598,22 @@ function openTask(id,typ){
 }
 
 /* ============ INTRO-SOUND (JARVIS-Boot, WebAudio) ============ */
-let introPlayed=false;
+let introPlayed=false, ohCtx=null;
 function playIntro(){
   if(introPlayed)return;
   try{
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
-    const ctx=new AC(); if(ctx.state==='suspended')ctx.resume();
-    introPlayed=true;
+    if(!ohCtx)ohCtx=new AC();
+    const ctx=ohCtx;
+    // Browser blockiert Ton ohne Berührung -> erst abspielen, wenn Context wirklich läuft
+    if(ctx.state==='suspended'){ ctx.resume().then(()=>renderIntro(ctx)).catch(()=>{}); return; }
+    renderIntro(ctx);
+  }catch(e){}
+}
+function renderIntro(ctx){
+  if(introPlayed||ctx.state!=='running')return;
+  introPlayed=true;
+  try{
     const now=ctx.currentTime;
     const master=ctx.createGain();master.gain.value=0.0001;master.connect(ctx.destination);
     master.gain.exponentialRampToValueAtTime(0.18,now+0.15);
