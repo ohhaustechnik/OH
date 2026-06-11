@@ -327,8 +327,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
 <div class="bg-fx"><div class="glow"></div><div class="glow2"></div><div class="grid"></div><div class="scan"></div></div>
 <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
 
-<!-- Hintergrund-Song (eigene Datei nach assets/audio/ hochladen) -->
-<audio id="bgm" loop preload="auto">
+<!-- Hintergrund-Song (eigene Datei nach assets/audio/ hochladen) – läuft max. 1 Minute -->
+<audio id="bgm" preload="auto">
   <source src="assets/audio/oh-intro.mp3" type="audio/mpeg">
   <source src="assets/audio/oh-intro.m4a" type="audio/mp4">
   <source src="assets/audio/oh-intro.ogg" type="audio/ogg">
@@ -835,14 +835,30 @@ async function send(){
 }
 
 /* ============ AUDIO (eigener Song) + STIMME ============ */
-let audioUnlocked=false, isMuted=false;
+let audioUnlocked=false, isMuted=false, stopTimer=null, fadeTimer=null;
+const SONG_DAUER=60; // Sekunden – Song läuft max. 1 Minute
 function unlockAudio(){
   const b=gl('bgm'); if(!b)return;
   b.muted=isMuted; b.volume=isMuted?0:0.22;
   const p=b.play(); if(p&&p.catch)p.catch(()=>{});
   audioUnlocked=true;
+  scheduleStop();
   // Sprachausgabe „aufwecken“ (iOS verlangt eine Geste)
   try{ if('speechSynthesis' in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(' '));} }catch(e){}
+}
+// Song nach 1 Minute sanft ausblenden und stoppen
+function scheduleStop(){
+  clearTimeout(stopTimer); clearTimeout(fadeTimer);
+  const b=gl('bgm'); if(!b)return;
+  fadeTimer=setTimeout(()=>{
+    let v=b.volume;
+    const fade=setInterval(()=>{
+      v-=0.03;
+      if(v<=0||isMuted){clearInterval(fade);b.pause();b.currentTime=0;b.volume=isMuted?0:0.22;}
+      else b.volume=v;
+    },120);
+  },(SONG_DAUER-3)*1000); // letzte 3 Sek ausblenden
+  stopTimer=setTimeout(()=>{const bb=gl('bgm');if(bb){bb.pause();bb.currentTime=0;}},SONG_DAUER*1000);
 }
 function toggleMute(){
   isMuted=!isMuted; const b=gl('bgm');
