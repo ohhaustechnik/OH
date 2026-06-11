@@ -514,7 +514,8 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         . "<reco>[{\"titel\":\"Chef, ...\",\"was\":\"<was genau ändern>\",\"warum\":\"<warum, einfach>\",\"anfragen\":\"<z.B. 2-4 pro Woche>\",\"wahrscheinlichkeit\":\"<hoch|mittel|niedrig>\",\"dringlichkeit\":\"<rot|gelb|gruen>\",\"typ\":\"<negativ_keyword|keyword|budget|gebot|standort|zeit|anzeige|info>\",\"wert\":\"<z.B. das auszuschließende Suchwort oder das neue Keyword>\",\"schritte\":\"<1-2 ganz einfache Schritte zum Umsetzen>\"}]</reco>\n"
         . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'), starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt. "
         . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt. "
-        . "WICHTIG: Wiederhole KEINE bereits vorgeschlagenen/erledigten Maßnahmen. Liefere jeden Tag NEUE, frische, andere Empfehlungen aus den aktuellen Zahlen.";
+        . "WICHTIG: Wiederhole KEINE bereits vorgeschlagenen/erledigten Maßnahmen. Liefere jeden Tag NEUE, frische, andere Empfehlungen aus den aktuellen Zahlen. "
+        . "STELLE NIEMALS FRAGEN. Liefere immer fertige, konkrete Vorschläge mit erwarteter Verbesserung (z.B. '+18% mehr Anfragen'). Der Chef soll nur noch Übernehmen oder Ablehnen drücken.";
 
     $resp = oh_ki($system, $ctx, 1800);
     if (!$resp) { $err = 'KI-Analyse nicht verfügbar (Anthropic-Schlüssel/Guthaben prüfen).'; return null; }

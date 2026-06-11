@@ -143,7 +143,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $err = null;
         $reco = oh_ads_recommendations($err);
         echo json_encode($reco !== null ? ['ok' => true, 'reco' => $reco] : ['ok' => false, 'error' => $err]);
-    } elseif ($a === 'ads_apply' || $a === 'ads_later') {
+    } elseif ($a === 'ads_apply' || $a === 'ads_later' || $a === 'ads_dismiss') {
         $id = $in['id'] ?? '';
         $reco = oh_read('ads_reco', []);
         $hit = null;
@@ -162,6 +162,8 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
                 'typ' => $hit['typ'] ?? '', 'wert' => $hit['wert'] ?? '',
                 'ausgefuehrt' => $r['executed'],
             ]);
+        } elseif ($a === 'ads_dismiss') {
+            $newStatus = 'abgelehnt';
         } else {
             $newStatus = 'spaeter';
         }
@@ -300,8 +302,35 @@ header{padding:18px 18px 12px;padding-top:calc(18px + env(safe-area-inset-top));
 /* --- KARTEN / GLAS --- */
 .section-title{font-family:'SF Mono',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:2px;
   color:var(--cyan);margin:20px 18px 4px;opacity:.8;text-transform:uppercase;}
-.scan-btn{float:right;cursor:pointer;color:var(--cyan);border:1px solid var(--line);border-radius:8px;padding:1px 8px;opacity:1;}
-.scan-btn:active{transform:scale(.9);}
+.scan-btn{cursor:pointer;color:var(--cyan);border:1px solid var(--line);border-radius:9px;padding:6px 12px;font-size:12px;font-family:'SF Mono',monospace;}
+.scan-btn:active{transform:scale(.95);}
+.dash-bar{display:flex;justify-content:flex-end;margin:10px 14px 0;}
+/* Tagesfokus */
+.fokus{margin:10px 14px 0;background:linear-gradient(150deg,rgba(20,40,70,.85),rgba(10,20,38,.9));border:1px solid var(--cyan);
+  border-radius:18px;padding:15px 16px;box-shadow:0 0 22px rgba(57,214,255,.16);}
+.fokus-h{font-size:14px;font-weight:800;color:#fff;margin-bottom:10px;}
+.fokus-i{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);cursor:pointer;}
+.fokus-i:first-of-type{border-top:none;}
+.fokus-n{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;background:var(--cyan-d);}
+.fokus-n.rot{background:var(--red);}.fokus-n.gelb{background:var(--gold);}.fokus-n.gruen{background:var(--green);}
+.fokus-i .tt{font-size:13.5px;font-weight:600;color:#fff;}
+.fokus-i .ta{font-size:11px;color:var(--txt-dim);margin-top:1px;}
+/* Akkordeon */
+.acc{margin:10px 14px 0;background:var(--glass);border:1px solid var(--line);border-radius:14px;overflow:hidden;backdrop-filter:blur(10px);}
+.acc-h{display:flex;align-items:center;gap:10px;padding:14px 15px;cursor:pointer;}
+.acc-c{color:var(--cyan);font-size:11px;transition:transform .2s;display:inline-block;}
+.acc-t{flex:1;font-size:13.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.acc-cnt{font-size:11px;color:var(--bg);background:var(--cyan);border-radius:7px;padding:1px 7px;font-weight:700;}
+.acc-b{padding:0 12px 12px;}
+.pill{font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:7px;text-transform:uppercase;}
+.pill.sm{font-size:8.5px;padding:1px 6px;}
+.pill.rot{background:rgba(255,93,108,.2);color:#ff8b96;}
+.pill.gelb{background:rgba(231,177,75,.2);color:#f0cd8a;}
+.pill.gruen{background:rgba(52,224,154,.2);color:#7ef0bd;}
+.task-btns{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap;}
+.tb{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tb.ok{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan);}
+.tb.no{color:var(--red);border-color:rgba(255,93,108,.4);}
 .card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin:12px 14px;
   backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
 h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
@@ -559,18 +588,16 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
   <div id="kiAlert" class="ki-alert" style="display:none"></div>
   <div id="martWarn" class="ki-alert warn" style="display:none"></div>
 
-  <!-- Mert Aldemir Tagesplan -->
-  <div class="mert-card" id="mertCard" style="display:none">
-    <div class="mert-head"><span class="mert-av">🧠</span><div><div class="mert-nm">Mert Aldemir</div><div class="mert-rl">Dein Geschäftsführer · Ziel: 1 Mio € in 5 Monaten</div></div></div>
-    <div class="mert-txt" id="mertTxt"></div>
-    <button class="mert-refresh" onclick="mertFresh(this)">↻ Neuen Tagesplan erstellen</button>
+  <div class="dash-bar"><span class="scan-btn" onclick="scanNow(this)">↻ Aktualisieren</span></div>
+
+  <!-- Tagesfokus -->
+  <div class="fokus" id="fokus" style="display:none">
+    <div class="fokus-h">🎯 Deine wichtigsten Aufgaben heute</div>
+    <div id="fokusList"></div>
   </div>
 
-  <div class="section-title">// Sollte erledigt werden <span id="offenCount"></span><span class="scan-btn" onclick="scanNow(this)">↻</span></div>
-  <div id="taskOffen"><div class="prio-empty">Lade …</div></div>
-
-  <div class="section-title">// Bereits erledigt</div>
-  <div id="taskErledigt"><div class="prio-empty">–</div></div>
+  <!-- Mert + Agenten-Bereiche (einklappbar) -->
+  <div id="dashAcc"></div>
 
   <div class="section-title">// Dein digitales Team</div>
   <div class="team" id="teamGrid"></div>
@@ -831,24 +858,18 @@ async function loadDashboard(){
   try{
     const d=await api('dashboard');
     leadsCache=d.leads||[];
-    renderStats(d.stats||{});
-    renderKiAlert(d.ki_alert||{alert:false});
-    renderWarn(d.warnung);
-    renderOffen(d.offen||[]);
-    renderErledigt(d.erledigt||[]);
-    renderMert(d.mert||{});
     if(d.wissen)WISSEN=d.wissen;
-    buildBriefing(d);
+    renderDashboard(d);
   }catch(e){/* offline */}
   renderTeam();
   try{serverCfg=await api('config_get');}catch(e){}
   // E-Mails & Website im Hintergrund aktualisieren (blockiert das Öffnen nicht)
-  api('scan_now').then(d=>{if(d&&d.ok){renderWarn(d.warnung);renderOffen(d.offen||[]);renderErledigt(d.erledigt||[]);}}).catch(()=>{});
+  api('scan_now').then(d=>{if(d&&d.ok&&lastDash){lastDash.offen=d.offen;lastDash.erledigt=d.erledigt;lastDash.warnung=d.warnung;lastDash.anzahl=d.anzahl;renderDashboard(lastDash);}}).catch(()=>{});
 }
 async function scanNow(btn){
-  if(btn){btn.textContent='…';}
-  try{const d=await api('scan_now');if(d&&d.ok){renderWarn(d.warnung);renderOffen(d.offen||[]);renderErledigt(d.erledigt||[]);}}catch(e){}
-  if(btn){btn.textContent='↻';}
+  if(btn){btn.textContent='… aktualisiere';}
+  try{const d=await api('scan_now');if(d&&d.ok&&lastDash){lastDash.offen=d.offen;lastDash.erledigt=d.erledigt;lastDash.warnung=d.warnung;lastDash.anzahl=d.anzahl;renderDashboard(lastDash);}}catch(e){}
+  if(btn){btn.textContent='↻ Aktualisieren';}
 }
 function renderStats(s){
   gl('dashStats').innerHTML=
@@ -868,44 +889,75 @@ function renderWarn(w){
   if(w){el.innerHTML='⚠️ <b>'+(w.prio==='rot'?'Marktanalyse veraltet!':'Marktanalyse aktualisieren')+'</b> '+esc(w.text);el.style.display='block';el.className='ki-alert warn'+(w.prio==='rot'?'':' gelb');}
   else{el.style.display='none';}
 }
-const BICON={Anfrage:'📥',Angebot:'📄',Bewertung:'⭐','Google Ads':'📈',Markt:'🔍',Auftrag:'✅'};
-function renderOffen(list){
-  lastOffen=list;
-  gl('offenCount').textContent=list.length?`(${list.length})`:'';
-  if(!list.length){gl('taskOffen').innerHTML='<div class="prio-empty">✅ Alles erledigt, Chef. Neue Aufgaben erscheinen hier automatisch.</div>';return;}
-  gl('taskOffen').innerHTML=list.map((x,i)=>`
-    <div class="task ${PDOT[x.prio]||'gelb'}" onclick="toggleTask(${i})">
-      <div class="task-ico">${x.icon||BICON[x.bereich]||'•'}</div>
-      <div class="tx">
-        <div class="tt">${esc(x.titel)}</div>
-        <div class="ta">${esc(x.bereich)} · 📈 ${esc(x.nutzen||'')}</div>
-        <div class="task-why" id="why${i}" style="display:none">💡 ${esc(x.warum||'')}
-          <button class="task-go" onclick="event.stopPropagation();openTaskRef('${x.typ}','${x.ref}')">Erledigen →</button>
+const PLABEL={rot:'Kritisch',gelb:'Hoch',gruen:'Mittel'};
+const AGENT_OF={'Google Ads':'dilara','Markt':'dilara','Website':'dilara','Bewertung':'dilara','SEO':'dilara','Anfrage':'kaan','E-Mail':'kaan','WhatsApp':'kaan','Angebot':'emre','Rechnung':'aylin','Zahlung':'aylin','Projekt':'yusuf','Baustelle':'yusuf','Personal':'baran'};
+const GRP={dilara:'Marketing (Dilara)',kaan:'Kommunikation (Kaan)',emre:'Angebote & Kalkulation (Emre)',aylin:'Buchhaltung (Aylin)',yusuf:'Projekte & Baustellen (Yusuf)',baran:'Mitarbeiter (Baran)',mert:'Sonstiges'};
+let lastDash=null;
+function renderDashboard(d){
+  lastDash=d; lastOffen=(d.offen||[]).slice();
+  renderStats(d.stats||{}); renderKiAlert(d.ki_alert||{alert:false}); renderWarn(d.warnung);
+  const offen=lastOffen; offen.forEach((t,i)=>t._i=i);
+  // Tagesfokus = Top 3 (serverseitig nach Priorität sortiert)
+  renderFokus(offen.slice(0,3));
+  // nach Agent gruppieren
+  const groups={};
+  offen.forEach(t=>{const ag=AGENT_OF[t.bereich]||'mert';(groups[ag]=groups[ag]||[]).push(t);});
+  let html=accordion('📊 Geschäftsführer-Bericht von Mert Aldemir', mertBody(d.mert), false);
+  ['dilara','kaan','emre','aylin','yusuf','baran','mert'].forEach(ag=>{
+    const list=groups[ag]; if(!list||!list.length)return;
+    const badge=`<span class="pill ${list[0].prio}">${PLABEL[list[0].prio]||''}</span>`;
+    const emo=AGENTS[ag]?AGENTS[ag].emoji:'•';
+    html+=accordion(`${emo} ${GRP[ag]} <span class="acc-cnt">${list.length}</span> ${badge}`, list.map(taskHtml).join(''), false);
+  });
+  const er=d.erledigt||[];
+  html+=accordion(`✅ Bereits erledigt <span class="acc-cnt">${er.length}</span>`, er.length?er.map(erledigtHtml).join(''):'<div class="prio-empty">Noch nichts.</div>', false);
+  gl('dashAcc').innerHTML=html;
+  buildBriefing(d);
+}
+function accordion(titleHtml,bodyHtml,open){
+  return `<div class="acc"><div class="acc-h" onclick="accT(this)"><span class="acc-c">▶</span><div class="acc-t">${titleHtml}</div></div><div class="acc-b" style="display:${open?'block':'none'}">${bodyHtml}</div></div>`;
+}
+function accT(el){const b=el.nextElementSibling,c=el.querySelector('.acc-c');const open=b.style.display==='none';b.style.display=open?'block':'none';c.style.transform=open?'rotate(90deg)':'';}
+function taskHtml(t){const i=t._i,isReco=t.typ==='reco';
+  return `<div class="task ${t.prio}" onclick="toggleTask(${i})">
+    <div class="task-ico">${t.icon||'•'}</div>
+    <div class="tx">
+      <div class="tt">${esc(t.titel)} <span class="pill sm ${t.prio}">${PLABEL[t.prio]||''}</span></div>
+      <div class="ta">📈 ${esc(t.nutzen||'')}</div>
+      <div class="task-why" id="why${i}" style="display:none">💡 ${esc(t.warum||'')}
+        <div class="task-btns">${isReco
+          ?`<button class="tb ok" onclick="event.stopPropagation();recoApply('${t.ref}',this)">✅ Übernehmen</button>
+            <button class="tb" onclick="event.stopPropagation();recoLater('${t.ref}',this)">Später</button>
+            <button class="tb no" onclick="event.stopPropagation();recoDismiss('${t.ref}',this)">Ablehnen</button>`
+          :`<button class="tb ok" onclick="event.stopPropagation();actTask(${i})">Erledigen →</button>`}
         </div>
       </div>
-      <div class="go">›</div>
-    </div>`).join('');
+    </div>
+    <div class="go">›</div>
+  </div>`;
 }
+function erledigtHtml(x){return `<div class="task done"><div class="task-ico">${x.icon||'✅'}</div><div class="tx"><div class="tt">${esc(x.titel)}</div><div class="ta">${esc(x.bereich||'')}</div></div></div>`;}
 function toggleTask(i){const w=gl('why'+i);if(w)w.style.display=w.style.display==='none'?'block':'none';}
-function renderErledigt(list){
-  if(!list||!list.length){gl('taskErledigt').innerHTML='<div class="prio-empty">Noch nichts erledigt heute.</div>';return;}
-  gl('taskErledigt').innerHTML=list.map(x=>`<div class="task done"><div class="task-ico">${x.icon||'✅'}</div><div class="tx"><div class="tt">${esc(x.titel)}</div><div class="ta">${esc(x.bereich||'')}</div></div></div>`).join('');
+function actTask(i){const t=lastOffen[i];if(t)openTaskRef(t.typ,t.ref);}
+function renderFokus(list){
+  if(!list||!list.length){gl('fokus').style.display='none';return;}
+  gl('fokus').style.display='block';
+  gl('fokusList').innerHTML=list.map((t,n)=>`<div class="fokus-i" onclick="actTask(${t._i})"><span class="fokus-n ${t.prio}">${n+1}</span><div><div class="tt">${esc(t.titel)}</div><div class="ta">${esc(t.bereich)} · ${PLABEL[t.prio]||''}</div></div></div>`).join('');
 }
-function renderMert(m){
-  if(m&&m.text){gl('mertTxt').innerHTML=fmt(m.text);gl('mertCard').style.display='block';}
-  else{gl('mertTxt').innerHTML='<span style="color:var(--txt-dim)">Noch kein Tagesplan. Tipp „Neuen Tagesplan erstellen".</span>';gl('mertCard').style.display='block';}
+function mertBody(m){
+  const txt=(m&&m.text)?fmt(m.text):'<span style="color:var(--txt-dim)">Noch kein Tagesplan. Tipp „Neuen Tagesplan erstellen".</span>';
+  return `<div class="mert-txt" id="mertTxt">${txt}</div><button class="mert-refresh" onclick="event.stopPropagation();mertFresh(this)">↻ Neuen Tagesplan erstellen</button>`;
 }
 async function mertFresh(btn){
   btn.disabled=true;btn.textContent='🧠 Mert denkt nach …';
-  gl('mertTxt').innerHTML='<span style="color:var(--txt-dim)">Mert wertet alle Zahlen aus …</span>';
-  try{const d=await api('mert_fresh');if(d.ok){renderMert(d.mert);if(d.mert&&d.mert.text)speak(cleanSpeech(d.mert.text.split('\n')[0]));}else gl('mertTxt').innerHTML='<span class="prio-empty">'+esc(d.error||'Fehler')+'</span>';}catch(e){}
-  btn.disabled=false;btn.textContent='↻ Neuen Tagesplan erstellen';
+  try{const d=await api('mert_fresh');if(d.ok){if(lastDash){lastDash.mert=d.mert;renderDashboard(lastDash);}if(d.mert&&d.mert.text)speak(cleanSpeech(d.mert.text.split('\n')[0]));}}catch(e){}
 }
+function recoDismiss(id,btn){btn.disabled=true;btn.textContent='✕';api('ads_dismiss',{id}).then(()=>setTimeout(()=>{loadDashboard();if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();},500));}
 function buildBriefing(d){
   const offen=(d.offen||[]).length, rot=(d.anzahl&&d.anzahl.rot)||0;
   const std=new Date().getHours();
   const gruss=std<11?'Guten Morgen':std<18?'Hallo':'Guten Abend';
-  briefingText=`${gruss} Chef. Du hast ${offen} offene Aufgabe${offen===1?'':'n'}${rot?`, ${rot} davon dringend`:''}. `;
+  briefingText=`${gruss} Chef. Du hast ${offen} offene Aufgabe${offen===1?'':'n'}${rot?`, ${rot} davon kritisch`:''}. `;
   if(d.mert&&d.mert.text)briefingText+='Mert sagt: '+cleanSpeech(d.mert.text.split('\n').slice(0,2).join(' '));
 }
 let lastOffen=[];
@@ -1182,14 +1234,14 @@ async function recoApply(id,btn){
     m.className='reco-result'+(d.executed?' done':'');
     m.textContent=(d.executed?'✅ ':'📝 ')+(d.msg||'Übernommen');
     card.appendChild(m);
-    if(d.msg)speak(cleanSpeech(d.msg));
-  }
-  setTimeout(loadReco,3000);
+  }else if(d.msg){alert((d.executed?'✅ ':'📝 ')+d.msg);}
+  if(d.msg)speak(cleanSpeech(d.msg));
+  setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},2500);
 }
 async function recoLater(id,btn){
   btn.disabled=true;
   await api('ads_later',{id});
-  setTimeout(loadReco,400);
+  setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
 }
 async function loadAds(){
   lastAdsReport=null; gl('adsKiBtn').disabled=true;
