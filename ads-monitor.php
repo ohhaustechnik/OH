@@ -16,6 +16,9 @@ if (php_sapi_name() !== 'cli') {
     header('Content-Type: text/plain; charset=utf-8');
 }
 
+// Stündlich tauglich: zuerst alle Kanäle prüfen (E-Mails, Website)
+if (function_exists('oh_inbox_scan')) oh_inbox_scan();
+
 $err = null;
 $rep = oh_ads_report($err);
 if ($rep === null) {
@@ -60,12 +63,22 @@ if (is_array($reco)) {
                . (count($rot) ? ', ' . count($rot) . ' davon SOFORT' : '') . " – im Büro unter „Google Ads“ ansehen & übernehmen.";
 }
 
-// E-Mail an den Chef
+// E-Mail an den Chef – aber nur EINMAL pro Tag (damit stündlicher Cron nicht spammt)
 $cfg = oh_config();
 $empfaenger = $cfg['gmail_user'] ?? 'oh.haustechnik@gmail.com';
-$body = "Dein täglicher Google-Ads-Check\n==============================\n\n" . $analyse . $recoZeile . "\n\n---\nZahlen:\n" . $txt;
-$res = oh_send_mail($empfaenger, 'Google Ads Tagescheck – OH Haustechnik', $body, $empfaenger);
+$heute = date('Y-m-d');
+$meta = oh_read('ads_meta', []);
+if (($meta['last_email'] ?? '') !== $heute) {
+    $body = "Dein täglicher Google-Ads-Check\n==============================\n\n" . $analyse . $recoZeile . "\n\n---\nZahlen:\n" . $txt;
+    $res = oh_send_mail($empfaenger, 'Google Ads Tagescheck – OH Haustechnik', $body, $empfaenger);
+    $meta = oh_read('ads_meta', []); // frisch lesen (Empfehlungen haben evtl. geschrieben)
+    $meta['last_email'] = $heute;
+    oh_write('ads_meta', $meta);
+    $mailInfo = 'Mail ' . ($res['ok'] ? 'gesendet' : 'FEHLER: ' . $res['info']);
+} else {
+    $mailInfo = 'Mail heute schon gesendet (übersprungen)';
+}
 
-$log = '[' . date('Y-m-d H:i') . '] Ads-Monitor: Kosten ' . $s['kosten'] . '€, ' . $s['conv'] . ' Anfragen, Mail ' . ($res['ok'] ? 'ok' : 'FEHLER: ' . $res['info']);
+$log = '[' . date('Y-m-d H:i') . '] Cron: Kosten ' . $s['kosten'] . '€, ' . $s['conv'] . ' Anfragen, ' . $mailInfo;
 @file_put_contents(OH_DATA_DIR . '/ads.log', $log . "\n", FILE_APPEND);
 echo $log . "\n";
