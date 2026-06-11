@@ -7,3 +7,6 @@ Backup.zip
 
 # Editor
 *.code-workspace
+
+# Laufzeitdaten / Secrets (niemals committen)
+daten/

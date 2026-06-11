@@ -1,6 +1,7 @@
 User-agent: *
 Disallow: /includes/
 Disallow: /assets/
+Disallow: /lernkatalog-gp2-x7k9/
 Allow: /
 
 Sitemap: https://oh-haustechnik.de/sitemap.xml

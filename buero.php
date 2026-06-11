@@ -2,13 +2,22 @@
 session_start();
 $PASSWORT = 'oh';
 
-// API-Key serverseitig - HIER DEINEN KEY EINTRAGEN nach dem Hochladen
-$API_KEY = getenv('CLAUDE_KEY') ?: '';
+// Bibliothek laden (defensiv: fehlt sie, läuft das Büro trotzdem im Basismodus)
+$__lib = __DIR__ . '/includes/buero-lib.php';
+if (is_file($__lib)) { require_once $__lib; }
+if (!function_exists('oh_config')) {
+    function oh_config() { return []; }
+}
+
+// API-Key: serverseitige Konfiguration (daten/config.json) oder Umgebungsvariable
+$cfg0 = oh_config();
+$API_KEY = isset($cfg0['anthropic_key']) ? $cfg0['anthropic_key'] : (getenv('CLAUDE_KEY') ?: '');
 
 // Login-Logik
 if (isset($_POST['login_pw'])) {
     if ($_POST['login_pw'] === $PASSWORT) {
         $_SESSION['eingeloggt'] = true;
+        $_SESSION['login_time'] = time();
     } else {
         $login_fehler = true;
     }
@@ -19,15 +28,230 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// API-Proxy fuer Kalkulation
-if (isset($_POST['kalk_request']) && !empty($_SESSION['eingeloggt'])) {
+// Sicherheit: kein Dauer-Login. Nach Inaktivität automatisch abmelden,
+// damit bei jedem Start das Passwort neu verlangt wird.
+$OH_TIMEOUT = 1800; // 30 Minuten
+if (!empty($_SESSION['eingeloggt'])) {
+    if (empty($_SESSION['login_time']) || (time() - $_SESSION['login_time']) > $OH_TIMEOUT) {
+        $_SESSION = [];
+    }
+}
+
+// AJAX-Login (vor der Session-Schranke)
+if (isset($_POST['action']) && $_POST['action'] === 'login') {
+    header('Content-Type: application/json; charset=utf-8');
+    $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
+    if (($in['pw'] ?? '') === $PASSWORT) {
+        $_SESSION['eingeloggt'] = true;
+        $_SESSION['login_time'] = time();
+        echo json_encode(['ok' => true]);
+    } else {
+        echo json_encode(['ok' => false]);
+    }
+    exit;
+}
+
+// ---------------------------------------------------------------------------
+// Büro-API: Dashboard, Leads, E-Mail, Konfiguration (nur eingeloggt)
+// ---------------------------------------------------------------------------
+if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    session_write_close(); // Session-Sperre früh lösen, damit lange KI-Analysen parallele Abfragen nicht blockieren
+    $a = $_POST['action'];
+    $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
+
+    if ($a === 'dashboard') {
+        $ct = oh_company_tasks();
+        echo json_encode([
+            'offen'    => $ct['offen'],
+            'erledigt' => $ct['erledigt'],
+            'warnung'  => $ct['warnung'],
+            'anzahl'   => $ct['anzahl'],
+            'leads' => oh_read('leads', []),
+            'stats' => [
+                'leads'  => count(oh_read('leads', [])),
+                'hot'    => count(array_filter(oh_read('leads', []), function($l){ return ($l['stufe'] ?? '') === 'HOT' && ($l['status'] ?? '') === 'neu'; })),
+            ],
+            'ki_alert' => oh_read('ki_status', ['alert' => false]),
+            'mert'     => oh_read('mert_plan', []),
+            'agenten'  => oh_read('agenten', []),
+            'aktivitaet' => array_slice(oh_read('aktivitaet', []), 0, 40),
+            'wissen'   => oh_wissen_summary(),
+            'freigaben' => function_exists('oh_freigaben') ? oh_freigaben('offen') : [],
+        ]);
+    } elseif ($a === 'mert_fresh') {
+        $merr = null;
+        $plan = oh_mert_briefing($merr);
+        echo json_encode($plan !== null ? ['ok' => true, 'mert' => oh_read('mert_plan', [])] : ['ok' => false, 'error' => $merr]);
+    } elseif ($a === 'agenten_runde') {
+        $aerr = null;
+        $r = oh_agenten_runde($aerr);
+        echo json_encode($r !== null ? ['ok' => true, 'agenten' => $r] : ['ok' => false, 'error' => $aerr]);
+    } elseif ($a === 'agent_context') {
+        echo json_encode(['ctx' => oh_agent_context($in['agent'] ?? '')]);
+    } elseif ($a === 'website_reco') {
+        echo json_encode(['ok' => true, 'reco' => oh_read('website_reco', [])]);
+    } elseif ($a === 'website_analyze') {
+        $werr = null;
+        $r = oh_website_analyze($werr);
+        echo json_encode($r !== null ? ['ok' => true, 'reco' => $r] : ['ok' => false, 'error' => $werr]);
+    } elseif ($a === 'website_apply' || $a === 'website_later' || $a === 'website_dismiss') {
+        $id = $in['id'] ?? '';
+        $reco = oh_read('website_reco', []);
+        $newStatus = $a === 'website_apply' ? 'uebernommen' : ($a === 'website_dismiss' ? 'abgelehnt' : 'spaeter');
+        $hit = null;
+        foreach ($reco as &$rr) { if (($rr['id'] ?? '') === $id) { $rr['status'] = $newStatus; $hit = $rr; } }
+        unset($rr);
+        oh_write('website_reco', $reco);
+        if ($a === 'website_apply' && $hit) oh_log_activity('dilara', 'Website-Optimierung vorgemerkt: ' . ($hit['titel'] ?? ''));
+        echo json_encode(['ok' => true, 'msg' => $a === 'website_apply' ? 'Notiert, Chef! Dilara hat den Vorschlag vorbereitet. (Automatisches Live-Ändern der Website bauen wir als sicheren Baustein als Nächstes.)' : '']);
+    } elseif ($a === 'lead_add') {
+        echo json_encode(['lead' => oh_add_lead($in)]);
+    } elseif ($a === 'lead_update') {
+        echo json_encode(['lead' => oh_update_lead($in['id'] ?? '', $in['patch'] ?? [], $in['log'] ?? null)]);
+    } elseif ($a === 'lead_delete') {
+        oh_delete_lead($in['id'] ?? '');
+        echo json_encode(['ok' => true]);
+    } elseif ($a === 'send_mail') {
+        $res = oh_send_mail($in['to'] ?? '', $in['subject'] ?? '', $in['body'] ?? '', $in['replyTo'] ?? null);
+        if (!empty($in['lead_id']) && !empty($res['ok'])) {
+            $patch = ['status' => $in['set_status'] ?? 'angebot_raus'];
+            if (($in['set_status'] ?? '') === 'angebot_raus') $patch['angebot_ts'] = time();
+            if (!empty($in['bewertung'])) $patch['bewertung_angefragt'] = true;
+            oh_update_lead($in['lead_id'], $patch, 'E-Mail gesendet: ' . ($in['subject'] ?? ''));
+        }
+        echo json_encode($res);
+    } elseif ($a === 'config_get') {
+        $c = oh_config();
+        echo json_encode([
+            'gmail_user'     => $c['gmail_user'] ?? '',
+            'has_gmail_pass' => !empty($c['gmail_pass']),
+            'has_anthropic'  => !empty($c['anthropic_key']),
+            'ads_customer_id'=> $c['ads_customer_id'] ?? '',
+            'ads_login_customer_id' => $c['ads_login_customer_id'] ?? '',
+            'has_ads'        => !empty($c['ads_developer_token']) && !empty($c['ads_refresh_token']),
+            'site_url'       => $c['site_url'] ?? '',
+            'wa_verify_token'=> $c['wa_verify_token'] ?? 'oh-wa',
+            'wa_phone_id'    => $c['wa_phone_id'] ?? '',
+            'has_wa'         => !empty($c['wa_token']),
+        ]);
+    } elseif ($a === 'config_set') {
+        oh_config_set([
+            'anthropic_key' => $in['anthropic_key'] ?? '',
+            'gmail_user'    => $in['gmail_user'] ?? '',
+            'gmail_pass'    => $in['gmail_pass'] ?? '',
+            'ads_developer_token'    => $in['ads_developer_token'] ?? '',
+            'ads_client_id'          => $in['ads_client_id'] ?? '',
+            'ads_client_secret'      => $in['ads_client_secret'] ?? '',
+            'ads_refresh_token'      => $in['ads_refresh_token'] ?? '',
+            'ads_customer_id'        => $in['ads_customer_id'] ?? '',
+            'ads_login_customer_id'  => $in['ads_login_customer_id'] ?? '',
+            'site_url'        => $in['site_url'] ?? '',
+            'wa_token'        => $in['wa_token'] ?? '',
+            'wa_verify_token' => $in['wa_verify_token'] ?? '',
+            'wa_phone_id'     => $in['wa_phone_id'] ?? '',
+        ]);
+        echo json_encode(['ok' => true]);
+    } elseif ($a === 'scan_now') {
+        oh_inbox_scan();
+        $ct = oh_company_tasks();
+        echo json_encode(['ok' => true, 'offen' => $ct['offen'], 'erledigt' => $ct['erledigt'], 'warnung' => $ct['warnung'], 'anzahl' => $ct['anzahl']]);
+    } elseif ($a === 'ads_report') {
+        $err = null;
+        $rep = oh_ads_report($err);
+        echo json_encode($rep !== null ? ['ok' => true, 'report' => $rep] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'ads_reco') {
+        // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
+        echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
+    } elseif ($a === 'ads_reco_fresh') {
+        // neue KI-Analyse anstoßen
+        $err = null;
+        $reco = oh_ads_recommendations($err);
+        echo json_encode($reco !== null ? ['ok' => true, 'reco' => $reco] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'ads_apply' || $a === 'ads_later' || $a === 'ads_dismiss') {
+        $id = $in['id'] ?? '';
+        $reco = oh_read('ads_reco', []);
+        $hit = null;
+        foreach ($reco as $r) { if (($r['id'] ?? '') === $id) { $hit = $r; break; } }
+        if (!$hit) { echo json_encode(['ok' => false]); exit; }
+
+        $result = ['ok' => true, 'executed' => false, 'msg' => ''];
+        if ($a === 'ads_apply') {
+            $aerr = null;
+            $r = oh_ads_apply($hit, $aerr);        // sichere Änderung direkt ausführen
+            $result['executed'] = $r['executed'];
+            $result['msg'] = $r['msg'];
+            $newStatus = 'uebernommen';
+            oh_ads_log_change([
+                'titel' => $hit['titel'] ?? '', 'was' => $hit['was'] ?? '',
+                'typ' => $hit['typ'] ?? '', 'wert' => $hit['wert'] ?? '',
+                'ausgefuehrt' => $r['executed'],
+            ]);
+        } elseif ($a === 'ads_dismiss') {
+            $newStatus = 'abgelehnt';
+        } else {
+            $newStatus = 'spaeter';
+        }
+        foreach ($reco as &$rr) { if (($rr['id'] ?? '') === $id) $rr['status'] = $newStatus; }
+        unset($rr);
+        oh_write('ads_reco', $reco);
+        echo json_encode($result);
+    } elseif ($a === 'freigaben') {
+        echo json_encode(['ok' => true, 'freigaben' => function_exists('oh_freigaben') ? oh_freigaben('offen') : []]);
+    } elseif ($a === 'triage_now') {
+        $terr = null;
+        $tr = function_exists('oh_msg_triage') ? oh_msg_triage($terr) : ['neu' => 0, 'fehler' => 'nicht verfügbar'];
+        echo json_encode([
+            'ok' => empty($tr['fehler']),
+            'neu' => $tr['neu'] ?? 0,
+            'error' => $tr['fehler'] ?? null,
+            'freigaben' => function_exists('oh_freigaben') ? oh_freigaben('offen') : [],
+        ]);
+    } elseif ($a === 'freigabe_decide') {
+        $id  = $in['id'] ?? '';
+        $dec = $in['decision'] ?? '';
+        $txt = array_key_exists('text', $in) ? (string)$in['text'] : null;
+        $hit = null;
+        foreach (oh_read('freigaben', []) as $x) { if (($x['id'] ?? '') === $id) { $hit = $x; break; } }
+        if (!$hit) { echo json_encode(['ok' => false, 'error' => 'nicht gefunden']); exit; }
+
+        if ($dec === 'ablehnen') {
+            oh_freigabe_update($id, ['status' => 'abgelehnt']);
+            if (function_exists('oh_log_activity')) oh_log_activity($hit['agent'] ?? 'kaan', 'Freigabe abgelehnt: ' . ($hit['titel'] ?? ''));
+            echo json_encode(['ok' => true, 'sent' => false]);
+        } elseif ($dec === 'spaeter') {
+            oh_freigabe_update($id, ['status' => 'spaeter']);
+            echo json_encode(['ok' => true, 'sent' => false]);
+        } else { // uebernehmen
+            $reply = $txt !== null ? $txt : ($hit['vorschlag'] ?? '');
+            $sent = false; $info = '';
+            // Wenn echte E-Mail-Adresse + Gmail aktiv: direkt senden. Sonst nur freigeben (Text zum Kopieren).
+            if (($hit['typ'] ?? '') === 'antwort' && ($hit['kanal'] ?? '') === 'email'
+                && filter_var($hit['to'] ?? '', FILTER_VALIDATE_EMAIL)) {
+                $res = oh_send_mail($hit['to'], 'Ihre Nachricht an OH Haustechnik', $reply);
+                $sent = !empty($res['ok']); $info = $res['info'] ?? '';
+            }
+            oh_freigabe_update($id, ['status' => $sent ? 'gesendet' : 'uebernommen', 'final' => $reply]);
+            if (function_exists('oh_log_activity')) oh_log_activity($hit['agent'] ?? 'kaan', ($sent ? 'Antwort gesendet' : 'Freigabe übernommen') . ': ' . ($hit['titel'] ?? ''));
+            echo json_encode(['ok' => true, 'sent' => $sent, 'text' => $reply, 'info' => $info]);
+        }
+    } else {
+        echo json_encode(['error' => 'unbekannte Aktion']);
+    }
+    exit;
+}
+
+// Generischer API-Proxy fuer alle KI-Module (Kalkulation, Marketing, Leads, Chat)
+if (isset($_POST['ki_request']) && !empty($_SESSION['eingeloggt'])) {
     header('Content-Type: application/json');
-    $userKey = $_POST['api_key'] ?? $API_KEY;
-    $body = $_POST['kalk_request'];
+    $userKey = $_POST['api_key'] ?: $API_KEY;
+    if (!$userKey) { echo json_encode(['error' => ['message' => 'Kein API-Schlüssel hinterlegt.']]); exit; }
+    $body = $_POST['ki_request'];
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
         'x-api-key: ' . $userKey,
@@ -37,6 +261,18 @@ if (isset($_POST['kalk_request']) && !empty($_SESSION['eingeloggt'])) {
     if ($response === false) {
         echo json_encode(['error' => ['message' => curl_error($ch)]]);
     } else {
+        // Guthaben-/Fehlerstatus für die Dashboard-Warnung merken
+        $rd = json_decode($response, true);
+        if (isset($rd['error'])) {
+            $em = strtolower($rd['error']['message'] ?? '');
+            if (strpos($em, 'credit') !== false || strpos($em, 'balance') !== false
+                || strpos($em, 'insufficient') !== false || strpos($em, 'quota') !== false
+                || strpos($em, 'billing') !== false) {
+                oh_write('ki_status', ['alert' => true, 'msg' => 'KI-Guthaben aufgebraucht – bitte bei console.anthropic.com aufladen', 'ts' => time()]);
+            }
+        } elseif (isset($rd['content'])) {
+            oh_write('ki_status', ['alert' => false]);
+        }
         echo $response;
     }
     curl_close($ch);
@@ -52,342 +288,1485 @@ $eingeloggt = !empty($_SESSION['eingeloggt']);
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="OH Büro">
+<meta name="apple-mobile-web-app-title" content="OH System">
+<meta name="theme-color" content="#04070d">
 <meta name="robots" content="noindex, nofollow">
-<title>OH Haustechnik · Büro</title>
+<title>OH · System</title>
 <style>
-:root{--blau:#2e5c8a;--blau-d:#1c3d6b;--blau-dd:#142d50;--gruen:#2e8b57;--grau:#6b7280;--linie:#e5e7eb;--bg:#0f1d33;--karte:#fff;--text:#1a2330;--gold:#c8973f;}
+:root{
+  /* OH Haustechnik Corporate – Dunkelblau / Blau / Weiss / dezente Graustufen */
+  --bg:#eef2f8; --bg2:#e5ebf4;
+  --navy:#0b2545; --navy2:#143a73;
+  --cyan:#1f6fe0; --cyan-d:#1559bf; --cyan-soft:rgba(31,111,224,.10);
+  --gold:#c98a12; --green:#15a35b; --red:#e23b4e;
+  --txt:#172a47; --txt-dim:#62718c; --line:#dde4ef;
+  --glass:#ffffff; --glass-2:#f6f9fd;
+  --shadow:0 6px 22px rgba(13,38,76,.07);
+  --shadow-lg:0 18px 44px rgba(13,38,76,.13);
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:40px;}
-.wrap{max-width:520px;margin:0 auto;}
-header{background:linear-gradient(160deg,var(--blau-dd),var(--blau));color:#fff;padding:22px 18px 16px;padding-top:calc(22px + env(safe-area-inset-top));position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 14px rgba(0,0,0,.3);}
-.logo{font-size:24px;font-weight:300;letter-spacing:7px;}
-.logo-sub{font-size:9px;letter-spacing:3px;opacity:.85;margin-top:3px;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Inter,Roboto,sans-serif;
+  background:var(--bg); color:var(--txt); min-height:100vh; overflow-x:hidden;
+  position:relative; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+
+/* --- HINTERGRUND + DEZENTES LOGO-WASSERZEICHEN --- */
+.bg-fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.bg-fx .glow{position:absolute;width:120vmax;height:120vmax;left:50%;top:-45%;transform:translateX(-50%);
+  background:radial-gradient(circle at center, rgba(31,111,224,.10), rgba(31,111,224,0) 60%);}
+.bg-fx .glow2{position:absolute;width:80vmax;height:80vmax;right:-25%;bottom:-35%;
+  background:radial-gradient(circle at center, rgba(20,58,115,.08), rgba(20,58,115,0) 60%);}
+.bg-fx .grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(11,37,69,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(11,37,69,.035) 1px,transparent 1px);
+  background-size:54px 54px;mask-image:radial-gradient(circle at 50% 20%,#000 25%,transparent 78%);}
+.bg-fx .scan{display:none;}
+.bg-fx:after{content:'OH';position:absolute;right:-2vw;bottom:-6vh;font-size:40vw;line-height:.8;font-weight:800;
+  letter-spacing:-.04em;color:rgba(11,37,69,.035);font-family:-apple-system,'SF Pro Display','Segoe UI',sans-serif;}
+@keyframes scan{to{background-position:0 400px;}}
+/* HUD-Ecken im Premium-Look ausblenden */
+.corner{display:none;}
+
+.wrap{max-width:600px;margin:0 auto;position:relative;z-index:2;padding-bottom:46px;}
+
+/* --- HEADER (oben: Marken-/Statusleiste, Navy) --- */
+header{padding:15px 18px 14px;padding-top:calc(15px + env(safe-area-inset-top));
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;
+  background:linear-gradient(135deg,var(--navy),var(--navy2));box-shadow:0 6px 22px rgba(11,37,69,.20);}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand .mark{font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;}
+.brand .sub{font-size:8.5px;letter-spacing:3px;color:#9fc2f4;opacity:.9;margin-top:3px;font-weight:600;}
 .hbtns{display:flex;gap:8px;}
-.icobtn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:17px;width:40px;height:40px;border-radius:20px;cursor:pointer;}
-.card{background:var(--karte);border-radius:18px;padding:20px 17px;margin:14px;box-shadow:0 2px 10px rgba(0,0,0,.15);}
-h2{font-size:16px;font-weight:700;color:var(--blau-d);margin-bottom:9px;}
-.intro{font-size:13px;color:var(--grau);margin-bottom:13px;line-height:1.55;}
-label{display:block;font-size:13px;font-weight:600;color:var(--grau);margin:15px 0 6px;}
-textarea,input,select{width:100%;padding:14px;border:1.5px solid var(--linie);border-radius:13px;font-size:16px;font-family:inherit;background:#fff;color:var(--text);outline:none;}
-textarea{min-height:115px;resize:vertical;}
-textarea:focus,input:focus,select:focus{border-color:var(--blau);}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-.chip{padding:10px 17px;border-radius:21px;border:1.5px solid var(--linie);background:#fff;color:var(--grau);font-size:14px;cursor:pointer;font-family:inherit;}
-.chip.on{background:var(--blau);color:#fff;border-color:var(--blau);font-weight:600;}
-.btn-green{width:100%;padding:17px;background:var(--gruen);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:18px;font-family:inherit;}
-.btn-blue{width:100%;padding:15px;background:var(--blau);color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:inherit;}
-.btn-outline{width:100%;padding:15px;background:#fff;color:var(--blau);border:1.5px solid var(--blau);border-radius:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:inherit;}
-.price-box{background:linear-gradient(135deg,var(--blau),var(--blau-dd));color:#fff;border-radius:18px;padding:24px 18px;margin:14px;text-align:center;}
-.price-lbl{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;}
-.price-num{font-size:40px;font-weight:800;margin:5px 0;}
-.price-sub{font-size:13px;opacity:.92;margin-top:7px;border-top:1px solid rgba(255,255,255,.2);padding-top:9px;line-height:1.5;}
-.kt{width:100%;border-collapse:collapse;font-size:14px;}
-.kt td{padding:9px 0;border-bottom:1px solid var(--linie);vertical-align:top;}
-.kt td:last-child{text-align:right;font-weight:600;white-space:nowrap;padding-left:10px;}
-.kt .summe td{border-bottom:none;border-top:2px solid var(--blau);font-weight:800;color:var(--blau-d);padding-top:12px;font-size:16px;}
-.ml{list-style:none;}
-.ml li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linie);font-size:14px;gap:10px;}
-.ml li:last-child{border-bottom:none;}
-.ml li span:last-child{color:var(--blau);font-weight:600;white-space:nowrap;}
-.at{background:#f9fafb;border:1.5px solid var(--linie);border-radius:13px;padding:15px;font-size:13px;white-space:pre-wrap;line-height:1.65;font-family:monospace;}
-.lern-card{background:#f0faf4;border:1.5px solid #bbf0cc;border-radius:18px;padding:17px;margin:14px;}
-.fehler{background:#fef2f2;color:#b91c1c;padding:13px;border-radius:12px;font-size:13px;margin:8px 0 0;}
-.denkweg{background:#eef3fa;border-radius:13px;padding:13px 15px;font-size:13px;color:#374151;line-height:1.6;margin:0 14px 14px;}
-.warnung{font-size:12px;color:#92400e;background:#fffbeb;padding:11px;border-radius:9px;margin-top:11px;}
-.badge{display:inline-block;font-size:11px;background:var(--gold);color:#fff;padding:4px 11px;border-radius:11px;font-weight:600;margin-bottom:11px;letter-spacing:.5px;}
-.kopiert{color:var(--gruen);font-size:13px;font-weight:600;text-align:center;margin-top:8px;min-height:18px;}
-.spinner{width:50px;height:50px;border:3px solid var(--linie);border-top-color:var(--blau);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px;}
+.icobtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:16px;width:40px;height:40px;
+  border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:background .15s,transform .1s;}
+.icobtn:hover{background:rgba(255,255,255,.2);}
+.icobtn:active{transform:scale(.93);}
+.statusbar{display:flex;gap:14px;align-items:center;padding:9px 20px;font-size:10.5px;color:var(--txt-dim);
+  letter-spacing:.6px;font-weight:600;background:#fff;border-bottom:1px solid var(--line);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(21,163,91,.18);display:inline-block;margin-right:6px;animation:pulse 2.4s infinite;}
+@keyframes pulse{50%{opacity:.45;}}
+
+/* --- BOOT / WILLKOMMEN OVERLAY (Navy-Branding) --- */
+#boot{position:fixed;inset:0;z-index:100;background:radial-gradient(circle at 50% 32%,#143a73,#081a36 72%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;
+  transition:opacity .7s ease;}
+#boot .ring{width:128px;height:128px;border-radius:50%;position:relative;margin-bottom:30px;}
+#boot .ring:before,#boot .ring:after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid transparent;}
+#boot .ring:before{border-top-color:#4d92f0;border-right-color:#4d92f0;animation:spin 1.4s linear infinite;
+  box-shadow:0 0 24px rgba(77,146,240,.5);}
+#boot .ring:after{inset:16px;border-bottom-color:rgba(120,170,240,.6);border-left-color:rgba(120,170,240,.6);animation:spin 2s linear infinite reverse;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.lern-item{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--linie);font-size:13px;gap:10px;}
-.del{color:#b91c1c;cursor:pointer;font-size:11px;white-space:nowrap;}
-/* Login */
-.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-.login-card{background:#fff;border-radius:22px;padding:36px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.4);}
-.login-logo{font-size:38px;font-weight:300;letter-spacing:10px;color:var(--blau-d);}
-.login-sub{font-size:10px;letter-spacing:4px;color:var(--grau);margin:6px 0 28px;}
-.login-card input{text-align:center;font-size:20px;letter-spacing:4px;margin-bottom:16px;}
-/* Büro Kacheln */
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px;}
-.tile{background:#fff;border-radius:16px;padding:18px 14px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;}
-.tile-ico{font-size:30px;margin-bottom:8px;}
-.tile-name{font-size:13px;font-weight:700;color:var(--blau-d);}
-.tile-soon{font-size:9px;color:#fff;background:var(--gold);padding:2px 7px;border-radius:8px;position:absolute;top:8px;right:8px;font-weight:600;}
-.tile.aktiv{background:linear-gradient(135deg,var(--blau),var(--blau-dd));}
-.tile.aktiv .tile-name{color:#fff;}
-.section-title{color:#fff;font-size:13px;font-weight:600;letter-spacing:1px;margin:18px 14px 2px;opacity:.7;text-transform:uppercase;}
-.zurueck{color:#9db8dd;background:none;border:none;font-size:14px;padding:14px;cursor:pointer;font-family:inherit;}
+#boot .core{position:absolute;inset:42px;border-radius:50%;background:radial-gradient(circle,#fff,#4d92f0 70%);
+  box-shadow:0 0 30px #4d92f0;animation:pulse 1.6s infinite;}
+#boot .lines{font-family:'SF Mono',ui-monospace,monospace;font-size:12px;color:#9fc2f4;text-align:left;
+  min-height:90px;letter-spacing:1px;line-height:2;}
+#boot .greet{font-size:26px;font-weight:300;letter-spacing:1px;color:#fff;margin-top:26px;opacity:0;transition:opacity .8s;}
+#boot .greet b{font-weight:700;color:#7fb0f4;}
+#boot .greet small{display:block;font-size:12px;color:#9fb3d0;letter-spacing:2px;margin-top:10px;}
+
+/* --- KARTEN / SEKTIONEN --- */
+.section-title{font-size:11px;font-weight:700;letter-spacing:1.4px;
+  color:var(--cyan);margin:22px 16px 6px;text-transform:uppercase;}
+.scan-btn{cursor:pointer;color:var(--cyan);border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:600;transition:background .15s;box-shadow:var(--shadow);}
+.scan-btn:hover{background:var(--cyan-soft);}
+.scan-btn:active{transform:scale(.96);}
+.dash-bar{display:flex;justify-content:flex-end;margin:12px 16px 0;}
+/* Tagesfokus (Navy-Akzentkarte) */
+.fokus{margin:12px 16px 0;background:linear-gradient(140deg,var(--navy),var(--navy2));border:none;
+  border-radius:18px;padding:18px;box-shadow:var(--shadow-lg);}
+.fokus-h{font-size:15px;font-weight:800;color:#fff;margin-bottom:10px;}
+.fokus-i{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid rgba(255,255,255,.12);cursor:pointer;}
+.fokus-i:first-of-type{border-top:none;}
+.fokus-n{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;background:var(--cyan);}
+.fokus-n.rot{background:var(--red);}.fokus-n.gelb{background:var(--gold);}.fokus-n.gruen{background:var(--green);}
+.fokus-i .tt{font-size:13.5px;font-weight:600;color:#fff;}
+.fokus-i .ta{font-size:11px;color:#a9c4ea;margin-top:1px;}
+/* Akkordeon */
+.acc{margin:12px 16px 0;background:var(--glass);border:1px solid var(--line);border-radius:15px;overflow:hidden;box-shadow:var(--shadow);}
+.acc-h{display:flex;align-items:center;gap:10px;padding:15px 16px;cursor:pointer;}
+.acc-c{color:var(--cyan);font-size:11px;transition:transform .2s;display:inline-block;}
+.acc-t{flex:1;font-size:13.5px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.acc-cnt{font-size:11px;color:#fff;background:var(--cyan);border-radius:7px;padding:1px 7px;font-weight:700;}
+.acc-b{padding:0 14px 14px;}
+.pill{font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:7px;text-transform:uppercase;}
+.pill.sm{font-size:8.5px;padding:1px 6px;}
+.pill.rot{background:rgba(226,59,78,.13);color:#c42a3b;}
+.pill.gelb{background:rgba(201,138,18,.15);color:#9a6a06;}
+.pill.gruen{background:rgba(21,163,91,.14);color:#0f7a44;}
+.task-btns{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+.tb{background:#fff;border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s;}
+.tb:hover{border-color:var(--cyan);}
+.tb.ok{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan-d);}
+.tb.no{color:var(--red);border-color:rgba(226,59,78,.35);}
+/* Agenten-Runde */
+.ar-prio{font-size:13px;color:var(--txt);margin-bottom:10px;} .ar-prio b{color:var(--cyan);} .ar-prio ol{margin:6px 0 0 18px;line-height:1.7;}
+.ar-feed{margin:10px 0;} .ar-feed b{color:var(--cyan);font-size:12.5px;}
+.ar-msg{font-size:12.5px;color:var(--txt);background:var(--cyan-soft);border-left:3px solid var(--cyan);border-radius:8px;padding:9px 11px;margin-top:7px;line-height:1.5;}
+.ar-from{color:var(--cyan-d);font-weight:700;display:block;font-size:11px;margin-bottom:2px;}
+.ar-funde{margin-top:10px;} .ar-ag{margin-top:8px;font-size:12.5px;} .ar-ag b{color:var(--navy);} .ar-ag ul{margin:3px 0 0 16px;color:var(--txt-dim);line-height:1.5;}
+.agent-funde{background:var(--glass-2);border:1px solid var(--line);border-radius:13px;padding:14px 15px;margin:8px 16px;}
+.agent-funde b{color:var(--cyan);font-size:13px;} .agent-funde ul{margin:6px 0 0 16px;color:var(--txt);line-height:1.6;font-size:13px;}
+/* Aktivitaets-Protokoll */
+.akt-feed{display:flex;flex-direction:column;gap:2px;}
+.akt-row{display:flex;gap:11px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line);}
+.akt-row:last-child{border-bottom:none;}
+.akt-ico{font-size:17px;flex-shrink:0;margin-top:1px;}
+.akt-t{font-size:13px;color:var(--txt);line-height:1.45;} .akt-t b{color:var(--cyan);}
+.akt-z{font-size:10.5px;color:var(--txt-dim);margin-top:2px;}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:20px 18px;margin:14px 16px;
+  box-shadow:var(--shadow);}
+h2{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.intro{font-size:13px;color:var(--txt-dim);margin-bottom:14px;line-height:1.6;}
+
+/* --- DASHBOARD --- */
+.dash-head{margin:14px 16px 0;}
+.dash-hi{font-size:22px;font-weight:300;letter-spacing:.3px;color:var(--navy);}
+.dash-hi b{font-weight:800;color:var(--cyan);}
+.dash-stats{display:flex;gap:11px;margin-top:12px;flex-wrap:wrap;}
+.stat{flex:1;min-width:96px;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow);}
+.stat .n{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.5px;}
+.stat .l{font-size:10px;color:var(--txt-dim);letter-spacing:.6px;text-transform:uppercase;margin-top:3px;font-weight:600;}
+.stat.hot{border-color:rgba(226,59,78,.4);} .stat.hot .n{color:var(--red);}
+.prio-group{margin:8px 16px 4px;}
+.prio-lbl{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
+  letter-spacing:.8px;color:var(--txt-dim);margin:14px 0 8px;text-transform:uppercase;}
+.prio-dot{width:9px;height:9px;border-radius:50%;}
+.prio-dot.rot{background:var(--red);box-shadow:0 0 0 3px rgba(226,59,78,.18);}
+.prio-dot.gelb{background:var(--gold);box-shadow:0 0 0 3px rgba(201,138,18,.18);}
+.prio-dot.gruen{background:var(--green);box-shadow:0 0 0 3px rgba(21,163,91,.18);}
+.prio-list{display:flex;flex-direction:column;gap:9px;}
+.task{display:flex;align-items:center;gap:11px;background:var(--glass);border:1px solid var(--line);border-radius:14px;
+  padding:14px 15px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s,border-color .2s,box-shadow .2s;}
+.task:hover{box-shadow:var(--shadow-lg);}
+.task:active{transform:scale(.98);}
+.task.rot{border-left:4px solid var(--red);}
+.task.gelb{border-left:4px solid var(--gold);}
+.task.gruen{border-left:4px solid var(--green);}
+.task .tx{flex:1;min-width:0;}
+.task .tt{font-size:14px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.task .ta{font-size:11.5px;color:var(--cyan);margin-top:2px;font-weight:600;}
+.task .go{color:var(--cyan);font-size:18px;flex-shrink:0;}
+.prio-empty{font-size:12px;color:var(--txt-dim);padding:4px 2px;opacity:.8;}
+/* KI-Guthaben-Warnung */
+.ki-alert{margin:12px 16px 0;padding:14px 16px;border-radius:14px;font-size:13px;line-height:1.5;
+  background:linear-gradient(135deg,#e23b4e,#c42333);color:#fff;font-weight:600;
+  box-shadow:0 10px 26px rgba(226,59,78,.28);}
+.ki-alert b{color:#fff;}
+.ki-alert.warn{background:linear-gradient(135deg,#d99a1e,#b9790f);box-shadow:0 10px 24px rgba(201,138,18,.26);}
+.ki-alert.warn.gelb{}
+/* Mert Aldemir Tagesplan (Navy-Akzentkarte) */
+.mert-card{margin:12px 16px 0;background:linear-gradient(140deg,var(--navy),var(--navy2));border:none;
+  border-radius:18px;padding:18px;box-shadow:var(--shadow-lg);}
+.mert-head{display:flex;align-items:center;gap:13px;margin-bottom:12px;}
+.mert-av{width:44px;height:44px;border-radius:13px;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 6px 16px rgba(31,111,224,.4);}
+.mert-nm{font-weight:800;font-size:15px;color:#fff;}
+.mert-rl{font-size:10.5px;color:#9fc2f4;letter-spacing:.3px;margin-top:2px;}
+.mert-txt{font-size:14px;line-height:1.65;color:#dce7f6;white-space:pre-wrap;}
+.mert-txt b{color:#7fb0f4;}
+.mert-refresh{margin-top:14px;width:100%;padding:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.mert-refresh:hover{background:rgba(255,255,255,.2);}
+/* Aufgaben-Detail */
+.task{align-items:flex-start;}
+.task-ico{font-size:20px;flex-shrink:0;margin-top:1px;}
+.task-why{font-size:12.5px;color:var(--txt-dim);margin-top:8px;line-height:1.5;}
+.task-go{display:block;margin-top:9px;background:var(--cyan-soft);border:1px solid var(--cyan);color:var(--cyan-d);border-radius:9px;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.task.done{opacity:.55;}
+.task.done .tt{text-decoration:line-through;}
+/* Google Ads */
+.ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-bottom:15px;}
+.ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:13px;}
+.ads-stat .n{font-size:20px;font-weight:800;color:var(--navy);}
+.ads-stat .l{font-size:10px;color:var(--txt-dim);letter-spacing:.5px;text-transform:uppercase;margin-top:3px;font-weight:600;}
+.ads-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.ads-tbl th{text-align:left;color:var(--cyan);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:7px 4px;border-bottom:2px solid var(--line);}
+.ads-tbl td{padding:9px 4px;border-bottom:1px solid var(--line);color:var(--txt);}
+.ads-tbl td:nth-child(n+2){text-align:right;white-space:nowrap;}
+.spinner-mini{font-size:12px;color:var(--txt-dim);}
+/* KI-Empfehlungen */
+.reco{background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px;}
+.reco.rot{border-left:4px solid var(--red);}
+.reco.gelb{border-left:4px solid var(--gold);}
+.reco.gruen{border-left:4px solid var(--green);}
+.reco-prio{font-size:10px;letter-spacing:1px;color:var(--txt-dim);margin-bottom:6px;font-weight:700;text-transform:uppercase;}
+.reco-tit{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:8px;line-height:1.35;}
+.reco-line{font-size:13px;color:var(--txt);margin-bottom:5px;line-height:1.5;}
+.reco-line b{color:var(--cyan);}
+.reco-meta{font-size:12px;color:var(--green);margin:8px 0;font-weight:700;}
+.reco-steps{font-size:12px;color:var(--txt-dim);background:var(--cyan-soft);border-radius:9px;padding:9px 11px;margin-bottom:11px;line-height:1.5;}
+.reco-btns{display:flex;gap:8px;}
+.reco-btns .btn{padding:11px;font-size:13px;width:auto;}
+.reco-ok{flex:2;}
+.reco-later{flex:1;}
+.reco-result{margin-top:10px;padding:11px 13px;border-radius:10px;font-size:12.5px;line-height:1.5;
+  background:rgba(201,138,18,.10);border:1px solid rgba(201,138,18,.35);color:#9a6a06;}
+.reco-result.done{background:rgba(21,163,91,.10);border-color:rgba(21,163,91,.35);color:#0f7a44;}
+/* Morgen-Briefing */
+.briefing{margin:12px 16px 0;background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);}
+.briefing h3{font-size:13px;color:var(--cyan);margin-bottom:9px;letter-spacing:.6px;font-weight:700;text-transform:uppercase;}
+.briefing .bl{font-size:13px;color:var(--txt);padding:6px 0;display:flex;gap:9px;line-height:1.45;}
+.briefing .bl b{color:var(--navy);}
+
+/* --- FREIGABEN / ENTSCHEIDUNGEN (Baustein A) --- */
+.fg-titel{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 16px 4px;
+  font-size:14px;font-weight:800;color:var(--navy);}
+.fg-count{display:inline-flex;min-width:22px;height:22px;align-items:center;justify-content:center;padding:0 7px;
+  background:var(--red);color:#fff;border-radius:11px;font-size:12px;font-weight:800;margin-left:4px;}
+.fg-check{font-size:11.5px;font-weight:600;color:var(--cyan);border:1px solid var(--line);background:#fff;
+  border-radius:9px;padding:6px 11px;cursor:pointer;box-shadow:var(--shadow);}
+.fg-check:active{transform:scale(.96);}
+.fg-card{background:var(--glass);border:1px solid var(--line);border-radius:15px;padding:15px 16px;margin:9px 16px 0;
+  box-shadow:var(--shadow);border-left:4px solid var(--cyan);}
+.fg-card.rot{border-left-color:var(--red);}
+.fg-card.gelb{border-left-color:var(--gold);}
+.fg-card.gruen{border-left-color:var(--green);}
+.fg-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.fg-cat{font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:7px;
+  background:var(--navy);color:#fff;}
+.fg-card.rot .fg-cat{background:var(--red);}
+.fg-card.gelb .fg-cat{background:var(--gold);}
+.fg-card.gruen .fg-cat{background:var(--green);}
+.fg-kanal{font-size:11px;color:var(--txt-dim);font-weight:600;margin-left:auto;}
+.fg-tit{font-size:14.5px;font-weight:700;color:var(--navy);line-height:1.35;}
+.fg-why{font-size:12.5px;color:var(--txt-dim);margin-top:4px;line-height:1.5;}
+.fg-reply{margin-top:10px;background:var(--glass-2);border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+  font-size:13px;color:var(--txt);line-height:1.55;white-space:pre-wrap;}
+.fg-reply .fg-lbl{display:block;font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--cyan);margin-bottom:5px;}
+.fg-edit{width:100%;margin-top:10px;border:1px solid var(--cyan);border-radius:11px;padding:11px 12px;font-size:13px;
+  font-family:inherit;color:var(--txt);background:#fff;line-height:1.55;resize:vertical;min-height:90px;outline:none;}
+.fg-btns{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+.fg-btns .tb{flex:1;min-width:120px;text-align:center;}
+.fg-done{margin-top:10px;font-size:12.5px;font-weight:700;color:var(--green);}
+
+/* --- AGENTEN-TEAM --- */
+.team{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 16px;}
+.agent-card{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px 14px;text-align:center;
+  cursor:pointer;box-shadow:var(--shadow);transition:transform .15s,border-color .2s,box-shadow .2s;}
+.agent-card:hover{box-shadow:var(--shadow-lg);border-color:var(--cyan);transform:translateY(-2px);}
+.agent-card:active{transform:scale(.97);}
+.agent-card.chef{grid-column:1 / -1;border:none;background:linear-gradient(140deg,var(--navy),var(--navy2));box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:14px;text-align:left;}
+.agent-card.chef .agent-nm{font-size:17px;color:#fff;}
+.agent-card.chef .agent-rl{color:#9fc2f4;}
+.agent-av{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,var(--cyan),var(--cyan-d));box-shadow:0 6px 16px rgba(31,111,224,.3);overflow:hidden;flex-shrink:0;}
+.agent-card.chef .agent-av{margin:0;}
+.agent-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.agent-av.big{width:76px;height:76px;}
+.agent-emoji{font-size:25px;align-items:center;justify-content:center;width:100%;height:100%;}
+.agent-av.big .agent-emoji{font-size:34px;}
+.agent-nm{font-weight:700;font-size:14px;color:var(--navy);}
+.agent-nm.big{font-size:22px;color:#fff;}
+.agent-rl{font-size:10.5px;color:var(--txt-dim);margin-top:3px;line-height:1.35;}
+.agent-rl.big{font-size:12px;margin-bottom:12px;color:#9fc2f4;}
+.agent-hero{display:flex;align-items:center;gap:16px;background:linear-gradient(140deg,var(--navy),var(--navy2));border:none;
+  border-radius:20px;padding:20px;margin:12px 16px 0;box-shadow:var(--shadow-lg);}
+.agent-talk{margin-top:6px;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));color:#fff;border:none;
+  border-radius:11px;padding:10px 15px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+.agent-area{display:flex;align-items:center;justify-content:space-between;background:var(--glass);border:1px solid var(--line);
+  border-radius:13px;padding:16px;margin:10px 16px;cursor:pointer;font-size:14px;font-weight:600;color:var(--navy);box-shadow:var(--shadow);transition:border-color .2s;}
+.agent-area:hover{border-color:var(--cyan);}
+.agent-area:active{transform:scale(.98);}
+.agent-area .go{color:var(--cyan);font-size:18px;}
+
+/* --- KACHELN --- */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 16px;}
+.tile{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px 15px;text-align:left;
+  cursor:pointer;position:relative;box-shadow:var(--shadow);transition:transform .15s, border-color .2s, box-shadow .2s;overflow:hidden;}
+.tile:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.tile:active{transform:scale(.97);}
+.tile:before{content:'';position:absolute;top:-40%;right:-40%;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,var(--cyan-soft),transparent 70%);}
+.tile.aktiv{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),var(--shadow);}
+.tile-ico{font-size:26px;margin-bottom:11px;}
+.tile-name{font-size:14px;font-weight:700;color:var(--navy);}
+.tile-desc{font-size:10.5px;color:var(--txt-dim);margin-top:3px;line-height:1.4;}
+.tile-tag{font-size:8px;color:#fff;background:var(--cyan);padding:3px 7px;border-radius:7px;position:absolute;
+  top:10px;right:10px;font-weight:700;letter-spacing:.5px;}
+.tile-tag.soon{background:var(--gold);}
+
+/* --- CHAT --- */
+.chat-wrap{margin:0 16px;}
+.chat-head{display:flex;align-items:center;gap:11px;margin:10px 0 14px;}
+.chat-head .av{width:44px;height:44px;border-radius:13px;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));
+  display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 16px rgba(31,111,224,.35);}
+.chat-head .nm{font-weight:800;font-size:15px;color:var(--navy);}
+.chat-head .st{font-size:10px;color:var(--green);letter-spacing:.6px;font-weight:600;}
+.chat-log{display:flex;flex-direction:column;gap:12px;padding:6px 0 4px;min-height:120px;}
+.msg{max-width:88%;padding:12px 15px;border-radius:16px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word;}
+.msg.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:5px;color:var(--txt);box-shadow:var(--shadow);}
+.msg.me{align-self:flex-end;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));color:#fff;border-bottom-right-radius:5px;}
+.msg.ai b{color:var(--cyan);}
+.typing{display:inline-flex;gap:4px;align-items:center;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:blink 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,60%,100%{opacity:.25;}30%{opacity:1;}}
+
+/* Kalkulations-Ergebnis-Karte im Chat (Navy-Akzent) */
+.calc-card{align-self:stretch;max-width:100%;background:linear-gradient(140deg,var(--navy),var(--navy2));
+  border:none;border-radius:16px;padding:18px;box-shadow:var(--shadow-lg);}
+.calc-card .lbl{font-size:10px;letter-spacing:1.5px;color:#9fc2f4;text-transform:uppercase;font-weight:700;}
+.calc-card .big{font-size:34px;font-weight:800;color:#fff;margin:4px 0 2px;letter-spacing:-.5px;}
+.calc-card .meta{font-size:12px;color:#a9c4ea;border-top:1px solid rgba(255,255,255,.14);padding-top:10px;margin-top:10px;line-height:1.6;}
+.calc-card table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+.calc-card td{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.12);color:#dce7f6;}
+.calc-card td:last-child{text-align:right;font-weight:700;white-space:nowrap;color:#fff;}
+.calc-card .copybtn{margin-top:13px;width:100%;padding:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);
+  color:#fff;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* Eingabezeile */
+.composer{position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 62%,transparent);padding:10px 16px calc(14px + env(safe-area-inset-bottom));margin-top:8px;}
+.composer-in{display:flex;gap:9px;align-items:flex-end;background:#fff;border:1px solid var(--line);
+  border-radius:18px;padding:7px 7px 7px 16px;box-shadow:var(--shadow);}
+.composer textarea{flex:1;background:transparent;border:none;color:var(--txt);font-size:15px;font-family:inherit;
+  resize:none;outline:none;max-height:130px;line-height:1.4;padding:8px 0;}
+.send{width:42px;height:42px;border-radius:13px;border:none;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));
+  color:#fff;font-size:19px;cursor:pointer;flex-shrink:0;box-shadow:0 6px 16px rgba(31,111,224,.4);display:flex;align-items:center;justify-content:center;}
+.send:active{transform:scale(.92);}
+.send:disabled{opacity:.4;box-shadow:none;}
+.quick{display:flex;gap:8px;overflow-x:auto;padding:0 16px 4px;margin-bottom:2px;-webkit-overflow-scrolling:touch;}
+.quick::-webkit-scrollbar{display:none;}
+.qchip{flex-shrink:0;padding:9px 15px;border-radius:13px;border:1px solid var(--line);background:#fff;
+  color:var(--cyan);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:var(--shadow);}
+.qchip:active{transform:scale(.95);}
+
+/* --- BUTTONS / FORM --- */
+.btn{width:100%;padding:14px;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .1s,box-shadow .2s,filter .15s;}
+.btn-cyan{background:linear-gradient(140deg,var(--cyan),var(--cyan-d));color:#fff;box-shadow:0 8px 20px rgba(31,111,224,.32);}
+.btn-cyan:hover{filter:brightness(1.05);}
+.btn-cyan:active{transform:scale(.98);}
+.btn-ghost{background:#fff;color:var(--cyan);border:1px solid var(--line);box-shadow:var(--shadow);}
+.btn-ghost:hover{border-color:var(--cyan);}
+input[type=password],input[type=text]{width:100%;padding:14px;border:1px solid var(--line);border-radius:13px;font-size:16px;
+  font-family:inherit;background:#fff;color:var(--txt);outline:none;transition:border-color .15s,box-shadow .15s;}
+input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-soft);}
+label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:14px 0 6px;letter-spacing:.3px;}
+.zurueck{color:var(--txt-dim);background:none;border:none;font-size:13px;padding:16px;cursor:pointer;font-family:inherit;width:100%;letter-spacing:.3px;font-weight:600;}
+.zurueck:hover{color:var(--cyan);}
+.msg-ok{color:var(--green);font-size:13px;font-weight:600;text-align:center;margin-top:10px;min-height:18px;}
+.fehler{background:rgba(226,59,78,.10);color:#c42a3b;border:1px solid rgba(226,59,78,.35);padding:12px;border-radius:11px;font-size:13px;margin:10px 0 0;}
+.lern-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;gap:10px;color:var(--txt);}
+.del{color:var(--red);cursor:pointer;font-size:11px;white-space:nowrap;font-weight:600;}
+
+/* --- LOGIN (Navy-Branding) --- */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;position:relative;z-index:2;
+  background:radial-gradient(circle at 50% 30%,#143a73,#081a36 75%);}
+.login-card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:42px 32px;max-width:390px;width:100%;
+  text-align:center;box-shadow:0 30px 70px rgba(8,26,54,.45);}
+.login-logo{font-size:42px;font-weight:800;letter-spacing:4px;color:var(--navy);}
+.login-sub{font-size:9px;letter-spacing:5px;color:var(--cyan);margin:10px 0 30px;font-weight:700;}
+.login-card input{text-align:center;font-size:20px;letter-spacing:6px;margin-bottom:16px;}
+
+/* --- DESKTOP: volle Breite, mehrspaltig, keine leeren Bereiche --- */
+@media(min-width:1000px){
+  .wrap{max-width:1180px;padding-left:8px;padding-right:8px;}
+  header{padding-left:30px;padding-right:30px;}
+  .statusbar{padding-left:30px;padding-right:30px;}
+  .dash-stats{gap:14px;}
+  .stat{min-width:130px;}
+  .team{grid-template-columns:repeat(4,1fr);}
+  .tiles{grid-template-columns:repeat(4,1fr);}
+  .ads-sum{grid-template-columns:repeat(4,1fr);}
+  .section-title{margin-left:8px;}
+}
+@media(min-width:1500px){
+  .wrap{max-width:1360px;}
+  .team{grid-template-columns:repeat(6,1fr);}
+  .tiles{grid-template-columns:repeat(4,1fr);}
+}
 </style>
 </head>
 <body>
+<div class="bg-fx"><div class="glow"></div><div class="glow2"></div><div class="grid"></div><div class="scan"></div></div>
+<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
 
-<?php if (!$eingeloggt): ?>
-<div class="login-wrap">
+<!-- Hintergrund-Song (eigene Datei nach assets/audio/ hochladen) – läuft max. 1 Minute -->
+<audio id="bgm" preload="auto">
+  <source src="assets/audio/oh-intro.mp3" type="audio/mpeg">
+  <source src="assets/audio/oh-intro.m4a" type="audio/mp4">
+  <source src="assets/audio/oh-intro.ogg" type="audio/ogg">
+</audio>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap"<?= $eingeloggt ? ' style="display:none"' : '' ?>>
   <div class="login-card">
     <div class="login-logo">OH</div>
-    <div class="login-sub">HAUSTECHNIK · BÜRO</div>
-    <form method="POST">
-      <input type="password" name="login_pw" placeholder="Passwort" autofocus inputmode="text">
-      <button type="submit" class="btn-green" style="margin-top:0">Anmelden</button>
+    <div class="login-sub">SYSTEM · ZUGANG</div>
+    <form id="loginForm" method="POST">
+      <input type="password" name="login_pw" id="loginPw" placeholder="• • • •" autofocus inputmode="text">
+      <button type="submit" class="btn btn-cyan">Authentifizieren</button>
     </form>
-    <?php if (!empty($login_fehler)): ?>
-      <div class="fehler" style="margin-top:14px">Falsches Passwort.</div>
-    <?php endif; ?>
+    <div class="fehler" id="loginErr" style="margin-top:16px;display:<?= !empty($login_fehler) ? 'block' : 'none' ?>">Zugang verweigert.</div>
   </div>
 </div>
 
-<?php else: ?>
-<div class="wrap">
+<!-- BOOT / WILLKOMMEN -->
+<div id="boot" style="display:none">
+  <div class="ring"><div class="core"></div></div>
+  <div class="lines" id="bootLines"></div>
+  <div class="greet" id="greet"></div>
+</div>
+
+<div class="wrap" style="visibility:hidden" id="app">
 <header>
-  <div><div class="logo">OH</div><div class="logo-sub">HAUSTECHNIK · BÜRO</div></div>
+  <div class="brand" onclick="goHome()" style="cursor:pointer"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
   <div class="hbtns">
+    <button class="icobtn" id="muteBtn" onclick="toggleMute()" title="Ton an/aus">&#128266;</button>
     <button class="icobtn" onclick="toggleSettings()" title="Einstellungen">&#9881;</button>
-    <a href="?logout=1" class="icobtn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" title="Abmelden">&#10162;</a>
+    <a href="?logout=1" class="icobtn" title="Abmelden">&#10162;</a>
   </div>
 </header>
+<div class="statusbar">
+  <span><span class="dot"></span>KI AKTIV</span>
+  <span id="clock">--:--:--</span>
+  <span style="margin-left:auto" id="datum"></span>
+</div>
 
-<!-- ÜBERSICHT / BÜRO -->
+<!-- HOME / DASHBOARD -->
 <div id="s-home">
-  <div class="section-title">Werkzeuge</div>
-  <div class="tiles">
-    <div class="tile aktiv" onclick="zeige('form')">
-      <div class="tile-ico">&#129518;</div>
-      <div class="tile-name">Kalkulator</div>
-    </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: Automatische Lead-Auswertung – kalt/warm Bewertung deiner Anfragen.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#128202;</div>
-      <div class="tile-name">Leads</div>
-    </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: KI schreibt Angebote automatisch raus.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#128196;</div>
-      <div class="tile-name">Angebote</div>
-    </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: KI beantwortet E-Mails automatisch.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#9993;</div>
-      <div class="tile-name">E-Mails</div>
-    </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: KI beantwortet Google-Bewertungen automatisch.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#11088;</div>
-      <div class="tile-name">Bewertungen</div>
-    </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: Automatische Bewertungs-Anfrage nach 5 Tagen + Kundengewinnung.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#128226;</div>
-      <div class="tile-name">Marketing</div>
-    </div>
+  <div class="dash-head">
+    <div class="dash-hi" id="dashHi">Kommandozentrale</div>
+    <div class="dash-stats" id="dashStats"></div>
   </div>
+  <div id="kiAlert" class="ki-alert" style="display:none"></div>
+  <div id="martWarn" class="ki-alert warn" style="display:none"></div>
+
+  <!-- FREIGABEN / ENTSCHEIDUNGEN (Baustein A) -->
+  <div id="freigabenWrap" style="display:none">
+    <div class="fg-titel">
+      <span>✅ Freigaben &amp; Entscheidungen <span class="fg-count" id="fgCount">0</span></span>
+      <span class="fg-check" id="fgCheckBtn" onclick="triageNow(this)">🔄 Nachrichten prüfen</span>
+    </div>
+    <div id="freigabenBox"></div>
+  </div>
+
+  <div class="dash-bar"><span class="scan-btn" onclick="scanNow(this)">↻ Aktualisieren</span></div>
+
+  <!-- Tagesfokus -->
+  <div class="fokus" id="fokus" style="display:none">
+    <div class="fokus-h">🎯 Deine wichtigsten Aufgaben heute</div>
+    <div id="fokusList"></div>
+  </div>
+
+  <!-- Mert + Agenten-Bereiche (einklappbar) -->
+  <div id="dashAcc"></div>
+
+  <div class="section-title">// Dein digitales Team</div>
+  <div class="team" id="teamGrid"></div>
+</div>
+
+<!-- AGENT-DETAIL -->
+<div id="s-agent" style="display:none">
+  <div class="agent-hero" id="agentHero"></div>
+  <div class="section-title">// Zuständigkeiten</div>
+  <div id="agentAreas"></div>
+  <button class="zurueck" onclick="goHome()">&larr; Zurück zum Team</button>
+</div>
+
+<!-- GOOGLE ADS -->
+<div id="s-ads" style="display:none">
+  <div class="card">
+    <h2>&#129302; Dein KI-Geschäftsführer</h2>
+    <p class="intro">Findet Chancen, mehr hochwertige Anfragen zu gewinnen (Altbau, Sanierung, Smart-Home) und Werbekosten zu senken.</p>
+    <div id="recoBody"><div class="prio-empty">Lade Empfehlungen …</div></div>
+    <button class="btn btn-cyan" style="margin-top:12px" id="recoFreshBtn" onclick="recoFresh()">🔍 Markt jetzt neu prüfen</button>
+  </div>
+  <div class="card">
+    <h2>&#128200; Deine Ads-Zahlen (7 Tage)</h2>
+    <div id="adsBody"><div class="spinner-mini">Lade …</div></div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="loadAds()">↻ Aktualisieren</button>
+  </div>
+  <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
+</div>
+
+<!-- DILARA · WEBSITE -->
+<div id="s-web" style="display:none">
+  <div class="card">
+    <h2>&#127760; Dilara · Website-Optimierung</h2>
+    <p class="intro">Dilara liest Deine echte Website und schlägt konkrete Verbesserungen für mehr Anfragen vor.</p>
+    <div id="webBody"><div class="prio-empty">Lade …</div></div>
+    <button class="btn btn-cyan" style="margin-top:12px" id="webBtn" onclick="webAnalyze()">🔍 Website jetzt analysieren</button>
+  </div>
+  <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
 </div>
 
 <!-- SETTINGS -->
 <div id="s-settings" style="display:none">
   <div class="card">
-    <h2>&#9881; API-Schlüssel</h2>
-    <p class="intro">Dein Anthropic-Schlüssel von <b>console.anthropic.com</b>. Wird nur in diesem Gerät gespeichert.</p>
-    <label>API-Schlüssel</label>
-    <input type="password" id="apiIn" placeholder="sk-ant-...">
-    <button class="btn-green" style="margin-top:12px" onclick="saveKey()">Speichern</button>
-    <div id="keyMsg" class="kopiert"></div>
+    <h2>&#9881; KI-Schlüssel (Server)</h2>
+    <p class="intro">Dein Anthropic-Schlüssel von <b>console.anthropic.com</b>. Wird sicher auf dem Server gespeichert und auch für die Automatik (Cron) genutzt.</p>
+    <label>Anthropic API-Schlüssel</label>
+    <input type="password" id="apiIn" placeholder="sk-ant-... (leer lassen = unverändert)">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveKey()">Speichern</button>
+    <div id="keyMsg" class="msg-ok"></div>
   </div>
   <div class="card">
-    <h2>&#128218; Gelernte Korrekturen</h2>
-    <div id="lernListe"><p style="font-size:13px;color:#9ca3af">Noch keine.</p></div>
+    <h2>&#9993; Gmail-Versand</h2>
+    <p class="intro">Für automatische E-Mails (Angebote, Follow-ups, Bewertungs-Anfragen) über <b>oh.haustechnik@gmail.com</b>. Du brauchst ein <b>App-Passwort</b> (Google-Konto → Sicherheit → 2-Faktor → App-Passwörter), NICHT Dein normales Passwort.</p>
+    <label>Gmail-Adresse</label>
+    <input type="text" id="gmailUser" placeholder="oh.haustechnik@gmail.com">
+    <label>App-Passwort (16 Zeichen)</label>
+    <input type="password" id="gmailPass" placeholder="•••• •••• •••• ••••  (leer = unverändert)">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveGmail()">Speichern</button>
+    <div id="gmailMsg" class="msg-ok"></div>
   </div>
-  <button class="zurueck" onclick="zeige('home')" style="width:100%">&larr; Zurück zur Übersicht</button>
+  <div class="card">
+    <h2>&#128202; Google Ads</h2>
+    <p class="intro">Für die automatische Kampagnen-Überwachung. Die 5 Zugangsdaten aus der Einrichtung hier eintragen (leere Felder bleiben unverändert).</p>
+    <label>Developer Token</label>
+    <input type="password" id="adsDev" placeholder="••• (leer = unverändert)">
+    <label>Client-ID</label>
+    <input type="password" id="adsCid" placeholder="••• .apps.googleusercontent.com">
+    <label>Client-Secret</label>
+    <input type="password" id="adsSecret" placeholder="••• (leer = unverändert)">
+    <label>Refresh-Token</label>
+    <input type="password" id="adsRefresh" placeholder="1// ••• (leer = unverändert)">
+    <label>Kundennummer (Werbekonto)</label>
+    <input type="text" id="adsCustomer" placeholder="123-456-7890">
+    <label>Verwalterkonto-Nummer (MCC)</label>
+    <input type="text" id="adsLogin" placeholder="246-895-3721">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveAds()">Speichern</button>
+    <div id="adsMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#128241; WhatsApp Business</h2>
+    <p class="intro">Für eingehende WhatsApp-Nachrichten im Dashboard. Braucht die <b>Meta Cloud API</b> (Business-Konto + Nummer). Webhook-URL in Meta: <b>oh-haustechnik.de/whatsapp-webhook.php</b></p>
+    <label>Zugriffs-Token (Permanent Token)</label>
+    <input type="password" id="waToken" placeholder="••• (leer = unverändert)">
+    <label>Telefonnummer-ID</label>
+    <input type="text" id="waPhone" placeholder="z.B. 1098765432">
+    <label>Verify-Token (selbst ausgedacht, in Meta gleich eintragen)</label>
+    <input type="text" id="waVerify" placeholder="oh-wa">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveWa()">Speichern</button>
+    <div id="waMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#127760; Website-Adresse</h2>
+    <p class="intro">Für den automatischen Website-Check (Erreichbarkeit, Kontaktformular).</p>
+    <label>Adresse</label>
+    <input type="text" id="siteUrl" placeholder="https://oh-haustechnik.de">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveSite()">Speichern</button>
+    <div id="siteMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
+    <p class="intro">Das System lernt aus Deinen Korrekturen für genauere Preise.</p>
+    <div id="lernListe"></div>
+  </div>
+  <button class="zurueck" onclick="goHome()">&larr; Zurück zur Kommandozentrale</button>
 </div>
 
-<!-- KALKULATOR FORM -->
-<div id="s-form" style="display:none">
-  <div id="noKey" class="card" style="background:#fffbeb;border:1.5px solid #fcd34d;display:none">
-    <span style="font-size:13px;color:#92400e">&#9881; Bitte zuerst oben den API-Schlüssel eintragen (Zahnrad-Symbol).</span>
-  </div>
-  <div class="card">
-    <div class="badge">DEIN DIGITALER KALKULATOR</div>
-    <h2>Baustelle beschreiben</h2>
-    <p class="intro">Beschreib die Baustelle in eigenen Worten. Die KI rechnet Manntage, Material und Preis nach deiner Logik.</p>
-    <textarea id="beschr" placeholder="Beispiel: Wohnungssanierung 3 Zimmer, Unterputz, Altbau, neuer Hager Verteiler, Küche mit Herd und Spülmaschine, Demontage nötig, 15 km Fahrt"></textarea>
-    <label>Installationsart</label>
-    <div class="chips">
-      <button class="chip" onclick="setArt('Aufputz',this)">Aufputz</button>
-      <button class="chip on" onclick="setArt('Unterputz',this)">Unterputz</button>
-      <button class="chip" onclick="setArt('Gemischt',this)">Gemischt</button>
+<!-- CHAT (universal) -->
+<div id="s-chat" style="display:none">
+  <div class="chat-wrap">
+    <div class="chat-head">
+      <div class="av" id="chatIco">&#129518;</div>
+      <div><div class="nm" id="chatName">Kalkulator</div><div class="st">&#9679; ONLINE · bereit</div></div>
     </div>
-    <div class="row" style="margin-top:15px">
-      <div><label style="margin-top:0">m² (optional)</label><input type="number" id="qm" placeholder="z.B. 85" inputmode="numeric"></div>
-      <div><label style="margin-top:0">Fahrt km (opt.)</label><input type="number" id="km" placeholder="z.B. 15" inputmode="numeric"></div>
+    <div class="chat-log" id="chatLog"></div>
+  </div>
+  <div class="quick" id="quickRow"></div>
+  <div class="composer">
+    <div class="composer-in">
+      <textarea id="chatIn" rows="1" placeholder="Schreib einfach drauf los…"></textarea>
+      <button class="send" id="sendBtn" onclick="send()">&#10148;</button>
     </div>
-    <label>Wer stellt das Material?</label>
-    <select id="matQ">
-      <option value="ich">Ich (im Preis enthalten)</option>
-      <option value="bauseits">Bauseits (Kunde stellt Material)</option>
-    </select>
-    <div id="fehler" class="fehler" style="display:none"></div>
-    <button class="btn-green" onclick="kalk()">&#9889; Baustelle kalkulieren</button>
+    <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
   </div>
-  <button class="zurueck" onclick="zeige('home')" style="width:100%">&larr; Zurück zur Übersicht</button>
 </div>
 
-<!-- LOADING -->
-<div id="s-load" style="display:none;text-align:center;padding:80px 20px">
-  <div class="spinner"></div>
-  <p style="color:#cdd9ea;font-size:15px">Kalkuliert deine Baustelle …</p>
-  <p style="color:#7d93b3;font-size:13px;margin-top:8px">Arbeitszeit · Material · Preis</p>
-</div>
-
-<!-- RESULT -->
-<div id="s-result" style="display:none">
-  <div class="price-box">
-    <div class="price-lbl">Zielpreis (netto, 0% USt)</div>
-    <div class="price-num" id="r-ziel">–</div>
-    <div class="price-sub" id="r-sub"></div>
-  </div>
-  <div class="denkweg" id="r-denkweg"></div>
-  <div class="card">
-    <h2>&#129518; Kalkulation</h2>
-    <table class="kt"><tbody id="r-kt"></tbody></table>
-    <p style="font-size:12px;color:#9ca3af;margin-top:8px">68€×2=136€/Std · 8,5 Std/Tag · Material +10%</p>
-  </div>
-  <div class="card" id="r-matcard">
-    <h2>&#128230; Materialliste</h2>
-    <ul class="ml" id="r-mat"></ul>
-    <div class="warnung">&#9888;&#65039; Mengen nach Faustregeln geschätzt. Vor Bestellung prüfen.</div>
-  </div>
-  <div class="card">
-    <h2>&#128196; Angebotstext</h2>
-    <div class="at" id="r-at"></div>
-    <button class="btn-blue" onclick="kopier()">&#128203; Text kopieren</button>
-    <div class="kopiert" id="kopMsg"></div>
-  </div>
-  <div class="lern-card">
-    <h2 style="color:#166534">&#127919; Stimmt die Kalkulation?</h2>
-    <p class="intro">Korrigiere hier – die App lernt für das nächste Mal.</p>
-    <textarea id="korr" placeholder="z.B. 'Zu wenig Tage, Altbau braucht 5 Tage Rohmontage'" style="min-height:80px"></textarea>
-    <button class="btn-green" style="margin-top:10px" onclick="lernNeu()">Speichern & neu rechnen</button>
-    <div class="kopiert" id="lernMsg"></div>
-  </div>
-  <button class="btn-outline" style="margin:0 14px;width:calc(100% - 28px)" onclick="neuBau()">↺ Neue Baustelle</button>
-  <button class="zurueck" onclick="zeige('home')" style="width:100%">&larr; Zurück zur Übersicht</button>
-</div>
-</div>
+</div><!-- /app -->
 
 <script>
-const W=`KALKULATIONS-LOGIK OH Haustechnik (Kleinunternehmer, 0% USt):
-ARBEITSZEIT in MANNTAGEN:
-- Stundensatz Sanierung: 68€×2=136€/Std, Arbeitstag=8,5h
-- Wohnungssanierung 3Z UP Altbau: Rohmontage 4 Tage(2 Pers)+Fertigmontage 1,5T=8-11 Manntage
-- Rohmontage: Demontage(mehrere Std!),anzeichnen,fräsen,schlitzen,stemmen,Leitungen,Verteiler
-- Fertigmontage: Schalter/Steckdosen/Lampen,Verteiler anklemmen,messen,prüfen+Puffer
-- Aufputz(Zuleitung liegt): ca.2,5Std/Raum(4Steckdosen+Schalter+Lampe)
-- Unterputz: ca.4Std/Raum
-- Endpreis 3-Zimmer-Sanierung: 8.000-11.000€ inkl.Material
-MATERIAL:
-- NYM-J 3×1,5: ca.1,5m/m²+10%Verschnitt
-- Separate Verbraucher+10m Reserve: Herd→NYM5×2,5|Spülm/Waschm/Trockner→NYM3×2,5|DLE→NYM4×6
-- Dosen: 1 Steckdose=1Dose,Doppel=2Dosen
-- Verteiler: Hager VU48NC,2×FI40A,12×LSB16,1×LSB163pol,ÜSS Typ2
-- Material 3-Zimmer-Sanierung: ca.1.000-1.500€
-- Anfahrt>10km: 100-200€ Pauschale
-- Material immer +10% Aufschlag (Marge)
-VERHANDLUNG: bei wenig Auftragslage 1.000-1.500€ runter möglich (Zielpreis + Minimalpreis)`;
-
-let art='Unterputz',letzterT='',letzterF={};
+/* ============ KONFIG ============ */
+const MODEL='claude-sonnet-4-5';
 const gl=id=>document.getElementById(id);
-const eur=n=>(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 const getKey=()=>localStorage.getItem('oh_key')||'';
 const getLern=()=>{try{return JSON.parse(localStorage.getItem('oh_lern')||'[]');}catch(e){return[];}};
 const setLernS=a=>localStorage.setItem('oh_lern',JSON.stringify(a));
+const eur=n=>(+n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 
-function zeige(s){
-  ['home','settings','form','load','result'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+/* ============ KALKULATIONS-WISSEN ============ */
+const KALK_WISSEN=`KALKULATIONS-LOGIK OH Haustechnik (Kleinunternehmer, 0% USt):
+GRUNDLAGE: Stundensatz 68€×2=136€/Std, Arbeitstag=8,5h, also ca. 1.156€ Arbeitskosten pro Manntag.
+
+PRÄZISE FAUSTFORMELN (UNTERPUTZ-Sanierung, Endpreis inkl. Material):
+- 100 m² Unterputz = 8-9 Manntage  = 18.000-20.000 €
+- 150 m² Unterputz = 11-12 Manntage = 23.000-26.000 €
+- 200 m² Unterputz = 14-16 Manntage = 28.000-33.000 €
+- Dazwischen/darüber sinnvoll interpolieren, nie übertreiben.
+- AUFPUTZ: immer ca. 40 % GÜNSTIGER als Unterputz (weniger Schlitzen/Stemmen). Also Unterputz-Preis × 0,6.
+- GEMISCHT: zwischen Unterputz und Aufputz schätzen.
+
+ABLAUF: Rohmontage (Demontage, anzeichnen, fräsen, schlitzen, stemmen, Leitungen, Verteiler) + Fertigmontage (Schalter/Steckdosen/Lampen, Verteiler anklemmen, messen, prüfen) + Puffer.
+Altbau/Demontage kostet extra Zeit – im Zweifel oberes Ende der Spanne.
+
+MATERIAL (realistisch, NICHT übertreiben):
+- NYM-J 3×1,5: ca. 1,5 m/m² +10% Verschnitt
+- Separate Verbraucher +10m Reserve: Herd→NYM5×2,5 | Spülm/Waschm/Trockner→NYM3×2,5 | DLE→NYM4×6
+- Dosen: 1 Steckdose=1 Dose, Doppel=2 Dosen
+- Verteiler: Hager VU48NC, 2×FI 40A, 12×LSB16, 1×LSB16 3pol, ÜSS Typ2
+- Materialanteil grob: 100 m² ≈ 1.500-2.200 €, 150 m² ≈ 2.200-3.000 €, 200 m² ≈ 3.000-4.000 €
+- Material immer +10% Aufschlag (Marge), aber ehrlich kalkulieren
+- Anfahrt >10km: 100-200€ Pauschale
+
+VERHANDLUNG: bei wenig Auftragslage 1.000-1.500€ runter möglich (Zielpreis + Minimalpreis).
+ZIEL: perfekte, sofort versendbare Angebote – konkret, sauber, ohne Übertreibung.`;
+
+const FIRMA=`FIRMA: OH Haustechnik, Inhaber arbeitet als Elektriker/Haustechniker im Raum Nürnberg.
+Leistungen: Elektroinstallation, Netzwerkverkabelung, Schutz-/Sicherheitstechnik. Kleinunternehmer (0% USt).
+Stil: bodenständig, ehrlich, handwerklich, regional. Kunde steht im Mittelpunkt, kein Marketing-Blabla.
+GEMEINSAMES ZIEL DES GANZEN TEAMS: OH Haustechnik in 5 Monaten auf 1.000.000 € Umsatz bringen. Jede Entscheidung an diesem Ziel ausrichten (hochwertige Aufträge: Altbausanierung, Wohnungssanierung, Zähler, Smart-Home).`;
+
+/* ============ MODI ============ */
+const MODI={
+  kalk:{ name:'Kalkulator', ico:'\u{1F9EE}',
+    quick:['Wohnung 3 Zimmer Altbau, Unterputz sanieren','Neubau EFH komplett','Nur Verteiler tauschen','Smart-Home nachrüsten'],
+    system(){
+      const lern=getLern(); const lT=lern.length?`\n\nGELERNTE KORREKTUREN (unbedingt beachten):\n- ${lern.join('\n- ')}`:'';
+      return `Du bist der digitale Kalkulator von OH Haustechnik. Du sprichst locker, direkt und auf Augenhöhe mit dem Chef (Du-Form, kurz).
+${FIRMA}
+${KALK_WISSEN}${lT}
+
+ARBEITSWEISE:
+- Der Chef beschreibt eine Baustelle in eigenen Worten – oft unvollständig. Stell höchstens 1-2 kurze Rückfragen, wenn etwas Wichtiges fehlt (z.B. Aufputz/Unterputz, Material durch uns oder bauseits). Wenn genug Info da ist, RECHNE einfach.
+- Wenn Du eine vollständige Kalkulation hast, gib eine kurze Erklärung in normalem Text UND danach EINEN Block in genau diesem Format (nichts dahinter):
+<calc>{"zielpreis":<n>,"minimalpreis":<n>,"manntage":<n>,"arbeitsstunden":<n>,"arbeitskosten":<n>,"fahrtkosten":<n>,"material_mit_aufschlag":<n>,"denkweg":"<1 Satz>","material_liste":[{"pos":"x","menge":"x"}],"angebotstext":"<fertiger Angebotstext>"}</calc>
+- Zahlen sind reine Zahlen ohne €. Bei bauseits material_liste leer lassen.
+- Sei der proaktive Sparringspartner: weise auf Risiken hin (Altbau, Demontage), schlag Verhandlungsspielraum vor.`;
+    }},
+  marketing:{ name:'Marketing-KI', ico:'\u{1F680}',
+    quick:['Instagram-Post für ein fertiges Bad-Projekt','Google-Anzeige Elektriker Nürnberg','5 Reel-Ideen für diese Woche','Aktion für Winter-Flaute'],
+    system(){return `Du bist die Marketing-KI von OH Haustechnik – ein cleverer, regionaler Online-Marketing-Experte für Handwerker.
+${FIRMA}
+AUFGABE: Hilf dem Chef, mehr Anfragen zu bekommen. Du schreibst sofort einsatzbereite Inhalte: Instagram-/Facebook-Posts (mit Hashtags & Emojis, regional Nürnberg), Google-Anzeigentexte, Reel-/Story-Ideen, Flyer-Texte, Aktionen.
+STIL: handwerklich-bodenständig, kein leeres Buzzword-Marketing, vertrauenswürdig, lokal. Immer konkret und fertig zum Rauskopieren. Frag kurz nach, wenn ein Detail (Projektfoto, Leistung, Zielgruppe) fehlt, sonst leg direkt los. Du-Form mit dem Chef.`;}},
+  leads:{ name:'Leads', ico:'\u{1F4CA}',
+    quick:['Anfrage bewerten (Text einfügen)','Erstantwort schreiben','Nachfass-Nachricht nach 3 Tagen','Lead ist abgesprungen – zurückholen'],
+    system(){return `Du bist der Lead-Manager von OH Haustechnik. Du hilfst dem Chef, eingehende Kundenanfragen zu bearbeiten.
+${FIRMA}
+AUFGABE: (1) Anfragen bewerten – heiß/warm/kalt + kurze Begründung + Priorität. (2) Professionelle, freundliche Antworten formulieren (WhatsApp/E-Mail, Du oder Sie je nach Anfrage). (3) Nachfass-Nachrichten texten, die nicht aufdringlich wirken. (4) Vorschlagen, welche Infos noch fehlen, um ein Angebot zu machen.
+STIL: schnell, klar, verkaufsstark aber ehrlich. Gib Antworten fertig zum Rauskopieren. Du-Form mit dem Chef.`;}},
+  angebot:{ name:'Angebote', ico:'\u{1F4C4}',
+    quick:['Angebot aus Stichpunkten','Angebot freundlicher machen','Nachtrag formulieren','Angebot kürzen'],
+    system(){return `Du bist der Angebots-Assistent von OH Haustechnik. Aus Stichpunkten oder einer Kalkulation machst Du saubere, professionelle Angebotstexte.
+${FIRMA}
+Wichtig: Kleinunternehmer = 0% USt, kein USt-Ausweis. Struktur: Anrede, Leistungsbeschreibung, Hinweis zu Material (im Preis enthalten oder bauseits), Preis netto, Gültigkeit, freundlicher Abschluss. Liefere den Text fertig zum Rauskopieren. Du-Form mit dem Chef bei Rückfragen.`;}},
+  bewertung:{ name:'Bewertungen', ico:'⭐',
+    quick:['Antwort auf 5-Sterne-Bewertung','Antwort auf schlechte Bewertung','Kunden um Bewertung bitten','Mehrere Antworten generieren'],
+    system(){return `Du bist der Reputations-Assistent von OH Haustechnik. Du schreibst Antworten auf Google-Bewertungen.
+${FIRMA}
+Bei guten Bewertungen: herzlich, persönlich, danke. Bei schlechten: professionell, deeskalierend, lösungsorientiert, niemals streiten. Immer regional & menschlich. Liefere Antworten fertig zum Rauskopieren. Du-Form mit dem Chef bei Rückfragen.`;}},
+  berater:{ name:'Berater', ico:'\u{1F9E0}',
+    quick:['Wie gewinne ich mehr Aufträge?','Soll ich Preise erhöhen?','Tagesplanung für heute','Idee gegen Sommerloch'],
+    system(){return `Du bist der persönliche Business-Berater & Sparringspartner des Chefs von OH Haustechnik – wie ein cleverer Mitgründer, der Handwerk, Zahlen und Marketing versteht.
+${FIRMA}
+Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Marketing, Wachstum. Kurz, konkret, motivierend. Du-Form, auf Augenhöhe.`;}},
+  mert:{ name:'Mert Aldemir', ico:'\u{1F9E0}',
+    quick:['Was ist heute am wichtigsten?','Wann brauche ich einen Mitarbeiter?','Wo verliere ich Geld?','Wie komme ich schneller zur Million?'],
+    system(){return `Du bist Mert Aldemir, der digitale Geschäftsführer von OH Haustechnik. DEIN EINZIGES ZIEL: das Unternehmen in 5 Monaten Richtung 1.000.000 € Umsatz skalieren.
+${FIRMA}
+Du überwachst alle Bereiche und koordinierst Dein Team: Dilara (Marketing), Kaan (Kommunikation), Emre (Kalkulation/Angebote), Aylin (Buchhaltung), Yusuf (Projekte), Baran (Personal). Du erkennst Engpässe und Wachstumschancen, verteilst Aufgaben, setzt Prioritäten. Du denkst wie ein knallharter, kluger Geschäftsführer und bewertest jede Maßnahme danach, ob sie schneller Wachstum, mehr qualifizierte Anfragen oder mehr Umsatz bringt. Sprich einfach mit dem Chef (Du-Form), kein Fachchinesisch, ehrlich und motivierend.`;}},
+  dilara:{ name:'Dilara', ico:'\u{1F680}',
+    quick:['Was bringt heute mehr Anfragen?','Instagram-Post für ein Projekt','Website-Optimierung','Was macht die Konkurrenz?'],
+    system(){return `Du bist Dilara, die Marketing-Agentin von OH Haustechnik. Verantwortung: Google Ads, Website, Bewertungen, Social Media, Conversion-Optimierung, Konkurrenzanalyse, SEO, Suchtrends.
+${FIRMA}
+Dein Ziel: jeden Tag mehr hochwertige Anfragen und mehr Umsatz (Fokus Altbausanierung, Wohnungssanierung, Smart-Home). Du gibst konkrete, umsetzbare Vorschläge und fertige Inhalte (Posts, Anzeigen, Antworten). Du-Form mit dem Chef, einfach und klar.`;}},
+  kaan:{ name:'Kaan', ico:'\u{1F4AC}',
+    quick:['Antwort auf diese E-Mail','WhatsApp-Antwort formulieren','Wer wartet auf Rückmeldung?','Rückruf-Liste für heute'],
+    system(){return `Du bist Kaan, die Kommunikations-Agentin von OH Haustechnik. Verantwortung: Gmail, WhatsApp Business, Kontaktformulare, Kundenanfragen, Rückruflisten, offene Nachrichten.
+${FIRMA}
+Du kategorisierst und beantwortest Kundenkommunikation professionell und freundlich. Du erinnerst Dich an alle bisherigen Gespräche (siehe Gedächtnis). Du erstellst fertige Antwortvorschläge zum Rauskopieren/Senden. Du-Form mit dem Chef.`;}},
+  emre:{ name:'Emre', ico:'\u{1F9EE}',
+    quick:['Angebot aus dieser Anfrage','100 m² Altbau Unterputz kalkulieren','Nachkalkulation','Deckungsbeitrag prüfen'],
+    system(){return `Du bist Emre, die Kalkulations- & Angebots-Agentin von OH Haustechnik. Du analysierst Anfragen, kalkulierst Material & Arbeitsstunden und erstellst fertige Angebote.
+${FIRMA}
+${KALK_WISSEN}
+Wenn genug Infos da sind, erstelle einen vollständigen Angebotsvorschlag (Text + Preis), den der Chef nur prüfen und versenden muss. Bei Kalkulation nutze die Faustformeln. Du-Form mit dem Chef.`;}},
+  aylin:{ name:'Aylin', ico:'\u{1F4B0}',
+    quick:['Welche Rechnungen sind offen?','Mahnung vorbereiten','Gewinn-Übersicht','Was an Lexware übergeben?'],
+    system(){return `Du bist Aylin, die Buchhaltungs- & Finanz-Agentin von OH Haustechnik (Kleinunternehmer, 0% USt §19). Verantwortung: Rechnungen, Zahlungseingänge, offene Posten, Mahnungen, Gewinn/Kosten-Auswertung, Übergabe an Lexware Office.
+${FIRMA}
+Du bereitest alles vor, sodass der Chef nur „Übernehmen" drücken muss. Du rechnest sauber und erklärst einfach. Hinweis: Die direkte Lexware-Anbindung wird noch eingerichtet – bis dahin bereitest Du die Daten klar auf. Du-Form mit dem Chef.`;}},
+  yusuf:{ name:'Yusuf', ico:'\u{1F3D7}',
+    quick:['Tagesplan Baustellen','Materialliste für ein Projekt','Termin koordinieren','Projektfortschritt'],
+    system(){return `Du bist Yusuf, die Projekt- & Baustellen-Agentin von OH Haustechnik. Verantwortung: Baustellenplanung, Materialstatus, Termine, Monteure, Projektfortschritt.
+${FIRMA}
+Du hilfst, Baustellen und Termine zu organisieren, Material und Abläufe zu planen. Du-Form mit dem Chef, praktisch und konkret.`;}},
+  baran:{ name:'Baran', ico:'\u{1F465}',
+    quick:['Brauche ich bald einen Mitarbeiter?','Stellenanzeige Geselle','Bewerbung bewerten','Kapazität planen'],
+    system(){return `Du bist Baran, die Personal-Agentin von OH Haustechnik. Verantwortung: Mitarbeitersuche, Bewerbungen, Kapazitätsplanung, Personalbedarf.
+${FIRMA}
+Du erkennst, wann ein Mitarbeiter/Geselle nötig ist (wenn mehr Anfragen als Kapazität), schreibst Stellenanzeigen und hilfst bei Bewerbungen. Du-Form mit dem Chef, ehrlich und vorausschauend.`;}}
+};
+
+/* ============ STATE ============ */
+let mode='kalk';
+let history={}; // pro modus: [{role,content}]
+let leadsCache=[];
+let lastTasks=null;
+let WISSEN='';
+let AGENT_CTX='';
+let serverCfg={has_anthropic:false,has_gmail_pass:false,gmail_user:''};
+
+/* ============ SERVER-API ============ */
+async function api(action,data){
+  const fd=new FormData();fd.append('action',action);fd.append('data',JSON.stringify(data||{}));
+  const r=await fetch(window.location.pathname,{method:'POST',body:fd});
+  return r.json();
+}
+
+/* ============ DASHBOARD ============ */
+const PDOT={rot:'rot',gelb:'gelb',gruen:'gruen'};
+let briefingText='';
+async function loadDashboard(){
+  try{
+    const d=await api('dashboard');
+    leadsCache=d.leads||[];
+    if(d.wissen)WISSEN=d.wissen;
+    renderDashboard(d);
+  }catch(e){/* offline */}
+  renderTeam();
+  try{serverCfg=await api('config_get');}catch(e){}
+  // E-Mails & Website im Hintergrund aktualisieren (blockiert das Öffnen nicht)
+  api('scan_now').then(d=>{if(d&&d.ok&&lastDash){lastDash.offen=d.offen;lastDash.erledigt=d.erledigt;lastDash.warnung=d.warnung;lastDash.anzahl=d.anzahl;renderDashboard(lastDash);}}).catch(()=>{});
+}
+async function scanNow(btn){
+  if(btn){btn.textContent='… aktualisiere';}
+  try{const d=await api('scan_now');if(d&&d.ok&&lastDash){lastDash.offen=d.offen;lastDash.erledigt=d.erledigt;lastDash.warnung=d.warnung;lastDash.anzahl=d.anzahl;renderDashboard(lastDash);}}catch(e){}
+  if(btn){btn.textContent='↻ Aktualisieren';}
+}
+function renderStats(s){
+  gl('dashStats').innerHTML=
+    `<div class="stat"><div class="n">${s.leads||0}</div><div class="l">Leads gesamt</div></div>`+
+    `<div class="stat hot"><div class="n">${s.hot||0}</div><div class="l">🔥 Heiß &amp; offen</div></div>`;
+}
+function renderKiAlert(a){
+  const el=gl('kiAlert');
+  if(a&&a.alert){
+    el.innerHTML='⚠️ <b>KI-Guthaben leer!</b> '+esc(a.msg||'Bitte aufladen')+' — <a href="https://console.anthropic.com" target="_blank" style="color:#fff;text-decoration:underline">jetzt aufladen</a>';
+    el.style.display='block';
+    speak('Achtung Chef, das KI-Guthaben ist leer. Bitte aufladen.');
+  }else{el.style.display='none';}
+}
+function renderWarn(w){
+  const el=gl('martWarn');
+  if(w){el.innerHTML='⚠️ <b>'+(w.prio==='rot'?'Marktanalyse veraltet!':'Marktanalyse aktualisieren')+'</b> '+esc(w.text);el.style.display='block';el.className='ki-alert warn'+(w.prio==='rot'?'':' gelb');}
+  else{el.style.display='none';}
+}
+const PLABEL={rot:'Kritisch',gelb:'Hoch',gruen:'Mittel'};
+const AGENT_OF={'Google Ads':'dilara','Markt':'dilara','Website':'dilara','Bewertung':'dilara','SEO':'dilara','Anfrage':'kaan','E-Mail':'kaan','WhatsApp':'kaan','Angebot':'emre','Rechnung':'aylin','Zahlung':'aylin','Projekt':'yusuf','Baustelle':'yusuf','Personal':'baran'};
+const GRP={dilara:'Marketing (Dilara)',kaan:'Kommunikation (Kaan)',emre:'Angebote & Kalkulation (Emre)',aylin:'Buchhaltung (Aylin)',yusuf:'Projekte & Baustellen (Yusuf)',baran:'Mitarbeiter (Baran)',mert:'Sonstiges'};
+let lastDash=null;
+function renderDashboard(d){
+  lastDash=d; lastOffen=(d.offen||[]).slice();
+  renderStats(d.stats||{}); renderKiAlert(d.ki_alert||{alert:false}); renderWarn(d.warnung);
+  const offen=lastOffen; offen.forEach((t,i)=>t._i=i);
+  // Tagesfokus = Top 3 (serverseitig nach Priorität sortiert)
+  renderFokus(offen.slice(0,3));
+  renderFreigaben(d.freigaben||[]);
+  // nach Agent gruppieren
+  const groups={};
+  offen.forEach(t=>{const ag=AGENT_OF[t.bereich]||'mert';(groups[ag]=groups[ag]||[]).push(t);});
+  agentenData=d.agenten||null; aktivData=d.aktivitaet||[];
+  let html=accordion('📊 Geschäftsführer-Bericht von Mert Aldemir', mertBody(d.mert), false);
+  html+=accordion('🤝 Agenten-Runde · Team-Abstimmung', agentenBody(d.agenten), false);
+  html+=accordion(`📋 Was wurde erledigt <span class="acc-cnt">${aktivData.length}</span>`, aktivBody(aktivData), false);
+  ['dilara','kaan','emre','aylin','yusuf','baran','mert'].forEach(ag=>{
+    const list=groups[ag]; if(!list||!list.length)return;
+    const badge=`<span class="pill ${list[0].prio}">${PLABEL[list[0].prio]||''}</span>`;
+    const emo=AGENTS[ag]?AGENTS[ag].emoji:'•';
+    html+=accordion(`${emo} ${GRP[ag]} <span class="acc-cnt">${list.length}</span> ${badge}`, list.map(taskHtml).join(''), false);
+  });
+  const er=d.erledigt||[];
+  html+=accordion(`✅ Bereits erledigt <span class="acc-cnt">${er.length}</span>`, er.length?er.map(erledigtHtml).join(''):'<div class="prio-empty">Noch nichts.</div>', false);
+  gl('dashAcc').innerHTML=html;
+  buildBriefing(d);
+}
+function accordion(titleHtml,bodyHtml,open){
+  return `<div class="acc"><div class="acc-h" onclick="accT(this)"><span class="acc-c">▶</span><div class="acc-t">${titleHtml}</div></div><div class="acc-b" style="display:${open?'block':'none'}">${bodyHtml}</div></div>`;
+}
+function accT(el){const b=el.nextElementSibling,c=el.querySelector('.acc-c');const open=b.style.display==='none';b.style.display=open?'block':'none';c.style.transform=open?'rotate(90deg)':'';}
+function taskHtml(t){const i=t._i,isReco=t.typ==='reco';
+  return `<div class="task ${t.prio}" onclick="toggleTask(${i})">
+    <div class="task-ico">${t.icon||'•'}</div>
+    <div class="tx">
+      <div class="tt">${esc(t.titel)} <span class="pill sm ${t.prio}">${PLABEL[t.prio]||''}</span></div>
+      <div class="ta">📈 ${esc(t.nutzen||'')}</div>
+      <div class="task-why" id="why${i}" style="display:none">💡 ${esc(t.warum||'')}
+        <div class="task-btns">${isReco
+          ?`<button class="tb ok" onclick="event.stopPropagation();recoApply('${t.ref}',this)">✅ Übernehmen</button>
+            <button class="tb" onclick="event.stopPropagation();recoLater('${t.ref}',this)">Später</button>
+            <button class="tb no" onclick="event.stopPropagation();recoDismiss('${t.ref}',this)">Ablehnen</button>`
+          :`<button class="tb ok" onclick="event.stopPropagation();actTask(${i})">Erledigen →</button>`}
+        </div>
+      </div>
+    </div>
+    <div class="go">›</div>
+  </div>`;
+}
+function erledigtHtml(x){return `<div class="task done"><div class="task-ico">${x.icon||'✅'}</div><div class="tx"><div class="tt">${esc(x.titel)}</div><div class="ta">${esc(x.bereich||'')}</div></div></div>`;}
+function toggleTask(i){const w=gl('why'+i);if(w)w.style.display=w.style.display==='none'?'block':'none';}
+function actTask(i){const t=lastOffen[i];if(t)openTaskRef(t.typ,t.ref);}
+function renderFokus(list){
+  if(!list||!list.length){gl('fokus').style.display='none';return;}
+  gl('fokus').style.display='block';
+  gl('fokusList').innerHTML=list.map((t,n)=>`<div class="fokus-i" onclick="actTask(${t._i})"><span class="fokus-n ${t.prio}">${n+1}</span><div><div class="tt">${esc(t.titel)}</div><div class="ta">${esc(t.bereich)} · ${PLABEL[t.prio]||''}</div></div></div>`).join('');
+}
+
+/* ============ FREIGABEN / ENTSCHEIDUNGEN (Baustein A) ============ */
+let fgData={};
+function renderFreigaben(list){
+  fgData={};
+  const wrap=gl('freigabenWrap'),box=gl('freigabenBox');
+  if(!wrap||!box)return;
+  if(!list||!list.length){wrap.style.display='none';box.innerHTML='';return;}
+  wrap.style.display='block';
+  const c=gl('fgCount');if(c)c.textContent=list.length;
+  box.innerHTML=list.map(f=>{
+    fgData[f.id]=f;
+    const kanal=f.kanal==='whatsapp'?'📱 WhatsApp':(f.kanal==='email'?'📧 E-Mail':'⚙️ System');
+    const von=f.from?(' · '+esc(f.from)):'';
+    const hasReply=(f.typ==='antwort'&&f.vorschlag);
+    const reply=hasReply
+      ?`<div class="fg-reply" id="fgview_${f.id}"><span class="fg-lbl">Antwortvorschlag</span>${esc(f.vorschlag)}</div>
+        <textarea class="fg-edit" id="fgedit_${f.id}" style="display:none">${esc(f.vorschlag)}</textarea>`:'';
+    const editBtn=hasReply?`<button class="tb" onclick="fgEdit('${f.id}')">✏️ Antwort bearbeiten</button>`:'';
+    return `<div class="fg-card ${f.prio||'gelb'}" id="fgcard_${f.id}">
+      <div class="fg-head"><span class="fg-cat">${esc(f.kategorie||'Info')}</span><span class="fg-kanal">${kanal}${von}</span></div>
+      <div class="fg-tit">${esc(f.titel||'')}</div>
+      ${f.warum?`<div class="fg-why">${esc(f.warum)}</div>`:''}
+      ${reply}
+      <div class="fg-btns" id="fgbtns_${f.id}">
+        <button class="tb ok" onclick="fgDecide('${f.id}','uebernehmen')">✅ Übernehmen</button>
+        ${editBtn}
+        <button class="tb no" onclick="fgDecide('${f.id}','ablehnen')">✕ Nicht übernehmen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function fgEdit(id){const v=gl('fgview_'+id),t=gl('fgedit_'+id);if(!t)return;
+  if(t.style.display==='none'){if(v)v.style.display='none';t.style.display='block';t.focus();}
+  else{t.style.display='none';if(v)v.style.display='block';}}
+async function fgDecide(id,decision){
+  const t=gl('fgedit_'+id);
+  const text=(t&&t.style.display!=='none')?t.value:(fgData[id]?(fgData[id].vorschlag||''):'');
+  const btns=gl('fgbtns_'+id);if(btns)btns.innerHTML='<span class="fg-done">… wird verarbeitet</span>';
+  try{
+    const r=await api('freigabe_decide',{id,decision,text});
+    if(r&&r.ok){
+      let label=decision==='ablehnen'?'✕ Nicht übernommen':(r.sent?'✓ Antwort gesendet':'✓ Übernommen – Antwort kopiert');
+      if(btns)btns.innerHTML='<span class="fg-done">'+label+'</span>';
+      if(decision==='uebernehmen'&&!r.sent&&text){try{await navigator.clipboard.writeText(text);}catch(e){}}
+      setTimeout(loadFreigaben,1300);
+    }else{if(btns)btns.innerHTML='<span class="fg-done" style="color:var(--red)">Fehler – bitte erneut</span>';}
+  }catch(e){if(btns)btns.innerHTML='<span class="fg-done" style="color:var(--red)">Fehler – bitte erneut</span>';}
+}
+async function loadFreigaben(){
+  try{const r=await api('freigaben');if(r&&r.ok){if(lastDash)lastDash.freigaben=r.freigaben;renderFreigaben(r.freigaben||[]);}}catch(e){}
+}
+async function triageNow(btn){
+  const o=btn?btn.textContent:'';if(btn)btn.textContent='… prüfe';
+  try{const r=await api('triage_now');if(r){if(lastDash)lastDash.freigaben=r.freigaben;renderFreigaben(r.freigaben||[]);
+    if(typeof speak==='function'&&r.neu)speak(r.neu+' neue Nachricht'+(r.neu>1?'en':'')+' geprüft, Chef.');}}catch(e){}
+  if(btn)btn.textContent=o||'🔄 Nachrichten prüfen';
+}
+function mertBody(m){
+  const txt=(m&&m.text)?fmt(m.text):'<span style="color:var(--txt-dim)">Noch kein Tagesplan. Tipp „Neuen Tagesplan erstellen".</span>';
+  return `<div class="mert-txt" id="mertTxt">${txt}</div><button class="mert-refresh" onclick="event.stopPropagation();mertFresh(this)">↻ Neuen Tagesplan erstellen</button>`;
+}
+let agentenData=null, aktivData=[];
+const AG_NAME={mert:'Mert',dilara:'Dilara',kaan:'Kaan',emre:'Emre',aylin:'Aylin',yusuf:'Yusuf',baran:'Baran',system:'System'};
+function zeitHer(ts){const s=Math.floor(Date.now()/1000)-ts;if(s<60)return'gerade eben';if(s<3600)return Math.floor(s/60)+' Min her';if(s<86400)return Math.floor(s/3600)+' Std her';return Math.floor(s/86400)+' Tg her';}
+function aktivBody(list){
+  if(!list||!list.length)return '<div class="prio-empty">Noch keine Aktivität. Sobald die Agenten arbeiten, erscheint hier, wer was erledigt hat.</div>';
+  return '<div class="akt-feed">'+list.map(a=>{
+    const em=AGENTS[a.agent]?AGENTS[a.agent].emoji:'•';
+    return `<div class="akt-row"><span class="akt-ico">${em}</span><div><div class="akt-t"><b>${AG_NAME[a.agent]||a.agent}</b> ${esc(a.text)}</div><div class="akt-z">${zeitHer(a.ts)}</div></div></div>`;
+  }).join('')+'</div>';
+}
+function agentenBody(a){
+  if(!a||(!a.nachrichten&&!a.prioritaeten&&!a.agenten)){
+    return `<div class="prio-empty">Noch keine Abstimmung. Das Team trifft sich automatisch (Cron) – oder jetzt starten:</div><button class="mert-refresh" onclick="event.stopPropagation();agentenRunde(this)">🤝 Agenten-Runde starten</button>`;
+  }
+  let h='';
+  if(a.prioritaeten&&a.prioritaeten.length){
+    h+='<div class="ar-prio"><b>🎯 Merts Prioritäten:</b><ol>'+a.prioritaeten.map(p=>`<li>${esc(p)}</li>`).join('')+'</ol></div>';
+  }
+  if(a.nachrichten&&a.nachrichten.length){
+    h+='<div class="ar-feed"><b>💬 Team-Nachrichten:</b>'+a.nachrichten.map(n=>
+      `<div class="ar-msg"><span class="ar-from">${AG_NAME[n.von]||n.von} → ${AG_NAME[n.an]||n.an}</span> ${esc(n.text)}</div>`).join('')+'</div>';
+  }
+  if(a.agenten&&a.agenten.length){
+    h+='<div class="ar-funde">'+a.agenten.map(ag=>{
+      const fu=(ag.funde||[]).map(f=>`<li>${esc(f)}</li>`).join('');
+      return fu?`<div class="ar-ag"><b>${AGENTS[ag.key]?AGENTS[ag.key].emoji+' '+AGENTS[ag.key].name:ag.key}</b><ul>${fu}</ul></div>`:'';
+    }).join('')+'</div>';
+  }
+  h+=`<div style="font-size:10.5px;color:var(--txt-dim);margin-top:8px">Stand: ${a.ts?new Date(a.ts*1000).toLocaleString('de-DE'):'–'}</div>`;
+  h+=`<button class="mert-refresh" onclick="event.stopPropagation();agentenRunde(this)">↻ Neue Agenten-Runde</button>`;
+  return h;
+}
+async function agentenRunde(btn){
+  btn.disabled=true;btn.textContent='🤝 Das Team stimmt sich ab …';
+  try{const d=await api('agenten_runde');if(d.ok){if(lastDash){lastDash.agenten=d.agenten;renderDashboard(lastDash);}speak('Das Team hat sich abgestimmt, Chef.');}else{btn.textContent='⚠️ '+(d.error||'Fehler');setTimeout(()=>{btn.disabled=false;btn.textContent='↻ Agenten-Runde';},2500);}}catch(e){btn.disabled=false;}
+}
+async function mertFresh(btn){
+  btn.disabled=true;btn.textContent='🧠 Mert denkt nach …';
+  try{const d=await api('mert_fresh');if(d.ok){if(lastDash){lastDash.mert=d.mert;renderDashboard(lastDash);}if(d.mert&&d.mert.text)speak(cleanSpeech(d.mert.text.split('\n')[0]));}}catch(e){}
+}
+function recoDismiss(id,btn){btn.disabled=true;btn.textContent='✕';api('ads_dismiss',{id}).then(()=>setTimeout(()=>{loadDashboard();if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();},500));}
+function buildBriefing(d){
+  const offen=(d.offen||[]).length, rot=(d.anzahl&&d.anzahl.rot)||0;
+  const std=new Date().getHours();
+  const gruss=std<11?'Guten Morgen':std<18?'Hallo':'Guten Abend';
+  briefingText=`${gruss} Chef. Du hast ${offen} offene Aufgabe${offen===1?'':'n'}${rot?`, ${rot} davon kritisch`:''}. `;
+  if(d.mert&&d.mert.text)briefingText+='Mert sagt: '+cleanSpeech(d.mert.text.split('\n').slice(0,2).join(' '));
+}
+let lastOffen=[];
+function leadById(id){return leadsCache.find(l=>l.id===id);}
+function leadInfo(l){
+  if(!l)return '';
+  return `Lead-Infos:\n- Name: ${l.name||'?'}\n- E-Mail: ${l.email||'?'}\n- Telefon: ${l.telefon||'?'}\n- Leistung: ${l.kategorie||'?'}\n- Größe: ${l.objektgroesse||'?'}\n- Zeitraum: ${l.zeitraum||'?'}\n- Ort: ${(l.plz||'')+' '+(l.ort||'')}\n- Details: ${l.details||'-'}`;
+}
+function openTaskRef(typ,ref){
+  if(typ==='reco'||typ==='markt'){openAds();return;}
+  const task=(lastOffen||[]).find(t=>t.ref===ref&&t.typ===typ);
+  if(typ==='email'){openChat('leads','Hilf mir, diese E-Mail kurz und professionell zu beantworten. Ich füge den Text gleich ein:');return;}
+  if(typ==='whatsapp'){openChat('leads','Schreib mir eine freundliche, professionelle WhatsApp-Antwort auf diese Kundennachricht:\n\n"'+((task&&task.warum)||'')+'"');return;}
+  if(typ==='website'){openChat('berater','Auf der Website gibt es ein Problem: '+((task&&task.warum)||'')+'\nWas soll ich tun?');return;}
+  const l=leadById(ref);
+  if(typ==='bewertung')openChat('bewertung','Schreib eine freundliche Bewertungs-Anfrage per E-Mail an diesen abgeschlossenen Kunden:\n\n'+leadInfo(l));
+  else if(typ==='followup')openChat('leads','Schreib eine freundliche Follow-up-Nachricht (Angebot ist 2 Tage raus, keine Antwort) an:\n\n'+leadInfo(l));
+  else openChat('kalk',(l?l.details||l.kategorie:'')+'\n\n['+leadInfo(l)+']');
+}
+
+/* ============ AGENTEN-TEAM ============ */
+const AGENTS={
+  mert:{name:'Mert Aldemir',rolle:'Geschäftsführer · überwacht & koordiniert alles',emoji:'🧠',chat:'mert',
+    areas:[['Tagesplan & Prioritäten',()=>openChat('mert','Was ist heute am wichtigsten für mein Wachstum?')],['Team koordinieren',()=>openChat('mert','Gib jedem Agenten heute eine sinnvolle Aufgabe.')],['Wachstum zur Million',()=>openChat('mert','Wie komme ich schneller Richtung 1 Million Umsatz?')]]},
+  dilara:{name:'Dilara',rolle:'Marketing & Wachstum',emoji:'🚀',chat:'dilara',
+    areas:[['Google Ads',()=>openAds()],['Website-Optimierung',()=>openWeb()],['Bewertungen',()=>openChat('bewertung')],['Social Media',()=>openChat('dilara','Mach mir Social-Media-Content für diese Woche.')],['SEO & Konkurrenz',()=>openChat('dilara','Was macht die Konkurrenz in Nürnberg und wo kann ich besser werden?')]]},
+  kaan:{name:'Kaan',rolle:'Kommunikation · E-Mail, WhatsApp, Anfragen',emoji:'💬',chat:'kaan',
+    areas:[['E-Mails',()=>openChat('kaan','Hilf mir, meine offenen E-Mails zu beantworten.')],['WhatsApp',()=>openChat('kaan','Hilf mir bei den WhatsApp-Antworten.')],['Anfragen',()=>openChat('leads')],['Rückrufe',()=>openChat('kaan','Wer wartet auf einen Rückruf?')]]},
+  emre:{name:'Emre',rolle:'Kalkulation & Angebote',emoji:'🧮',chat:'emre',
+    areas:[['Kalkulator',()=>openChat('emre')],['Angebote',()=>openChat('angebot')],['Nachkalkulation',()=>openChat('emre','Mach mir eine Nachkalkulation für ein Projekt.')]]},
+  aylin:{name:'Aylin',rolle:'Buchhaltung & Finanzen',emoji:'💰',chat:'aylin',
+    areas:[['Offene Rechnungen',()=>openChat('aylin','Welche Rechnungen sind offen?')],['Mahnungen',()=>openChat('aylin','Bereite eine freundliche Mahnung vor.')],['Auswertung',()=>openChat('aylin','Mach mir eine Gewinn- und Kosten-Übersicht.')],['Lexware-Übergabe',()=>openChat('aylin','Was soll an Lexware übergeben werden?')]]},
+  yusuf:{name:'Yusuf',rolle:'Projekte & Baustellen',emoji:'🏗️',chat:'yusuf',
+    areas:[['Baustellen-Tagesplan',()=>openChat('yusuf','Plane meine Baustellen für heute.')],['Materialliste',()=>openChat('yusuf','Mach mir eine Materialliste für ein Projekt.')],['Termine',()=>openChat('yusuf','Hilf mir, Termine zu koordinieren.')]]},
+  baran:{name:'Baran',rolle:'Mitarbeiter & Personal',emoji:'👥',chat:'baran',
+    areas:[['Personalbedarf',()=>openChat('baran','Brauche ich bald einen Mitarbeiter? Schau auf meine Auslastung.')],['Stellenanzeige',()=>openChat('baran','Schreib eine Stellenanzeige für einen Elektriker-Gesellen.')],['Bewerbungen',()=>openChat('baran','Hilf mir, eine Bewerbung zu bewerten.')]]},
+};
+const AGENT_ORDER=['mert','dilara','kaan','emre','aylin','yusuf','baran'];
+function agentAvatar(key,big){
+  const a=AGENTS[key];const sz=big?'agent-av big':'agent-av';
+  return `<span class="${sz}"><img src="assets/agents/${key}.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span class="agent-emoji" style="display:none">${a.emoji}</span></span>`;
+}
+function renderTeam(){
+  gl('teamGrid').innerHTML=AGENT_ORDER.map(key=>{const a=AGENTS[key];
+    return `<div class="agent-card${key==='mert'?' chef':''}" onclick="openAgent('${key}')">
+      ${agentAvatar(key)}
+      <div class="agent-nm">${a.name}</div>
+      <div class="agent-rl">${esc(a.rolle)}</div>
+    </div>`;}).join('');
+}
+let curAgent=null;
+function openAgent(key){
+  curAgent=key;const a=AGENTS[key];
+  gl('agentHero').innerHTML=`${agentAvatar(key,true)}
+    <div><div class="agent-nm big">${a.name}</div><div class="agent-rl big">${esc(a.rolle)}</div>
+    <button class="agent-talk" onclick="openChat('${a.chat}')">💬 Mit ${a.name} sprechen</button></div>`;
+  let fundeHtml='';
+  if(agentenData&&agentenData.agenten){
+    const mine=agentenData.agenten.find(x=>x.key===key);
+    if(mine&&mine.funde&&mine.funde.length){
+      fundeHtml=`<div class="agent-funde"><b>🔎 ${a.name}s aktuelle Funde:</b><ul>${mine.funde.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
+    }
+  }
+  const myAkt=(aktivData||[]).filter(x=>x.agent===key).slice(0,6);
+  let aktHtml='';
+  if(myAkt.length){
+    aktHtml=`<div class="agent-funde"><b>📋 Zuletzt von ${a.name} erledigt:</b><ul>${myAkt.map(x=>`<li>${esc(x.text)} <span style="color:var(--txt-dim)">· ${zeitHer(x.ts)}</span></li>`).join('')}</ul></div>`;
+  }
+  gl('agentAreas').innerHTML=fundeHtml+aktHtml+a.areas.map((ar,i)=>`<div class="agent-area" onclick="agentArea('${key}',${i})"><span>${esc(ar[0])}</span><span class="go">›</span></div>`).join('');
+  showSection('agent');
+}
+function agentArea(key,i){AGENTS[key].areas[i][1]();}
+
+/* ============ INTRO-SOUND (JARVIS-Boot, WebAudio) ============ */
+let introPlayed=false, ohCtx=null;
+function playIntro(){
+  if(introPlayed)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    if(!ohCtx)ohCtx=new AC();
+    const ctx=ohCtx;
+    // Browser blockiert Ton ohne Berührung -> erst abspielen, wenn Context wirklich läuft
+    if(ctx.state==='suspended'){ ctx.resume().then(()=>renderIntro(ctx)).catch(()=>{}); return; }
+    renderIntro(ctx);
+  }catch(e){}
+}
+function renderIntro(ctx){
+  if(introPlayed||ctx.state!=='running')return;
+  introPlayed=true;
+  try{
+    const now=ctx.currentTime;
+    const master=ctx.createGain();master.gain.value=0.0001;master.connect(ctx.destination);
+    master.gain.exponentialRampToValueAtTime(0.18,now+0.15);
+    master.gain.exponentialRampToValueAtTime(0.0001,now+4.8);
+    // Aufsteigender Power-Sweep
+    const o1=ctx.createOscillator();o1.type='sawtooth';
+    o1.frequency.setValueAtTime(70,now);o1.frequency.exponentialRampToValueAtTime(420,now+2.2);
+    const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(300,now);
+    f.frequency.exponentialRampToValueAtTime(3500,now+2.4);
+    o1.connect(f);f.connect(master);o1.start(now);o1.stop(now+2.6);
+    // Hologramm-Pad
+    [220,277,330].forEach((fr,i)=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=fr;
+      const g=ctx.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(0.06,now+1+i*0.15);
+      g.gain.linearRampToValueAtTime(0,now+4.6);o.connect(g);g.connect(master);o.start(now+1);o.stop(now+4.6);});
+    // 3 Tech-Beeps
+    [0.2,0.55,0.9].forEach((tt,i)=>{const o=ctx.createOscillator();o.type='square';
+      o.frequency.value=880+i*220;const g=ctx.createGain();g.gain.value=0;
+      g.gain.linearRampToValueAtTime(0.05,now+tt);g.gain.exponentialRampToValueAtTime(0.0001,now+tt+0.12);
+      o.connect(g);g.connect(master);o.start(now+tt);o.stop(now+tt+0.14);});
+  }catch(e){}
+}
+
+/* ============ BOOT / WILLKOMMEN ============ */
+let currentTitle='Chef';
+function boot(){
+  const titel=['großer Meister','große Herrschaft','Chef','Kommandant','Boss'];
+  const t=titel[Math.floor(Math.random()*titel.length)];
+  currentTitle=t;
+  const seq=['> Initialisiere OH-System…','> KI-Kerne geladen ✓','> Module: Kalkulator · Marketing · Leads ✓','> Verbindung gesichert ✓','> Alle Systeme bereit ✓'];
+  const lines=gl('bootLines'); let i=0;
+  const iv=setInterval(()=>{
+    if(i<seq.length){lines.innerHTML+=seq[i]+'<br>';i++;}
+    else{
+      clearInterval(iv);
+      const g=gl('greet');
+      g.innerHTML=`Willkommen, <b>${t}</b>.<small>OH HAUSTECHNIK · SYSTEM ZU DEINEN DIENSTEN</small>`;
+      g.style.opacity='1';
+      setTimeout(async ()=>{
+        gl('boot').style.opacity='0';
+        gl('app').style.visibility='visible';
+        await loadDashboard();
+        speakDashboard();
+        setTimeout(()=>gl('boot').remove(),700);
+      },1700);
+    }
+  },330);
+}
+
+/* ============ UHR ============ */
+function clock(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  gl('clock').textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  gl('datum').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+}
+
+/* ============ NAVIGATION ============ */
+function showSection(s){
+  ['home','settings','chat','ads','agent','web'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display='block';
-  if(s==='form'){gl('noKey').style.display=getKey()?'none':'block';}
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function toggleSettings(){
-  if(gl('s-settings').style.display==='block'){zeige('home');}
-  else{gl('apiIn').value=getKey();renderLL();zeige('settings');}
+function goHome(){showSection('home');}
+async function toggleSettings(){
+  if(gl('s-settings').style.display==='block'){goHome();}
+  else{
+    gl('apiIn').value='';gl('gmailPass').value='';
+    ['adsDev','adsCid','adsSecret','adsRefresh','waToken'].forEach(id=>gl(id).value='');
+    try{const c=await api('config_get');serverCfg=c;
+      gl('gmailUser').value=c.gmail_user||'';
+      gl('adsCustomer').value=c.ads_customer_id||'';
+      gl('adsLogin').value=c.ads_login_customer_id||'';
+      gl('waPhone').value=c.wa_phone_id||'';
+      gl('waVerify').value=c.wa_verify_token||'oh-wa';
+      gl('siteUrl').value=c.site_url||'';
+    }catch(e){}
+    renderLL();showSection('settings');
+  }
 }
-function saveKey(){
-  localStorage.setItem('oh_key',gl('apiIn').value.trim());
-  gl('keyMsg').textContent='✓ Gespeichert!';
-  setTimeout(()=>gl('keyMsg').textContent='',2000);
+async function saveKey(){
+  const v=gl('apiIn').value.trim();
+  if(!v){gl('keyMsg').textContent='Bitte Schlüssel eingeben.';return;}
+  await api('config_set',{anthropic_key:v});
+  serverCfg.has_anthropic=true;gl('apiIn').value='';
+  gl('keyMsg').textContent='✓ Gespeichert (Server)';
+  setTimeout(()=>gl('keyMsg').textContent='',2500);
+}
+async function saveGmail(){
+  const u=gl('gmailUser').value.trim(),p=gl('gmailPass').value.trim();
+  await api('config_set',{gmail_user:u,gmail_pass:p});
+  if(u)serverCfg.gmail_user=u; if(p)serverCfg.has_gmail_pass=true; gl('gmailPass').value='';
+  gl('gmailMsg').textContent='✓ Gmail gespeichert';
+  setTimeout(()=>gl('gmailMsg').textContent='',2500);
+}
+async function saveAds(){
+  await api('config_set',{
+    ads_developer_token:gl('adsDev').value.trim(),
+    ads_client_id:gl('adsCid').value.trim(),
+    ads_client_secret:gl('adsSecret').value.trim(),
+    ads_refresh_token:gl('adsRefresh').value.trim(),
+    ads_customer_id:gl('adsCustomer').value.trim(),
+    ads_login_customer_id:gl('adsLogin').value.trim()
+  });
+  ['adsDev','adsCid','adsSecret','adsRefresh'].forEach(id=>gl(id).value='');
+  gl('adsMsg').textContent='✓ Google Ads gespeichert';
+  setTimeout(()=>gl('adsMsg').textContent='',2500);
+}
+async function saveWa(){
+  await api('config_set',{wa_token:gl('waToken').value.trim(),wa_phone_id:gl('waPhone').value.trim(),wa_verify_token:gl('waVerify').value.trim()});
+  gl('waToken').value='';
+  gl('waMsg').textContent='✓ WhatsApp gespeichert';
+  setTimeout(()=>gl('waMsg').textContent='',2500);
+}
+async function saveSite(){
+  await api('config_set',{site_url:gl('siteUrl').value.trim()});
+  gl('siteMsg').textContent='✓ Gespeichert';
+  setTimeout(()=>gl('siteMsg').textContent='',2500);
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
-  el.innerHTML=l.length?l.map((t,i)=>`<div class="lern-item"><span>• ${t}</span><span class="del" onclick="delL(${i})">löschen</span></div>`).join(''):'<p style="font-size:13px;color:#9ca3af">Noch keine.</p>';
+  el.innerHTML=l.length?l.map((t,i)=>`<div class="lern-item"><span>• ${esc(t)}</span><span class="del" onclick="delL(${i})">löschen</span></div>`).join(''):'<p style="font-size:13px;color:var(--txt-dim)">Noch keine.</p>';
 }
 function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
-function setArt(a,b){art=a;document.querySelectorAll('#s-form .chip').forEach(c=>c.classList.remove('on'));b.classList.add('on');}
 
-async function kalk(extra=''){
-  const key=getKey(),beschr=gl('beschr').value.trim(),fe=gl('fehler');
-  fe.style.display='none';
-  if(!key){fe.textContent='Kein API-Schlüssel. Tippe oben auf das Zahnrad.';fe.style.display='block';return;}
-  if(beschr.length<8){fe.textContent='Bitte Baustelle beschreiben.';fe.style.display='block';return;}
-  const qm=gl('qm').value||'unbekannt',km=gl('km').value||'0',mat=gl('matQ').value;
-  letzterF={beschr,art,qm,km,mat};
-  const lern=getLern();
-  const lT=lern.length?'\nGELERNTE KORREKTUREN:\n- '+lern.join('\n- '):'';
-  const eT=extra?`\nZUSATZ: ${extra}`:'';
-  const prompt=`${W}${lT}${eT}\n\nBAUSTELLE: "${beschr}"\nArt:${art} m²:${qm} Fahrt:${km}km Material:${mat==='ich'?'durch OH':'bauseits'}\n\nKalkuliere vollständig in Manntagen mit Puffer. Antworte NUR JSON:\n{"manntage":<n>,"arbeitsstunden":<n>,"arbeitskosten":<n>,"fahrtkosten":<n>,"material_netto":<n>,"material_mit_aufschlag":<n>,"zielpreis":<n>,"minimalpreis":<n>,"denkweg":"<2 Sätze>","material_liste":[{"pos":"x","menge":"x"}],"leistungen":["x"]}`;
-  zeige('load');
+/* ============ CHAT ÖFFNEN ============ */
+function openChat(m,prefill){
+  mode=m; const cfg=MODI[m];
+  AGENT_CTX='';
+  if(AGENTS[m]){api('agent_context',{agent:m}).then(d=>{AGENT_CTX=d.ctx||'';}).catch(()=>{});}
+  gl('chatName').textContent=cfg.name;
+  gl('chatIco').innerHTML=cfg.ico;
+  gl('quickRow').innerHTML=cfg.quick.map(q=>`<button class="qchip" onclick="quick(this)">${esc(q)}</button>`).join('');
+  if(!history[m]){history[m]=[];}
+  renderLog();
+  if(history[m].length===0){
+    const greet={
+      kalk:'Servus Chef! 🧮 Beschreib mir einfach die Baustelle – egal wie, in eigenen Worten. Ich rechne Dir Manntage, Material und Preis aus. Frag mich auch gern, wie wir die Kalkulation noch besser hinbekommen.',
+      marketing:'Bereit, Chef! 🚀 Sag mir, was Du bewerben willst – ein fertiges Projekt, eine Leistung oder eine Aktion – und ich schreib Dir Posts, Anzeigen und Ideen, die in Nürnberg ziehen.',
+      leads:'Leg los, Chef! 📊 Füg eine Kundenanfrage ein – ich bewerte sie (heiß/warm/kalt) und schreib Dir gleich die passende Antwort.',
+      angebot:'Bereit! 📄 Gib mir Stichpunkte oder eine Kalkulation und ich mach ein sauberes Angebot draus.',
+      bewertung:'Bereit! ⭐ Kopier mir die Google-Bewertung rein und ich formulier Dir die perfekte Antwort.',
+      berater:'Ich bin da, Chef. 🧠 Erzähl, was ansteht – Aufträge, Preise, Zeit, Wachstum. Ich denk mit.',
+      mert:'Servus Chef! 🧠 Ich bin Mert, Dein Geschäftsführer. Ich hab die ganze Firma im Blick. Frag mich, was heute am wichtigsten ist.',
+      dilara:'Hi Chef! 🚀 Ich bin Dilara, Marketing. Sag mir, was beworben werden soll – ich liefere fertige Vorschläge für mehr Anfragen.',
+      kaan:'Hi Chef! 💬 Ich bin Kaan, Kommunikation. Füg mir eine Nachricht/Anfrage rein, ich formulier Dir die perfekte Antwort.',
+      emre:'Servus Chef! 🧮 Ich bin Emre, Kalkulation & Angebote. Beschreib die Baustelle, ich mach Dir Preis + fertiges Angebot.',
+      aylin:'Hallo Chef! 💰 Ich bin Aylin, Buchhaltung. Ich kümmere mich um Rechnungen, offene Posten und Auswertungen.',
+      yusuf:'Servus Chef! 🏗️ Ich bin Yusuf, Projekte & Baustellen. Sag mir, was ansteht – ich plan Dir Termine und Material.',
+      baran:'Hi Chef! 👥 Ich bin Baran, Personal. Ich sag Dir, wann Du Verstärkung brauchst und schreib Stellenanzeigen.'
+    }[m] || ('Bereit, Chef! Ich bin '+cfg.name+'. Sag mir, was Du brauchst.');
+    if(greet)pushMsg('ai',greet);
+  }
+  showSection('chat');
+  if(prefill){gl('chatIn').value=prefill;autoGrow();}
+  setTimeout(()=>gl('chatIn').focus(),300);
+}
+function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow();}
+
+/* ============ GOOGLE ADS ============ */
+let lastAdsReport=null;
+function openAds(){showSection('ads');loadReco();loadAds();}
+
+/* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */
+const PRIO={rot:{t:'🔴 SOFORT übernehmen',c:'rot'},gelb:{t:'🟡 Diese Woche',c:'gelb'},gruen:{t:'🟢 Optional',c:'gruen'}};
+async function loadReco(){
+  gl('recoBody').innerHTML='<div class="prio-empty">Lade Empfehlungen …</div>';
+  try{const d=await api('ads_reco'); renderReco(d.reco||[]);}catch(e){gl('recoBody').innerHTML='<div class="prio-empty">Noch keine Analyse. Tipp auf „Markt jetzt neu prüfen".</div>';}
+}
+async function recoFresh(){
+  const b=gl('recoFreshBtn'); b.disabled=true; b.textContent='🔍 KI prüft den Markt … (dauert kurz)';
+  gl('recoBody').innerHTML='<div class="prio-empty">Der Geschäftsführer schaut sich alles an …</div>';
   try{
-    const payload=JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,messages:[{role:'user',content:prompt}]});
-    const fd=new FormData();
-    fd.append('kalk_request',payload);
-    fd.append('api_key',key);
+    const d=await api('ads_reco_fresh');
+    if(!d.ok){gl('recoBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}</div>`;}
+    else renderReco(d.reco||[]);
+  }catch(e){gl('recoBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+  b.disabled=false; b.textContent='🔍 Markt jetzt neu prüfen';
+}
+function ordPrio(p){return p==='rot'?0:p==='gelb'?1:2;}
+function renderReco(list){
+  const offen=(list||[]).filter(r=>r.status==='offen').sort((a,b)=>ordPrio(a.dringlichkeit)-ordPrio(b.dringlichkeit));
+  if(!offen.length){gl('recoBody').innerHTML='<div class="prio-empty">✅ Aktuell keine offenen Empfehlungen, Chef. Tipp „Markt neu prüfen" für eine frische Analyse.</div>';return;}
+  gl('recoBody').innerHTML=offen.map(r=>{
+    const p=PRIO[r.dringlichkeit]||PRIO.gelb;
+    return `<div class="reco ${p.c}">
+      <div class="reco-prio">${p.t}</div>
+      <div class="reco-tit">${esc(r.titel||'')}</div>
+      <div class="reco-line"><b>Was:</b> ${esc(r.was||'')}</div>
+      <div class="reco-line"><b>Warum:</b> ${esc(r.warum||'')}</div>
+      <div class="reco-meta">📈 ca. ${esc(r.anfragen||'?')} mehr Anfragen · Erfolg: ${esc(r.wahrscheinlichkeit||'?')}</div>
+      ${r.schritte?`<div class="reco-steps">🛠️ ${esc(r.schritte)}</div>`:''}
+      <div class="reco-btns">
+        <button class="btn btn-cyan reco-ok" onclick="recoApply('${r.id}',this)">✅ Übernehmen</button>
+        <button class="btn btn-ghost reco-later" onclick="recoLater('${r.id}',this)">Später</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function recoApply(id,btn){
+  btn.disabled=true; btn.textContent='⏳ …';
+  let d={}; try{d=await api('ads_apply',{id});}catch(e){}
+  const card=btn.closest('.reco');
+  if(card){
+    const m=document.createElement('div');
+    m.className='reco-result'+(d.executed?' done':'');
+    m.textContent=(d.executed?'✅ ':'📝 ')+(d.msg||'Übernommen');
+    card.appendChild(m);
+  }else if(d.msg){alert((d.executed?'✅ ':'📝 ')+d.msg);}
+  if(d.msg)speak(cleanSpeech(d.msg));
+  setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},2500);
+}
+async function recoLater(id,btn){
+  btn.disabled=true;
+  await api('ads_later',{id});
+  setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
+}
+async function loadAds(){
+  lastAdsReport=null; gl('adsKiBtn').disabled=true;
+  gl('adsBody').innerHTML='<div class="prio-empty">Lade Kampagnen-Daten …</div>';
+  try{
+    const d=await api('ads_report');
+    if(!d.ok){
+      gl('adsBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}<br><br>Tipp: Sind alle 5 Ads-Zugangsdaten unter ⚙️ eingetragen?</div>`;
+      return;
+    }
+    lastAdsReport=d.report; gl('adsKiBtn').disabled=false;
+    renderAds(d.report);
+  }catch(e){gl('adsBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+}
+function renderAds(r){
+  const s=r.summe||{};
+  let html=`<div class="ads-sum">
+    <div class="ads-stat"><div class="n">${eur(s.kosten)}</div><div class="l">Kosten 7 Tage</div></div>
+    <div class="ads-stat"><div class="n">${s.klicks||0}</div><div class="l">Klicks</div></div>
+    <div class="ads-stat"><div class="n">${(s.conv||0)}</div><div class="l">Anfragen</div></div>
+    <div class="ads-stat"><div class="n">${s.cpl!=null?eur(s.cpl):'–'}</div><div class="l">Kosten/Anfrage</div></div>
+  </div>`;
+  if(!r.kampagnen||!r.kampagnen.length){html+='<div class="prio-empty">Keine aktiven Kampagnen-Daten in den letzten 7 Tagen.</div>';}
+  else{
+    html+='<table class="ads-tbl"><tr><th>Kampagne</th><th>Kosten</th><th>Klicks</th><th>Anfr.</th></tr>';
+    r.kampagnen.forEach(k=>{html+=`<tr><td>${esc(k.name)}</td><td>${eur(k.kosten)}</td><td>${k.klicks}</td><td>${k.conv}</td></tr>`;});
+    html+='</table>';
+  }
+  gl('adsBody').innerHTML=html;
+}
+/* ============ DILARA · WEBSITE ============ */
+function openWeb(){showSection('web');loadWeb();}
+async function loadWeb(){
+  gl('webBody').innerHTML='<div class="prio-empty">Lade …</div>';
+  try{const d=await api('website_reco');renderWeb(d.reco||[]);}catch(e){gl('webBody').innerHTML='<div class="prio-empty">Noch keine Analyse. Tipp „Website jetzt analysieren".</div>';}
+}
+async function webAnalyze(){
+  const b=gl('webBtn');b.disabled=true;b.textContent='🔍 Dilara liest Deine Website …';
+  gl('webBody').innerHTML='<div class="prio-empty">Dilara analysiert die Seite …</div>';
+  try{const d=await api('website_analyze');if(!d.ok)gl('webBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}</div>`;else{renderWeb(d.reco||[]);loadDashboard();}}catch(e){gl('webBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+  b.disabled=false;b.textContent='🔍 Website neu analysieren';
+}
+function renderWeb(list){
+  const offen=(list||[]).filter(r=>r.status==='offen').sort((a,b)=>ordPrio(a.dringlichkeit)-ordPrio(b.dringlichkeit));
+  if(!offen.length){gl('webBody').innerHTML='<div class="prio-empty">✅ Keine offenen Website-Vorschläge. Tipp „Website analysieren" für eine frische Prüfung.</div>';return;}
+  gl('webBody').innerHTML=offen.map(r=>{const p=PRIO[r.dringlichkeit]||PRIO.gelb;
+    return `<div class="reco ${p.c}"><div class="reco-prio">${p.t}</div>
+      <div class="reco-tit">${esc(r.titel||'')}</div>
+      <div class="reco-line"><b>Was:</b> ${esc(r.was||'')}</div>
+      <div class="reco-line"><b>Warum:</b> ${esc(r.warum||'')}</div>
+      <div class="reco-meta">📈 erwartet: ${esc(r.verbesserung||'?')}</div>
+      <div class="reco-btns">
+        <button class="btn btn-cyan reco-ok" onclick="webApply('${r.id}',this)">✅ Übernehmen</button>
+        <button class="btn btn-ghost reco-later" onclick="webAct('website_later','${r.id}',this)">Später</button>
+        <button class="btn btn-ghost reco-later" onclick="webAct('website_dismiss','${r.id}',this)" style="color:var(--red)">Ablehnen</button>
+      </div></div>`;}).join('');
+}
+async function webApply(id,btn){
+  btn.disabled=true;btn.textContent='✓';
+  let d={};try{d=await api('website_apply',{id});}catch(e){}
+  const card=btn.closest('.reco');if(card&&d.msg){const m=document.createElement('div');m.className='reco-result';m.textContent='📝 '+d.msg;card.appendChild(m);}
+  setTimeout(()=>{loadWeb();loadDashboard();},2200);
+}
+async function webAct(action,id,btn){btn.disabled=true;await api(action,{id});setTimeout(loadWeb,400);}
+
+function adsAnalyse(){
+  if(!lastAdsReport)return;
+  const r=lastAdsReport;
+  let txt='Analysiere meine Google-Ads-Zahlen der letzten 7 Tage und gib mir konkrete, umsetzbare Tipps (was läuft gut, was verbrennt Geld, was soll ich ändern):\n\n';
+  txt+=`Gesamt: Kosten ${eur(r.summe.kosten)}, Klicks ${r.summe.klicks}, Anfragen ${r.summe.conv}, Kosten/Anfrage ${r.summe.cpl!=null?eur(r.summe.cpl):'–'}\n\nKampagnen:\n`;
+  r.kampagnen.forEach(k=>{txt+=`- ${k.name} (${k.status}): ${eur(k.kosten)}, ${k.klicks} Klicks, ${k.conv} Anfragen, CTR ${k.ctr}%, CPC ${eur(k.cpc)}\n`;});
+  openChat('berater',txt);
+}
+
+/* ============ RENDERING ============ */
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function fmt(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');}
+function pushMsg(role,text,raw){history[mode].push({role:role==='ai'?'assistant':'user',content:raw||text,_render:text});renderLog();}
+function renderLog(){
+  const log=gl('chatLog'); log.innerHTML='';
+  history[mode].forEach(m=>{
+    const txt=m._render!==undefined?m._render:m.content;
+    if(txt){
+      const d=document.createElement('div');
+      d.className='msg '+(m.role==='assistant'?'ai':'me');
+      d.innerHTML=fmt(txt);
+      log.appendChild(d);
+    }
+    if(m._calc){log.appendChild(calcCard(m._calc));}
+  });
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+function calcCard(k){
+  const div=document.createElement('div'); div.className='calc-card';
+  let rows=`<tr><td>Arbeit (${k.arbeitsstunden||'?'} Std × 136€)</td><td>${eur(k.arbeitskosten)}</td></tr>`;
+  if(+k.fahrtkosten>0)rows+=`<tr><td>Anfahrt</td><td>${eur(k.fahrtkosten)}</td></tr>`;
+  if(+k.material_mit_aufschlag>0)rows+=`<tr><td>Material (+10%)</td><td>${eur(k.material_mit_aufschlag)}</td></tr>`;
+  let mat='';
+  if(k.material_liste&&k.material_liste.length){
+    mat='<div class="meta"><b style="color:var(--cyan)">📦 Material:</b><br>'+k.material_liste.map(m=>`${esc(m.pos)} — ${esc(m.menge||'')}`).join('<br>')+'</div>';
+  }
+  div.innerHTML=`
+    <div class="lbl">Zielpreis · netto · 0% USt</div>
+    <div class="big">${eur(k.zielpreis)}</div>
+    <div class="meta">${k.manntage||'?'} Manntage · verhandelbar bis <b style="color:#fff">${eur(k.minimalpreis)}</b>${k.denkweg?'<br>💭 '+esc(k.denkweg):''}</div>
+    <table>${rows}</table>${mat}
+    ${k.angebotstext?`<button class="copybtn" onclick='copyTxt(this,${JSON.stringify(k.angebotstext)})'>📋 Angebotstext kopieren</button>`:''}`;
+  return div;
+}
+function copyTxt(btn,t){navigator.clipboard.writeText(t).then(()=>{const o=btn.textContent;btn.textContent='✓ Kopiert!';setTimeout(()=>btn.textContent=o,2000);});}
+
+/* ============ SENDEN ============ */
+function autoGrow(){const t=gl('chatIn');t.style.height='auto';t.style.height=Math.min(t.scrollHeight,130)+'px';}
+gl('chatIn').addEventListener('input',autoGrow);
+gl('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!isMobile()){e.preventDefault();send();}});
+function isMobile(){return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);}
+
+async function send(){
+  const inp=gl('chatIn'); const text=inp.value.trim();
+  if(!text)return;
+  if(!serverCfg.has_anthropic && !getKey()){pushMsg('ai','⚙️ Kein API-Schlüssel hinterlegt. Tipp oben rechts auf das Zahnrad und trag Deinen Anthropic-Schlüssel ein.');return;}
+  pushMsg('me',text); inp.value=''; autoGrow();
+  gl('sendBtn').disabled=true;
+  // Typing-Indikator
+  const log=gl('chatLog');const tp=document.createElement('div');tp.className='msg ai';tp.innerHTML='<span class="typing"><span></span><span></span><span></span></span>';log.appendChild(tp);
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+  try{
+    const msgs=history[mode].filter(m=>m.content&&(''+m.content).trim()).map(m=>({role:m.role,content:m.content}));
+    const sys=MODI[mode].system()+(WISSEN?('\n\n'+WISSEN):'')+(AGENT_CTX?('\n\nDEINE AKTUELLEN LIVE-DATEN:\n'+AGENT_CTX):'');
+    const payload=JSON.stringify({model:MODEL,max_tokens:2500,system:sys,messages:msgs});
+    const fd=new FormData();fd.append('ki_request',payload);fd.append('api_key',getKey());
     const r=await fetch(window.location.pathname,{method:'POST',body:fd});
     const d=await r.json();
+    tp.remove();
     if(d.error){throw new Error(d.error.message||'Fehler');}
-    let t=d.content.map(i=>i.type==='text'?i.text:'').join('').trim().replace(/\`\`\`json|\`\`\`/g,'').trim();
-    const s=t.indexOf('{'),en=t.lastIndexOf('}');
-    if(s>=0&&en>=0)t=t.slice(s,en+1);
-    zeigR(JSON.parse(t),mat);
+    let txt=d.content.map(i=>i.type==='text'?i.text:'').join('').trim();
+    // Kalkulations-Block extrahieren
+    const cm=txt.match(/<calc>([\s\S]*?)<\/calc>/);
+    if(cm){
+      const vor=txt.slice(0,cm.index).trim();
+      let k=null; try{k=JSON.parse(cm[1]);}catch(e){}
+      if(k){history[mode].push({role:'assistant',content:txt,_render:vor,_calc:k});}
+      else{history[mode].push({role:'assistant',content:txt,_render:txt});}
+      renderLog();
+    }else{
+      pushMsg('ai',txt);
+    }
   }catch(e){
-    zeige('form');
-    let m='Fehler: ';
-    const em=(e.message||'')+'';
-    if(em.includes('401')||em.includes('authentication'))m+='API-Schlüssel ungültig. Unter Zahnrad prüfen.';
-    else if(em.includes('credit')||em.includes('balance'))m+='Guthaben aufladen: console.anthropic.com';
-    else m+=em||'Bitte nochmal versuchen.';
-    fe.textContent=m;fe.style.display='block';
+    tp.remove();
+    let m=(e.message||'')+'';
+    let out='⚠️ ';
+    if(m.includes('401')||m.includes('authentication'))out+='API-Schlüssel ungültig. Unter dem Zahnrad prüfen.';
+    else if(m.includes('credit')||m.includes('balance'))out+='Guthaben aufladen unter console.anthropic.com';
+    else out+='Fehler: '+(m||'Bitte nochmal versuchen.');
+    pushMsg('ai',out);
   }
+  gl('sendBtn').disabled=false;
 }
-function zeigR(k,mat){
-  gl('r-ziel').textContent=eur(k.zielpreis);
-  gl('r-sub').innerHTML=`${k.manntage} Manntage · ${k.arbeitsstunden} Std<br>Verhandelbar bis: <b>${eur(k.minimalpreis)}</b>`;
-  gl('r-denkweg').textContent=k.denkweg?'💭 '+k.denkweg:'';
-  let rows=`<tr><td>Arbeit (${k.arbeitsstunden} Std × 136€)</td><td>${eur(k.arbeitskosten)}</td></tr>`;
-  if(k.fahrtkosten>0)rows+=`<tr><td>Anfahrt</td><td>${eur(k.fahrtkosten)}</td></tr>`;
-  if(k.material_mit_aufschlag>0)rows+=`<tr><td>Material (+10%)</td><td>${eur(k.material_mit_aufschlag)}</td></tr>`;
-  rows+=`<tr class="summe"><td>Zielpreis</td><td>${eur(k.zielpreis)}</td></tr>`;
-  gl('r-kt').innerHTML=rows;
-  if(mat==='bauseits'||!k.material_liste||!k.material_liste.length){gl('r-matcard').style.display='none';}
-  else{gl('r-matcard').style.display='block';gl('r-mat').innerHTML=k.material_liste.map(m=>`<li><span>${m.pos}</span><span>${m.menge||''}</span></li>`).join('');}
-  let t='Arbeitsleistung\nLeistungsumfang:\n'+k.leistungen.map(l=>'• '+l).join('\n');
-  t+=mat==='bauseits'?'\n\nHinweis:\nMaterial wird bauseits gestellt.':'\n\nHinweis:\nMaterial ist im Angebotspreis enthalten.';
-  letzterT=t;gl('r-at').textContent=t;
-  gl('korr').value='';gl('lernMsg').textContent='';gl('kopMsg').textContent='';
-  zeige('result');
+
+/* ============ AUDIO (eigener Song) + STIMME ============ */
+let audioUnlocked=false, isMuted=false, stopTimer=null, fadeTimer=null;
+const SONG_DAUER=60; // Sekunden – Song läuft max. 1 Minute
+function unlockAudio(){
+  const b=gl('bgm'); if(!b)return;
+  b.muted=isMuted; b.volume=isMuted?0:0.22;
+  const p=b.play(); if(p&&p.catch)p.catch(()=>{});
+  audioUnlocked=true;
+  scheduleStop();
+  // Sprachausgabe „aufwecken“ (iOS verlangt eine Geste)
+  try{ if('speechSynthesis' in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(' '));} }catch(e){}
 }
-function kopier(){
-  navigator.clipboard.writeText(letzterT).then(()=>{gl('kopMsg').textContent='✓ Kopiert!';setTimeout(()=>gl('kopMsg').textContent='',2500);}).catch(()=>{
-    const r=document.createRange();r.selectNode(gl('r-at'));window.getSelection().removeAllRanges();window.getSelection().addRange(r);try{document.execCommand('copy');}catch(e){}window.getSelection().removeAllRanges();gl('kopMsg').textContent='✓ Kopiert!';
-  });
+// Song nach 1 Minute sanft ausblenden und stoppen
+function scheduleStop(){
+  clearTimeout(stopTimer); clearTimeout(fadeTimer);
+  const b=gl('bgm'); if(!b)return;
+  fadeTimer=setTimeout(()=>{
+    let v=b.volume;
+    const fade=setInterval(()=>{
+      v-=0.03;
+      if(v<=0||isMuted){clearInterval(fade);b.pause();b.currentTime=0;b.volume=isMuted?0:0.22;}
+      else b.volume=v;
+    },120);
+  },(SONG_DAUER-3)*1000); // letzte 3 Sek ausblenden
+  stopTimer=setTimeout(()=>{const bb=gl('bgm');if(bb){bb.pause();bb.currentTime=0;}},SONG_DAUER*1000);
 }
-function lernNeu(){
-  const k=gl('korr').value.trim();if(k.length<4)return;
-  const l=getLern();l.push(k);setLernS(l);
-  gl('lernMsg').textContent='✓ Gelernt! Rechne neu …';
-  setTimeout(()=>{gl('beschr').value=letzterF.beschr||'';gl('qm').value=letzterF.qm||'';gl('km').value=letzterF.km||'';gl('matQ').value=letzterF.mat||'ich';kalk(k);},600);
+function toggleMute(){
+  isMuted=!isMuted; const b=gl('bgm');
+  if(b){b.muted=isMuted; b.volume=isMuted?0:0.22; if(!isMuted&&b.paused)b.play().catch(()=>{});}
+  if(isMuted)try{speechSynthesis.cancel();}catch(e){}
+  gl('muteBtn').innerHTML=isMuted?'&#128263;':'&#128266;';
 }
-function neuBau(){gl('beschr').value='';gl('qm').value='';gl('km').value='';zeige('form');}
-zeige('home');
+function duck(on){ const b=gl('bgm'); if(b&&!isMuted) b.volume= on?0.07:0.22; }
+function speak(txt){
+  try{
+    if(isMuted||!('speechSynthesis' in window))return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang='de-DE'; u.rate=1; u.pitch=1;
+    const vs=speechSynthesis.getVoices().filter(v=>/de(-|_)/i.test(v.lang));
+    if(vs.length)u.voice=vs[0];
+    duck(true); u.onend=()=>duck(false); u.onerror=()=>duck(false);
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function cleanSpeech(s){return (s||'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu,'').replace(/\s+/g,' ').trim();}
+function speakDashboard(){
+  if(briefingText){ speak(briefingText+'Ich bin bereit, wenn Du es bist.'); return; }
+  const t=lastTasks||{rot:[],gelb:[],gruen:[]};
+  let s='Willkommen zurück, '+(currentTitle||'Chef')+'. ';
+  const r=(t.rot||[]).length, g=(t.gelb||[]).length;
+  if(r>0){ s+=r+(r===1?' dringende Aufgabe':' dringende Aufgaben')+' sofort. ';
+    (t.rot||[]).slice(0,3).forEach(x=>{s+=cleanSpeech(x.titel)+'. ';}); }
+  else { s+='Keine dringenden Aufgaben. '; }
+  if(g>0) s+=g+(g===1?' weitere Aufgabe':' weitere Aufgaben')+' bald. ';
+  s+='Ich bin bereit, wenn Du es bist.';
+  speak(s);
+}
+
+/* ============ LOGIN (per AJAX, damit der Song bei der Geste startet) ============ */
+const LOGGED_IN=<?= $eingeloggt ? 'true' : 'false' ?>;
+function startSession(){
+  gl('loginWrap').style.display='none';
+  gl('boot').style.display='flex';
+  boot();
+}
+gl('loginForm').addEventListener('submit',async function(e){
+  e.preventDefault();
+  unlockAudio(); // genau hier (Geste) startet Dein Song
+  const pw=gl('loginPw').value;
+  try{
+    const r=await api('login',{pw});
+    if(r&&r.ok){ gl('loginErr').style.display='none'; startSession(); }
+    else { gl('loginErr').style.display='block'; const b=gl('bgm'); if(b)b.pause(); }
+  }catch(err){ gl('loginErr').style.display='block'; }
+});
+
+/* ============ START ============ */
+clock();setInterval(clock,1000);
+if(LOGGED_IN){ startSession(); }   // schon eingeloggt -> direkt rein (Ton ab 1. Tipp)
+// Schon eingeloggt (Seite neu geladen): Song beim ersten Antippen nachholen
+['touchstart','click'].forEach(ev=>document.addEventListener(ev,function once(){if(LOGGED_IN&&!audioUnlocked)unlockAudio();document.removeEventListener(ev,once);},{once:true}));
 </script>
 </body>
 </html>
-<?php endif; ?>

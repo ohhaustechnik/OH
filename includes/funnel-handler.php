@@ -159,6 +159,25 @@ $standort = $plz;
 if (!empty($ort))     $standort .= ' ' . $ort;
 if (!empty($strasse)) $standort .= ', ' . $strasse;
 
+// ---------------------------------------------------------------
+// Lead im Büro-System speichern (für Dashboard, HOT/WARM/KALT, Automatik)
+// ---------------------------------------------------------------
+@require_once __DIR__ . '/buero-lib.php';
+if (function_exists('oh_add_lead')) {
+    oh_add_lead([
+        'source'        => 'funnel',
+        'name'          => trim($vorname . ' ' . $nachname),
+        'email'         => $email,
+        'telefon'       => $telefon,
+        'kategorie'     => $kategorieLabel,
+        'objektgroesse' => $objektgroesse,
+        'zeitraum'      => $ausfuehrungszeit,
+        'plz'           => $plz,
+        'ort'           => $ort,
+        'details'       => trim(($suboptionen ? $suboptionen . '. ' : '') . $details),
+    ]);
+}
+
 // Boundary für Multipart (nur wenn Anhänge vorhanden)
 $boundary = md5(uniqid(time(), true));
 
