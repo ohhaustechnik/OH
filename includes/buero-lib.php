@@ -163,7 +163,7 @@ function oh_update_lead(string $id, array $patch, ?string $logText = null): ?arr
 }
 
 function oh_delete_lead(string $id): void {
-    $leads = array_values(array_filter(oh_read('leads', []), fn($l) => ($l['id'] ?? '') !== $id));
+    $leads = array_values(array_filter(oh_read('leads', []), function($l) use ($id) { return ($l['id'] ?? '') !== $id; }));
     oh_write('leads', $leads);
 }
 

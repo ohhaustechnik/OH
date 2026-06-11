@@ -2,10 +2,16 @@
 session_start();
 $PASSWORT = 'oh';
 
-require_once __DIR__ . '/includes/buero-lib.php';
+// Bibliothek laden (defensiv: fehlt sie, läuft das Büro trotzdem im Basismodus)
+$__lib = __DIR__ . '/includes/buero-lib.php';
+if (is_file($__lib)) { require_once $__lib; }
+if (!function_exists('oh_config')) {
+    function oh_config() { return []; }
+}
 
 // API-Key: serverseitige Konfiguration (daten/config.json) oder Umgebungsvariable
-$API_KEY = oh_config()['anthropic_key'] ?? (getenv('CLAUDE_KEY') ?: '');
+$cfg0 = oh_config();
+$API_KEY = isset($cfg0['anthropic_key']) ? $cfg0['anthropic_key'] : (getenv('CLAUDE_KEY') ?: '');
 
 // Login-Logik
 if (isset($_POST['login_pw'])) {
@@ -35,7 +41,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'leads' => oh_read('leads', []),
             'stats' => [
                 'leads'  => count(oh_read('leads', [])),
-                'hot'    => count(array_filter(oh_read('leads', []), fn($l) => ($l['stufe'] ?? '') === 'HOT' && ($l['status'] ?? '') === 'neu')),
+                'hot'    => count(array_filter(oh_read('leads', []), function($l){ return ($l['stufe'] ?? '') === 'HOT' && ($l['status'] ?? '') === 'neu'; })),
             ],
         ]);
     } elseif ($a === 'lead_add') {
