@@ -707,7 +707,39 @@ function oh_company_tasks(): array {
         }
     }
 
-    // 3) Markt-Aktualität (Warnung wenn Analyse veraltet)
+    // 3) Offene E-Mails (Gmail)
+    $em = oh_read('emails', []);
+    foreach (($em['list'] ?? []) as $m) {
+        $offen[] = ['bereich' => 'E-Mail', 'icon' => '✉️', 'prio' => 'gelb',
+            'titel' => 'E-Mail: ' . ($m['subject'] ?: '(kein Betreff)'),
+            'nutzen' => 'von ' . ($m['from'] ?: '?'),
+            'warum' => 'Ungelesene E-Mail – kann eine neue Anfrage sein. Kurz beantworten.',
+            'typ' => 'email', 'ref' => ''];
+    }
+
+    // 4) Offene WhatsApp-Nachrichten
+    foreach (oh_wa_open() as $m) {
+        $offen[] = ['bereich' => 'WhatsApp', 'icon' => '💬', 'prio' => 'rot',
+            'titel' => 'WhatsApp: ' . ($m['name'] ?: ($m['from'] ?? '')),
+            'nutzen' => 'schnell antworten = mehr Abschlüsse',
+            'warum' => $m['text'] ?? '',
+            'typ' => 'whatsapp', 'ref' => $m['id'] ?? ''];
+    }
+
+    // 5) Website-Status
+    $ws = oh_read('web_status', []);
+    if (isset($ws['ok']) && !$ws['ok']) {
+        foreach (($ws['probleme'] ?? []) as $p) {
+            $offen[] = ['bereich' => 'Website', 'icon' => '🌐', 'prio' => 'rot',
+                'titel' => 'Website-Problem', 'nutzen' => 'Anfragen sichern',
+                'warum' => $p . ' – bitte prüfen, sonst gehen Anfragen verloren.',
+                'typ' => 'website', 'ref' => ''];
+        }
+    } elseif (isset($ws['ok']) && $ws['ok']) {
+        $erledigt[] = ['bereich' => 'Website', 'icon' => '🌐', 'titel' => 'Website & Kontaktformular laufen', 'ts' => $ws['ts'] ?? $now];
+    }
+
+    // 6) Markt-Aktualität (Warnung wenn Analyse veraltet)
     $warnung = null;
     if (!empty(oh_config()['ads_refresh_token'])) {
         $last = oh_ads_last_analysis();
@@ -773,4 +805,73 @@ function oh_mert_briefing(?string &$err = null): ?string {
     if ($out) { oh_write('mert_plan', ['text' => $out, 'ts' => time()]); }
     else { $err = 'KI nicht verfügbar (Anthropic-Schlüssel/Guthaben prüfen).'; }
     return $out;
+}
+
+/* ==========================================================================
+ * ANBINDUNGEN: Gmail (offene E-Mails), Website-Check, WhatsApp
+ * ======================================================================== */
+
+/** MIME-Header dekodieren (Umlaute in Betreff/Absender). */
+function oh_mime_decode($s): string {
+    if (!function_exists('imap_mime_header_decode')) return (string)$s;
+    $r = ''; foreach (imap_mime_header_decode($s) ?: [] as $p) { $r .= $p->text; }
+    return $r !== '' ? $r : (string)$s;
+}
+
+/** Ungelesene E-Mails aus Gmail (IMAP, mit App-Passwort). */
+function oh_gmail_unread(int $max = 10): array {
+    $cfg = oh_config();
+    if (empty($cfg['gmail_user']) || empty($cfg['gmail_pass']) || !function_exists('imap_open')) return [];
+    $mbox = @imap_open('{imap.gmail.com:993/imap/ssl}INBOX', $cfg['gmail_user'], $cfg['gmail_pass'], OP_READONLY);
+    if (!$mbox) return [];
+    $ids = @imap_search($mbox, 'UNSEEN');
+    $out = [];
+    if ($ids) {
+        rsort($ids);
+        foreach (array_slice($ids, 0, $max) as $id) {
+            $h = @imap_headerinfo($mbox, $id);
+            if (!$h) continue;
+            $from = '';
+            if (isset($h->from[0])) {
+                $f = $h->from[0];
+                $from = ($f->personal ?? '') ?: (($f->mailbox ?? '') . '@' . ($f->host ?? ''));
+            }
+            $out[] = [
+                'from'    => oh_mime_decode($from),
+                'subject' => oh_mime_decode($h->subject ?? '(kein Betreff)'),
+                'ts'      => isset($h->udate) ? (int)$h->udate : time(),
+            ];
+        }
+    }
+    @imap_close($mbox);
+    return $out;
+}
+
+/** Prüft, ob Website + wichtige Seiten erreichbar sind. */
+function oh_website_check(): array {
+    $base = rtrim(oh_config()['site_url'] ?? 'https://oh-haustechnik.de', '/');
+    $pages = ['/' => 'Startseite', '/kontakt.php' => 'Kontaktseite', '/festpreis-kalkulator.php' => 'Festpreis-Kalkulator'];
+    $probleme = [];
+    foreach ($pages as $p => $name) {
+        $ch = curl_init($base . $p);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_NOBODY => true, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => true, CURLOPT_SSL_VERIFYPEER => false]);
+        curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code < 200 || $code >= 400) $probleme[] = "$name nicht erreichbar (Status $code)";
+    }
+    $st = ['ok' => empty($probleme), 'probleme' => $probleme, 'ts' => time()];
+    oh_write('web_status', $st);
+    return $st;
+}
+
+/** Sammelt alle Anbindungen ein (für Cron & Button). */
+function oh_inbox_scan(): void {
+    oh_write('emails', ['list' => oh_gmail_unread(10), 'ts' => time()]);
+    oh_website_check();
+}
+
+/** Offene (unbeantwortete) WhatsApp-Nachrichten. */
+function oh_wa_open(): array {
+    return array_values(array_filter(oh_read('whatsapp', []), function($m){ return ($m['status'] ?? 'offen') === 'offen'; }));
 }

@@ -26,6 +26,10 @@ if (php_sapi_name() !== 'cli') {
 }
 
 $now = time();
+
+// Postfach (ungelesene E-Mails) + Website-Erreichbarkeit aktualisieren
+if (function_exists('oh_inbox_scan')) oh_inbox_scan();
+
 $leads = oh_read('leads', []);
 $log = [];
 $cfg = oh_config();

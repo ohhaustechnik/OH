@@ -104,6 +104,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'ads_customer_id'=> $c['ads_customer_id'] ?? '',
             'ads_login_customer_id' => $c['ads_login_customer_id'] ?? '',
             'has_ads'        => !empty($c['ads_developer_token']) && !empty($c['ads_refresh_token']),
+            'site_url'       => $c['site_url'] ?? '',
+            'wa_verify_token'=> $c['wa_verify_token'] ?? 'oh-wa',
+            'wa_phone_id'    => $c['wa_phone_id'] ?? '',
+            'has_wa'         => !empty($c['wa_token']),
         ]);
     } elseif ($a === 'config_set') {
         oh_config_set([
@@ -116,8 +120,16 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'ads_refresh_token'      => $in['ads_refresh_token'] ?? '',
             'ads_customer_id'        => $in['ads_customer_id'] ?? '',
             'ads_login_customer_id'  => $in['ads_login_customer_id'] ?? '',
+            'site_url'        => $in['site_url'] ?? '',
+            'wa_token'        => $in['wa_token'] ?? '',
+            'wa_verify_token' => $in['wa_verify_token'] ?? '',
+            'wa_phone_id'     => $in['wa_phone_id'] ?? '',
         ]);
         echo json_encode(['ok' => true]);
+    } elseif ($a === 'scan_now') {
+        oh_inbox_scan();
+        $ct = oh_company_tasks();
+        echo json_encode(['ok' => true, 'offen' => $ct['offen'], 'erledigt' => $ct['erledigt'], 'warnung' => $ct['warnung'], 'anzahl' => $ct['anzahl']]);
     } elseif ($a === 'ads_report') {
         $err = null;
         $rep = oh_ads_report($err);
@@ -287,6 +299,8 @@ header{padding:18px 18px 12px;padding-top:calc(18px + env(safe-area-inset-top));
 /* --- KARTEN / GLAS --- */
 .section-title{font-family:'SF Mono',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:2px;
   color:var(--cyan);margin:20px 18px 4px;opacity:.8;text-transform:uppercase;}
+.scan-btn{float:right;cursor:pointer;color:var(--cyan);border:1px solid var(--line);border-radius:8px;padding:1px 8px;opacity:1;}
+.scan-btn:active{transform:scale(.9);}
 .card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin:12px 14px;
   backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
 h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
@@ -523,7 +537,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <button class="mert-refresh" onclick="mertFresh(this)">↻ Neuen Tagesplan erstellen</button>
   </div>
 
-  <div class="section-title">// Sollte erledigt werden <span id="offenCount"></span></div>
+  <div class="section-title">// Sollte erledigt werden <span id="offenCount"></span><span class="scan-btn" onclick="scanNow(this)">↻</span></div>
   <div id="taskOffen"><div class="prio-empty">Lade …</div></div>
 
   <div class="section-title">// Bereits erledigt</div>
@@ -633,6 +647,26 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <input type="text" id="adsLogin" placeholder="246-895-3721">
     <button class="btn btn-cyan" style="margin-top:12px" onclick="saveAds()">Speichern</button>
     <div id="adsMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#128241; WhatsApp Business</h2>
+    <p class="intro">Für eingehende WhatsApp-Nachrichten im Dashboard. Braucht die <b>Meta Cloud API</b> (Business-Konto + Nummer). Webhook-URL in Meta: <b>oh-haustechnik.de/whatsapp-webhook.php</b></p>
+    <label>Zugriffs-Token (Permanent Token)</label>
+    <input type="password" id="waToken" placeholder="••• (leer = unverändert)">
+    <label>Telefonnummer-ID</label>
+    <input type="text" id="waPhone" placeholder="z.B. 1098765432">
+    <label>Verify-Token (selbst ausgedacht, in Meta gleich eintragen)</label>
+    <input type="text" id="waVerify" placeholder="oh-wa">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveWa()">Speichern</button>
+    <div id="waMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#127760; Website-Adresse</h2>
+    <p class="intro">Für den automatischen Website-Check (Erreichbarkeit, Kontaktformular).</p>
+    <label>Adresse</label>
+    <input type="text" id="siteUrl" placeholder="https://oh-haustechnik.de">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveSite()">Speichern</button>
+    <div id="siteMsg" class="msg-ok"></div>
   </div>
   <div class="card">
     <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
@@ -784,6 +818,13 @@ async function loadDashboard(){
     buildBriefing(d);
   }catch(e){/* offline */}
   try{serverCfg=await api('config_get');}catch(e){}
+  // E-Mails & Website im Hintergrund aktualisieren (blockiert das Öffnen nicht)
+  api('scan_now').then(d=>{if(d&&d.ok){renderWarn(d.warnung);renderOffen(d.offen||[]);renderErledigt(d.erledigt||[]);}}).catch(()=>{});
+}
+async function scanNow(btn){
+  if(btn){btn.textContent='…';}
+  try{const d=await api('scan_now');if(d&&d.ok){renderWarn(d.warnung);renderOffen(d.offen||[]);renderErledigt(d.erledigt||[]);}}catch(e){}
+  if(btn){btn.textContent='↻';}
 }
 function renderStats(s){
   gl('dashStats').innerHTML=
@@ -851,6 +892,10 @@ function leadInfo(l){
 }
 function openTaskRef(typ,ref){
   if(typ==='reco'||typ==='markt'){openAds();return;}
+  const task=(lastOffen||[]).find(t=>t.ref===ref&&t.typ===typ);
+  if(typ==='email'){openChat('leads','Hilf mir, diese E-Mail kurz und professionell zu beantworten. Ich füge den Text gleich ein:');return;}
+  if(typ==='whatsapp'){openChat('leads','Schreib mir eine freundliche, professionelle WhatsApp-Antwort auf diese Kundennachricht:\n\n"'+((task&&task.warum)||'')+'"');return;}
+  if(typ==='website'){openChat('berater','Auf der Website gibt es ein Problem: '+((task&&task.warum)||'')+'\nWas soll ich tun?');return;}
   const l=leadById(ref);
   if(typ==='bewertung')openChat('bewertung','Schreib eine freundliche Bewertungs-Anfrage per E-Mail an diesen abgeschlossenen Kunden:\n\n'+leadInfo(l));
   else if(typ==='followup')openChat('leads','Schreib eine freundliche Follow-up-Nachricht (Angebot ist 2 Tage raus, keine Antwort) an:\n\n'+leadInfo(l));
@@ -941,11 +986,14 @@ async function toggleSettings(){
   if(gl('s-settings').style.display==='block'){goHome();}
   else{
     gl('apiIn').value='';gl('gmailPass').value='';
-    ['adsDev','adsCid','adsSecret','adsRefresh'].forEach(id=>gl(id).value='');
+    ['adsDev','adsCid','adsSecret','adsRefresh','waToken'].forEach(id=>gl(id).value='');
     try{const c=await api('config_get');serverCfg=c;
       gl('gmailUser').value=c.gmail_user||'';
       gl('adsCustomer').value=c.ads_customer_id||'';
       gl('adsLogin').value=c.ads_login_customer_id||'';
+      gl('waPhone').value=c.wa_phone_id||'';
+      gl('waVerify').value=c.wa_verify_token||'oh-wa';
+      gl('siteUrl').value=c.site_url||'';
     }catch(e){}
     renderLL();showSection('settings');
   }
@@ -977,6 +1025,17 @@ async function saveAds(){
   ['adsDev','adsCid','adsSecret','adsRefresh'].forEach(id=>gl(id).value='');
   gl('adsMsg').textContent='✓ Google Ads gespeichert';
   setTimeout(()=>gl('adsMsg').textContent='',2500);
+}
+async function saveWa(){
+  await api('config_set',{wa_token:gl('waToken').value.trim(),wa_phone_id:gl('waPhone').value.trim(),wa_verify_token:gl('waVerify').value.trim()});
+  gl('waToken').value='';
+  gl('waMsg').textContent='✓ WhatsApp gespeichert';
+  setTimeout(()=>gl('waMsg').textContent='',2500);
+}
+async function saveSite(){
+  await api('config_set',{site_url:gl('siteUrl').value.trim()});
+  gl('siteMsg').textContent='✓ Gespeichert';
+  setTimeout(()=>gl('siteMsg').textContent='',2500);
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
