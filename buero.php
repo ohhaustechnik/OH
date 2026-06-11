@@ -124,18 +124,28 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $id = $in['id'] ?? '';
         $reco = oh_read('ads_reco', []);
         $hit = null;
-        foreach ($reco as &$r) {
-            if (($r['id'] ?? '') === $id) {
-                $r['status'] = ($a === 'ads_apply') ? 'uebernommen' : 'spaeter';
-                $hit = $r;
-            }
+        foreach ($reco as $r) { if (($r['id'] ?? '') === $id) { $hit = $r; break; } }
+        if (!$hit) { echo json_encode(['ok' => false]); exit; }
+
+        $result = ['ok' => true, 'executed' => false, 'msg' => ''];
+        if ($a === 'ads_apply') {
+            $aerr = null;
+            $r = oh_ads_apply($hit, $aerr);        // sichere Änderung direkt ausführen
+            $result['executed'] = $r['executed'];
+            $result['msg'] = $r['msg'];
+            $newStatus = 'uebernommen';
+            oh_ads_log_change([
+                'titel' => $hit['titel'] ?? '', 'was' => $hit['was'] ?? '',
+                'typ' => $hit['typ'] ?? '', 'wert' => $hit['wert'] ?? '',
+                'ausgefuehrt' => $r['executed'],
+            ]);
+        } else {
+            $newStatus = 'spaeter';
         }
-        unset($r);
+        foreach ($reco as &$rr) { if (($rr['id'] ?? '') === $id) $rr['status'] = $newStatus; }
+        unset($rr);
         oh_write('ads_reco', $reco);
-        if ($a === 'ads_apply' && $hit) {
-            oh_ads_log_change(['titel' => $hit['titel'] ?? '', 'was' => $hit['was'] ?? '', 'typ' => $hit['typ'] ?? '', 'wert' => $hit['wert'] ?? '']);
-        }
-        echo json_encode(['ok' => true]);
+        echo json_encode($result);
     } else {
         echo json_encode(['error' => 'unbekannte Aktion']);
     }
@@ -330,6 +340,9 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .reco-btns .btn{padding:11px;font-size:13px;width:auto;}
 .reco-ok{flex:2;}
 .reco-later{flex:1;}
+.reco-result{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;
+  background:rgba(231,177,75,.12);border:1px solid rgba(231,177,75,.4);color:#f0cd8a;}
+.reco-result.done{background:rgba(52,224,154,.12);border-color:rgba(52,224,154,.4);color:#7ef0bd;}
 /* Morgen-Briefing */
 .briefing{margin:8px 14px 0;background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;backdrop-filter:blur(12px);}
 .briefing h3{font-size:13px;color:var(--cyan);margin-bottom:8px;font-family:'SF Mono',monospace;letter-spacing:1px;}
@@ -974,9 +987,17 @@ function renderReco(list){
   }).join('');
 }
 async function recoApply(id,btn){
-  btn.disabled=true; btn.textContent='✓ Übernommen';
-  await api('ads_apply',{id});
-  setTimeout(loadReco,700);
+  btn.disabled=true; btn.textContent='⏳ …';
+  let d={}; try{d=await api('ads_apply',{id});}catch(e){}
+  const card=btn.closest('.reco');
+  if(card){
+    const m=document.createElement('div');
+    m.className='reco-result'+(d.executed?' done':'');
+    m.textContent=(d.executed?'✅ ':'📝 ')+(d.msg||'Übernommen');
+    card.appendChild(m);
+    if(d.msg)speak(cleanSpeech(d.msg));
+  }
+  setTimeout(loadReco,3000);
 }
 async function recoLater(id,btn){
   btn.disabled=true;

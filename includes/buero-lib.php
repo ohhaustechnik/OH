@@ -476,15 +476,25 @@ function oh_ads_keywords(?string &$err = null): ?array {
  * Speichert sie in daten/ads_reco.json und gibt sie zurück.
  */
 function oh_ads_recommendations(?string &$err = null): ?array {
+    $e2 = $e3 = $e4 = null;
     $rep = oh_ads_report($err);   if ($rep === null) return null;
-    $terms = oh_ads_search_terms($e2);
-    $kws   = oh_ads_keywords($e3);
+    $terms  = oh_ads_search_terms($e2);
+    $kws    = oh_ads_keywords($e3);
+    $markt  = oh_ads_market($e4);
 
     // Datenkontext kompakt aufbereiten
     $s = $rep['summe'];
     $ctx = "ZAHLEN (7 Tage): Kosten " . $s['kosten'] . "€, Klicks " . $s['klicks']
          . ", Anfragen " . $s['conv'] . ", Kosten pro Anfrage " . ($s['cpl'] ?? '–') . "€\n\nKAMPAGNEN:\n";
     foreach ($rep['kampagnen'] as $k) $ctx .= "- {$k['name']}: {$k['kosten']}€, {$k['klicks']} Klicks, {$k['conv']} Anfragen, CTR {$k['ctr']}%\n";
+    if ($markt) {
+        $ctx .= "\nMARKT & KONKURRENZ (Anteil an allen Nürnberger Suchen, 30 Tage):\n";
+        foreach ($markt as $mk) {
+            $ctx .= "- {$mk['name']}: Du bekommst " . ($mk['anteil'] ?? '?') . "% der Suchen"
+                  . (isset($mk['verlust_budget']) ? ", verlierst " . $mk['verlust_budget'] . "% wegen zu wenig Budget" : "")
+                  . (isset($mk['verlust_rang']) ? " und " . $mk['verlust_rang'] . "% wegen Rang/Gebot" : "") . ".\n";
+        }
+    }
     if ($kws) { $ctx .= "\nKEYWORDS (30 Tage, teuerste zuerst):\n"; foreach (array_slice($kws, 0, 20) as $k) $ctx .= "- \"{$k['keyword']}\" [{$k['match']}]: {$k['kosten']}€, {$k['klicks']} Kl., {$k['conv']} Anfr.\n"; }
     if ($terms) { $ctx .= "\nSUCHBEGRIFFE (wonach Leute wirklich gesucht haben, 30 Tage):\n"; foreach (array_slice($terms, 0, 25) as $t) $ctx .= "- \"{$t['begriff']}\": {$t['kosten']}€, {$t['klicks']} Kl., {$t['conv']} Anfr.\n"; }
 
@@ -495,7 +505,8 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         . "Sprich EINFACH, wie ein guter Mitarbeiter zum Chef – KEINE Fachbegriffe, kurze Sätze, immer mit 'Chef' anreden.\n"
         . "Gib AUSSCHLIESSLICH einen JSON-Block in genau diesem Format zurück (3-6 Empfehlungen, wichtigste zuerst), nichts davor/danach:\n"
         . "<reco>[{\"titel\":\"Chef, ...\",\"was\":\"<was genau ändern>\",\"warum\":\"<warum, einfach>\",\"anfragen\":\"<z.B. 2-4 pro Woche>\",\"wahrscheinlichkeit\":\"<hoch|mittel|niedrig>\",\"dringlichkeit\":\"<rot|gelb|gruen>\",\"typ\":\"<negativ_keyword|keyword|budget|gebot|standort|zeit|anzeige|info>\",\"wert\":\"<z.B. das auszuschließende Suchwort oder das neue Keyword>\",\"schritte\":\"<1-2 ganz einfache Schritte zum Umsetzen>\"}]</reco>\n"
-        . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'), starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt.";
+        . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'), starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt. "
+        . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt.";
 
     $resp = oh_ki($system, $ctx, 1800);
     if (!$resp) { $err = 'KI-Analyse nicht verfügbar (Anthropic-Schlüssel prüfen).'; return null; }
@@ -525,5 +536,105 @@ function oh_ads_log_change(array $entry): void {
     $log = oh_read('ads_changes', []);
     array_unshift($log, array_merge(['ts' => time()], $entry));
     oh_write('ads_changes', $log);
+}
+
+/**
+ * MARKT & KONKURRENZ: Anteil an den Suchen (Impression Share) und warum
+ * Anzeigen verloren gehen (zu wenig Budget vs. zu schlechter Rang/Gebot).
+ */
+function oh_ads_market(?string &$err = null): ?array {
+    $gaql = "SELECT campaign.name, metrics.search_impression_share, "
+          . "metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share, "
+          . "metrics.search_top_impression_share, metrics.search_absolute_top_impression_share "
+          . "FROM campaign WHERE segments.date DURING LAST_30_DAYS";
+    $rows = oh_ads_search($gaql, $err);
+    if ($rows === null) return null;
+    $out = [];
+    foreach ($rows as $r) {
+        $m = $r['metrics'] ?? [];
+        $pct = function($v) { return $v === null ? null : round($v * 100); };
+        $out[] = [
+            'name'        => $r['campaign']['name'] ?? '–',
+            'anteil'      => $pct($m['searchImpressionShare'] ?? null),               // % der Suchen, die Du bekommst
+            'verlust_budget' => $pct($m['searchBudgetLostImpressionShare'] ?? null),  // % verloren wegen zu wenig Budget
+            'verlust_rang'   => $pct($m['searchRankLostImpressionShare'] ?? null),    // % verloren wegen Rang/Gebot
+            'oben'        => $pct($m['searchTopImpressionShare'] ?? null),
+            'ganz_oben'   => $pct($m['searchAbsoluteTopImpressionShare'] ?? null),
+        ];
+    }
+    return $out;
+}
+
+/* --- Änderungen im Konto ausführen (Mutate) --- */
+
+/** Generischer Mutate-Aufruf gegen die Google Ads API. */
+function oh_ads_mutate(string $endpoint, array $body, ?string &$err = null) {
+    $cfg = oh_config();
+    $token = oh_ads_access_token();
+    if (!$token) { $err = 'Login fehlgeschlagen.'; return null; }
+    $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
+    $login = preg_replace('/\D/', '', $cfg['ads_login_customer_id'] ?? '');
+    $headers = [
+        'Authorization: Bearer ' . $token,
+        'developer-token: ' . ($cfg['ads_developer_token'] ?? ''),
+        'Content-Type: application/json',
+    ];
+    if ($login) $headers[] = 'login-customer-id: ' . $login;
+    $url = 'https://googleads.googleapis.com/' . OH_ADS_API_VERSION . '/customers/' . $cid . '/' . $endpoint;
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45,
+        CURLOPT_HTTPHEADER => $headers, CURLOPT_POSTFIELDS => json_encode($body),
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $d = json_decode($resp, true);
+    if ($code !== 200) { $err = $d['error']['message'] ?? ('HTTP ' . $code); return null; }
+    return $d;
+}
+
+/** Aktive Such-Kampagnen-IDs. */
+function oh_ads_enabled_search_campaigns(?string &$err = null): array {
+    $gaql = "SELECT campaign.id FROM campaign WHERE campaign.status = 'ENABLED' "
+          . "AND campaign.advertising_channel_type = 'SEARCH'";
+    $rows = oh_ads_search($gaql, $err);
+    $ids = [];
+    foreach (($rows ?: []) as $r) { if (!empty($r['campaign']['id'])) $ids[] = $r['campaign']['id']; }
+    return $ids;
+}
+
+/** Fügt ein negatives Keyword zu allen aktiven Such-Kampagnen hinzu (spart Geld, kostet nie mehr). */
+function oh_ads_add_negative_keyword(string $text, ?string &$err = null): bool {
+    $cfg = oh_config();
+    $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
+    $camps = oh_ads_enabled_search_campaigns($err);
+    if (!$camps) { if (!$err) $err = 'Keine aktive Such-Kampagne gefunden.'; return false; }
+    $ops = [];
+    foreach ($camps as $campId) {
+        $ops[] = ['create' => [
+            'campaign' => 'customers/' . $cid . '/campaigns/' . $campId,
+            'negative' => true,
+            'keyword'  => ['text' => $text, 'matchType' => 'BROAD'],
+        ]];
+    }
+    $res = oh_ads_mutate('campaignCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+    return $res !== null;
+}
+
+/**
+ * Setzt eine Empfehlung um. Sichere Änderungen (negative Keywords) werden direkt
+ * im Konto ausgeführt; alles andere wird dokumentiert (manuell umzusetzen).
+ */
+function oh_ads_apply(array $reco, ?string &$err = null): array {
+    $typ  = $reco['typ'] ?? '';
+    $wert = trim($reco['wert'] ?? '');
+    if ($typ === 'negativ_keyword' && $wert !== '') {
+        if (oh_ads_add_negative_keyword($wert, $err)) {
+            return ['executed' => true, 'msg' => "Erledigt, Chef! \"{$wert}\" wird ab sofort ausgeschlossen – das spart Werbegeld."];
+        }
+        return ['executed' => false, 'msg' => 'Konnte nicht automatisch ausgeführt werden (' . $err . '). Bitte kurz manuell im Ads-Konto eintragen.'];
+    }
+    return ['executed' => false, 'msg' => 'Notiert, Chef. Diese Änderung bitte kurz selbst umsetzen – die Schritte stehen in der Empfehlung.'];
 }
 
