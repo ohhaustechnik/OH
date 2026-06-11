@@ -86,6 +86,19 @@ $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 $headers .= "Content-Transfer-Encoding: 8bit\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
+// Lead im Büro-System speichern (für Dashboard & Automatik)
+@require_once __DIR__ . '/buero-lib.php';
+if (function_exists('oh_add_lead')) {
+    oh_add_lead([
+        'source'    => 'kontakt',
+        'name'      => $name,
+        'email'     => $email,
+        'telefon'   => $telefon,
+        'kategorie' => $betreff,
+        'details'   => $nachricht,
+    ]);
+}
+
 $sent = mail($to, $subject, $body, $headers);
 
 // Bestätigungs-E-Mail an den Absender

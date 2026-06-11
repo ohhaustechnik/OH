@@ -7,3 +7,8 @@ Backup.zip
 
 # Editor
 *.code-workspace
+
+# Büro-System: Geheimnisse & Laufzeitdaten (nie committen!)
+daten/config.json
+daten/cron.log
+daten/leads.json

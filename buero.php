@@ -2,8 +2,10 @@
 session_start();
 $PASSWORT = 'oh';
 
-// API-Key serverseitig - als Umgebungsvariable CLAUDE_KEY hinterlegen (oder im Settings-Bereich pro Gerät)
-$API_KEY = getenv('CLAUDE_KEY') ?: '';
+require_once __DIR__ . '/includes/buero-lib.php';
+
+// API-Key: serverseitige Konfiguration (daten/config.json) oder Umgebungsvariable
+$API_KEY = oh_config()['anthropic_key'] ?? (getenv('CLAUDE_KEY') ?: '');
 
 // Login-Logik
 if (isset($_POST['login_pw'])) {
@@ -16,6 +18,59 @@ if (isset($_POST['login_pw'])) {
 if (isset($_GET['logout'])) {
     session_destroy();
     header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+    exit;
+}
+
+// ---------------------------------------------------------------------------
+// Büro-API: Dashboard, Leads, E-Mail, Konfiguration (nur eingeloggt)
+// ---------------------------------------------------------------------------
+if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    $a = $_POST['action'];
+    $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
+
+    if ($a === 'dashboard') {
+        echo json_encode([
+            'tasks' => oh_dashboard_tasks(),
+            'leads' => oh_read('leads', []),
+            'stats' => [
+                'leads'  => count(oh_read('leads', [])),
+                'hot'    => count(array_filter(oh_read('leads', []), fn($l) => ($l['stufe'] ?? '') === 'HOT' && ($l['status'] ?? '') === 'neu')),
+            ],
+        ]);
+    } elseif ($a === 'lead_add') {
+        echo json_encode(['lead' => oh_add_lead($in)]);
+    } elseif ($a === 'lead_update') {
+        echo json_encode(['lead' => oh_update_lead($in['id'] ?? '', $in['patch'] ?? [], $in['log'] ?? null)]);
+    } elseif ($a === 'lead_delete') {
+        oh_delete_lead($in['id'] ?? '');
+        echo json_encode(['ok' => true]);
+    } elseif ($a === 'send_mail') {
+        $res = oh_send_mail($in['to'] ?? '', $in['subject'] ?? '', $in['body'] ?? '', $in['replyTo'] ?? null);
+        if (!empty($in['lead_id']) && !empty($res['ok'])) {
+            $patch = ['status' => $in['set_status'] ?? 'angebot_raus'];
+            if (($in['set_status'] ?? '') === 'angebot_raus') $patch['angebot_ts'] = time();
+            if (!empty($in['bewertung'])) $patch['bewertung_angefragt'] = true;
+            oh_update_lead($in['lead_id'], $patch, 'E-Mail gesendet: ' . ($in['subject'] ?? ''));
+        }
+        echo json_encode($res);
+    } elseif ($a === 'config_get') {
+        $c = oh_config();
+        echo json_encode([
+            'gmail_user'     => $c['gmail_user'] ?? '',
+            'has_gmail_pass' => !empty($c['gmail_pass']),
+            'has_anthropic'  => !empty($c['anthropic_key']),
+        ]);
+    } elseif ($a === 'config_set') {
+        oh_config_set([
+            'anthropic_key' => $in['anthropic_key'] ?? '',
+            'gmail_user'    => $in['gmail_user'] ?? '',
+            'gmail_pass'    => $in['gmail_pass'] ?? '',
+        ]);
+        echo json_encode(['ok' => true]);
+    } else {
+        echo json_encode(['error' => 'unbekannte Aktion']);
+    }
     exit;
 }
 
@@ -136,6 +191,35 @@ header{padding:18px 18px 12px;padding-top:calc(18px + env(safe-area-inset-top));
   backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
 h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
 .intro{font-size:13px;color:var(--txt-dim);margin-bottom:12px;line-height:1.6;}
+
+/* --- DASHBOARD --- */
+.dash-head{margin:8px 14px 0;}
+.dash-hi{font-size:20px;font-weight:300;letter-spacing:1px;color:#fff;}
+.dash-hi b{font-weight:700;color:var(--cyan);}
+.dash-stats{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.stat{flex:1;min-width:90px;background:var(--glass);border:1px solid var(--line);border-radius:13px;padding:11px 13px;backdrop-filter:blur(10px);}
+.stat .n{font-size:22px;font-weight:800;color:#fff;}
+.stat .l{font-size:10px;color:var(--txt-dim);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+.stat.hot .n{color:var(--red);}
+.prio-group{margin:8px 14px 4px;}
+.prio-lbl{display:flex;align-items:center;gap:8px;font-family:'SF Mono',ui-monospace,monospace;font-size:11px;font-weight:600;
+  letter-spacing:1px;color:var(--txt-dim);margin:12px 0 7px;text-transform:uppercase;}
+.prio-dot{width:9px;height:9px;border-radius:50%;}
+.prio-dot.rot{background:var(--red);box-shadow:0 0 9px var(--red);}
+.prio-dot.gelb{background:var(--gold);box-shadow:0 0 9px var(--gold);}
+.prio-dot.gruen{background:var(--green);box-shadow:0 0 9px var(--green);}
+.prio-list{display:flex;flex-direction:column;gap:8px;}
+.task{display:flex;align-items:center;gap:11px;background:var(--glass);border:1px solid var(--line);border-radius:13px;
+  padding:13px 14px;backdrop-filter:blur(10px);cursor:pointer;transition:transform .12s,border-color .2s;}
+.task:active{transform:scale(.98);}
+.task.rot{border-left:3px solid var(--red);}
+.task.gelb{border-left:3px solid var(--gold);}
+.task.gruen{border-left:3px solid var(--green);}
+.task .tx{flex:1;min-width:0;}
+.task .tt{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.task .ta{font-size:11.5px;color:var(--cyan);margin-top:2px;}
+.task .go{color:var(--cyan);font-size:18px;flex-shrink:0;}
+.prio-empty{font-size:12px;color:var(--txt-dim);padding:4px 2px;opacity:.7;}
 
 /* --- KACHELN --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px;}
@@ -262,9 +346,21 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
   <span style="margin-left:auto" id="datum"></span>
 </div>
 
-<!-- HOME -->
+<!-- HOME / DASHBOARD -->
 <div id="s-home">
-  <div class="section-title">// Kommandozentrale</div>
+  <div class="dash-head">
+    <div class="dash-hi" id="dashHi">Kommandozentrale</div>
+    <div class="dash-stats" id="dashStats"></div>
+  </div>
+
+  <div class="section-title">// Offene Aufgaben</div>
+  <div id="dashTasks">
+    <div class="prio-group" data-p="rot"><div class="prio-lbl"><span class="prio-dot rot"></span>SOFORT · heute erledigen</div><div class="prio-list" id="taskRot"></div></div>
+    <div class="prio-group" data-p="gelb"><div class="prio-lbl"><span class="prio-dot gelb"></span>BALD · innerhalb 24 h</div><div class="prio-list" id="taskGelb"></div></div>
+    <div class="prio-group" data-p="gruen"><div class="prio-lbl"><span class="prio-dot gruen"></span>KANN WARTEN</div><div class="prio-list" id="taskGruen"></div></div>
+  </div>
+
+  <div class="section-title">// Werkzeuge</div>
   <div class="tiles">
     <div class="tile aktiv" onclick="openChat('kalk')">
       <div class="tile-ico">&#129518;</div>
@@ -306,12 +402,22 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
 <!-- SETTINGS -->
 <div id="s-settings" style="display:none">
   <div class="card">
-    <h2>&#9881; API-Schlüssel</h2>
-    <p class="intro">Dein Anthropic-Schlüssel von <b>console.anthropic.com</b>. Wird nur auf diesem Gerät gespeichert.</p>
-    <label>API-Schlüssel</label>
-    <input type="password" id="apiIn" placeholder="sk-ant-...">
+    <h2>&#9881; KI-Schlüssel (Server)</h2>
+    <p class="intro">Dein Anthropic-Schlüssel von <b>console.anthropic.com</b>. Wird sicher auf dem Server gespeichert und auch für die Automatik (Cron) genutzt.</p>
+    <label>Anthropic API-Schlüssel</label>
+    <input type="password" id="apiIn" placeholder="sk-ant-... (leer lassen = unverändert)">
     <button class="btn btn-cyan" style="margin-top:12px" onclick="saveKey()">Speichern</button>
     <div id="keyMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#9993; Gmail-Versand</h2>
+    <p class="intro">Für automatische E-Mails (Angebote, Follow-ups, Bewertungs-Anfragen) über <b>oh.haustechnik@gmail.com</b>. Du brauchst ein <b>App-Passwort</b> (Google-Konto → Sicherheit → 2-Faktor → App-Passwörter), NICHT Dein normales Passwort.</p>
+    <label>Gmail-Adresse</label>
+    <input type="text" id="gmailUser" placeholder="oh.haustechnik@gmail.com">
+    <label>App-Passwort (16 Zeichen)</label>
+    <input type="password" id="gmailPass" placeholder="•••• •••• •••• ••••  (leer = unverändert)">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveGmail()">Speichern</button>
+    <div id="gmailMsg" class="msg-ok"></div>
   </div>
   <div class="card">
     <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
@@ -353,23 +459,30 @@ const eur=n=>(+n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFrac
 
 /* ============ KALKULATIONS-WISSEN ============ */
 const KALK_WISSEN=`KALKULATIONS-LOGIK OH Haustechnik (Kleinunternehmer, 0% USt):
-ARBEITSZEIT in MANNTAGEN:
-- Stundensatz Sanierung: 68€×2=136€/Std, Arbeitstag=8,5h
-- Wohnungssanierung 3Z UP Altbau: Rohmontage 4 Tage(2 Pers)+Fertigmontage 1,5T = 8-11 Manntage
-- Rohmontage: Demontage(mehrere Std!), anzeichnen, fräsen, schlitzen, stemmen, Leitungen, Verteiler
-- Fertigmontage: Schalter/Steckdosen/Lampen, Verteiler anklemmen, messen, prüfen + Puffer
-- Aufputz (Zuleitung liegt): ca. 2,5 Std/Raum (4 Steckdosen+Schalter+Lampe)
-- Unterputz: ca. 4 Std/Raum
-- Endpreis 3-Zimmer-Sanierung: 8.000-11.000€ inkl. Material
-MATERIAL:
-- NYM-J 3×1,5: ca. 1,5m/m² +10% Verschnitt
+GRUNDLAGE: Stundensatz 68€×2=136€/Std, Arbeitstag=8,5h, also ca. 1.156€ Arbeitskosten pro Manntag.
+
+PRÄZISE FAUSTFORMELN (UNTERPUTZ-Sanierung, Endpreis inkl. Material):
+- 100 m² Unterputz = 8-9 Manntage  = 18.000-20.000 €
+- 150 m² Unterputz = 11-12 Manntage = 23.000-26.000 €
+- 200 m² Unterputz = 14-16 Manntage = 28.000-33.000 €
+- Dazwischen/darüber sinnvoll interpolieren, nie übertreiben.
+- AUFPUTZ: immer ca. 40 % GÜNSTIGER als Unterputz (weniger Schlitzen/Stemmen). Also Unterputz-Preis × 0,6.
+- GEMISCHT: zwischen Unterputz und Aufputz schätzen.
+
+ABLAUF: Rohmontage (Demontage, anzeichnen, fräsen, schlitzen, stemmen, Leitungen, Verteiler) + Fertigmontage (Schalter/Steckdosen/Lampen, Verteiler anklemmen, messen, prüfen) + Puffer.
+Altbau/Demontage kostet extra Zeit – im Zweifel oberes Ende der Spanne.
+
+MATERIAL (realistisch, NICHT übertreiben):
+- NYM-J 3×1,5: ca. 1,5 m/m² +10% Verschnitt
 - Separate Verbraucher +10m Reserve: Herd→NYM5×2,5 | Spülm/Waschm/Trockner→NYM3×2,5 | DLE→NYM4×6
 - Dosen: 1 Steckdose=1 Dose, Doppel=2 Dosen
 - Verteiler: Hager VU48NC, 2×FI 40A, 12×LSB16, 1×LSB16 3pol, ÜSS Typ2
-- Material 3-Zimmer-Sanierung: ca. 1.000-1.500€
+- Materialanteil grob: 100 m² ≈ 1.500-2.200 €, 150 m² ≈ 2.200-3.000 €, 200 m² ≈ 3.000-4.000 €
+- Material immer +10% Aufschlag (Marge), aber ehrlich kalkulieren
 - Anfahrt >10km: 100-200€ Pauschale
-- Material immer +10% Aufschlag (Marge)
-VERHANDLUNG: bei wenig Auftragslage 1.000-1.500€ runter möglich (Zielpreis + Minimalpreis)`;
+
+VERHANDLUNG: bei wenig Auftragslage 1.000-1.500€ runter möglich (Zielpreis + Minimalpreis).
+ZIEL: perfekte, sofort versendbare Angebote – konkret, sauber, ohne Übertreibung.`;
 
 const FIRMA=`FIRMA: OH Haustechnik, Inhaber arbeitet als Elektriker/Haustechniker im Raum Nürnberg.
 Leistungen: Elektroinstallation, Netzwerkverkabelung, Schutz-/Sicherheitstechnik. Kleinunternehmer (0% USt).
@@ -424,9 +537,93 @@ Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Ma
 /* ============ STATE ============ */
 let mode='kalk';
 let history={}; // pro modus: [{role,content}]
+let leadsCache=[];
+let serverCfg={has_anthropic:false,has_gmail_pass:false,gmail_user:''};
+
+/* ============ SERVER-API ============ */
+async function api(action,data){
+  const fd=new FormData();fd.append('action',action);fd.append('data',JSON.stringify(data||{}));
+  const r=await fetch(window.location.pathname,{method:'POST',body:fd});
+  return r.json();
+}
+
+/* ============ DASHBOARD ============ */
+async function loadDashboard(){
+  try{
+    const d=await api('dashboard');
+    leadsCache=d.leads||[];
+    renderStats(d.stats||{});
+    renderTasks(d.tasks||{rot:[],gelb:[],gruen:[]});
+  }catch(e){/* offline – Dashboard bleibt leer */}
+  try{serverCfg=await api('config_get');}catch(e){}
+}
+function renderStats(s){
+  gl('dashStats').innerHTML=
+    `<div class="stat"><div class="n">${s.leads||0}</div><div class="l">Leads gesamt</div></div>`+
+    `<div class="stat hot"><div class="n">${s.hot||0}</div><div class="l">🔥 Heiß &amp; offen</div></div>`;
+}
+function renderTasks(t){
+  const map={rot:'taskRot',gelb:'taskGelb',gruen:'taskGruen'};
+  let total=0;
+  Object.keys(map).forEach(p=>{
+    const list=t[p]||[]; total+=list.length;
+    gl(map[p]).innerHTML=list.length?list.map(x=>
+      `<div class="task ${p}" onclick="openTask('${x.id}','${x.typ}')">
+         <div class="tx"><div class="tt">${esc(x.titel)}</div><div class="ta">${esc(x.aktion)} →</div></div>
+         <div class="go">›</div>
+       </div>`).join(''):'<div class="prio-empty">Nichts offen.</div>';
+  });
+  if(total===0){gl('taskGruen').innerHTML='<div class="prio-empty">Alles erledigt, Chef. 🎯 Neue Anfragen erscheinen hier automatisch.</div>';}
+}
+function leadById(id){return leadsCache.find(l=>l.id===id);}
+function leadInfo(l){
+  if(!l)return '';
+  return `Lead-Infos:\n- Name: ${l.name||'?'}\n- E-Mail: ${l.email||'?'}\n- Telefon: ${l.telefon||'?'}\n- Leistung: ${l.kategorie||'?'}\n- Größe: ${l.objektgroesse||'?'}\n- Zeitraum: ${l.zeitraum||'?'}\n- Ort: ${(l.plz||'')+' '+(l.ort||'')}\n- Details: ${l.details||'-'}`;
+}
+function openTask(id,typ){
+  const l=leadById(id);
+  if(typ==='bewertung'){
+    openChat('bewertung','Schreib eine freundliche Bewertungs-Anfrage per E-Mail an diesen abgeschlossenen Kunden:\n\n'+leadInfo(l));
+  }else if(typ==='followup'){
+    openChat('leads','Schreib eine freundliche Follow-up-Nachricht (das Angebot ist 2 Tage raus, noch keine Antwort) an:\n\n'+leadInfo(l));
+  }else{
+    openChat('kalk',(l?l.details||l.kategorie:'')+'\n\n['+leadInfo(l)+']');
+  }
+}
+
+/* ============ INTRO-SOUND (JARVIS-Boot, WebAudio) ============ */
+let introPlayed=false;
+function playIntro(){
+  if(introPlayed)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(); if(ctx.state==='suspended')ctx.resume();
+    introPlayed=true;
+    const now=ctx.currentTime;
+    const master=ctx.createGain();master.gain.value=0.0001;master.connect(ctx.destination);
+    master.gain.exponentialRampToValueAtTime(0.18,now+0.15);
+    master.gain.exponentialRampToValueAtTime(0.0001,now+4.8);
+    // Aufsteigender Power-Sweep
+    const o1=ctx.createOscillator();o1.type='sawtooth';
+    o1.frequency.setValueAtTime(70,now);o1.frequency.exponentialRampToValueAtTime(420,now+2.2);
+    const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(300,now);
+    f.frequency.exponentialRampToValueAtTime(3500,now+2.4);
+    o1.connect(f);f.connect(master);o1.start(now);o1.stop(now+2.6);
+    // Hologramm-Pad
+    [220,277,330].forEach((fr,i)=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=fr;
+      const g=ctx.createGain();g.gain.value=0;g.gain.linearRampToValueAtTime(0.06,now+1+i*0.15);
+      g.gain.linearRampToValueAtTime(0,now+4.6);o.connect(g);g.connect(master);o.start(now+1);o.stop(now+4.6);});
+    // 3 Tech-Beeps
+    [0.2,0.55,0.9].forEach((tt,i)=>{const o=ctx.createOscillator();o.type='square';
+      o.frequency.value=880+i*220;const g=ctx.createGain();g.gain.value=0;
+      g.gain.linearRampToValueAtTime(0.05,now+tt);g.gain.exponentialRampToValueAtTime(0.0001,now+tt+0.12);
+      o.connect(g);g.connect(master);o.start(now+tt);o.stop(now+tt+0.14);});
+  }catch(e){}
+}
 
 /* ============ BOOT / WILLKOMMEN ============ */
 function boot(){
+  playIntro();
   const titel=['großer Meister','große Herrschaft','Chef','Kommandant','Boss'];
   const t=titel[Math.floor(Math.random()*titel.length)];
   const seq=['> Initialisiere OH-System…','> KI-Kerne geladen ✓','> Module: Kalkulator · Marketing · Leads ✓','> Verbindung gesichert ✓','> Alle Systeme bereit ✓'];
@@ -441,6 +638,7 @@ function boot(){
       setTimeout(()=>{
         gl('boot').style.opacity='0';
         gl('app').style.visibility='visible';
+        loadDashboard();
         setTimeout(()=>gl('boot').remove(),700);
       },1700);
     }
@@ -462,14 +660,28 @@ function showSection(s){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function goHome(){showSection('home');}
-function toggleSettings(){
+async function toggleSettings(){
   if(gl('s-settings').style.display==='block'){goHome();}
-  else{gl('apiIn').value=getKey();renderLL();showSection('settings');}
+  else{
+    gl('apiIn').value='';gl('gmailPass').value='';
+    try{const c=await api('config_get');serverCfg=c;gl('gmailUser').value=c.gmail_user||'';}catch(e){}
+    renderLL();showSection('settings');
+  }
 }
-function saveKey(){
-  localStorage.setItem('oh_key',gl('apiIn').value.trim());
-  gl('keyMsg').textContent='✓ Gespeichert';
-  setTimeout(()=>gl('keyMsg').textContent='',2000);
+async function saveKey(){
+  const v=gl('apiIn').value.trim();
+  if(!v){gl('keyMsg').textContent='Bitte Schlüssel eingeben.';return;}
+  await api('config_set',{anthropic_key:v});
+  serverCfg.has_anthropic=true;gl('apiIn').value='';
+  gl('keyMsg').textContent='✓ Gespeichert (Server)';
+  setTimeout(()=>gl('keyMsg').textContent='',2500);
+}
+async function saveGmail(){
+  const u=gl('gmailUser').value.trim(),p=gl('gmailPass').value.trim();
+  await api('config_set',{gmail_user:u,gmail_pass:p});
+  if(u)serverCfg.gmail_user=u; if(p)serverCfg.has_gmail_pass=true; gl('gmailPass').value='';
+  gl('gmailMsg').textContent='✓ Gmail gespeichert';
+  setTimeout(()=>gl('gmailMsg').textContent='',2500);
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
@@ -478,7 +690,7 @@ function renderLL(){
 function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
 
 /* ============ CHAT ÖFFNEN ============ */
-function openChat(m){
+function openChat(m,prefill){
   mode=m; const cfg=MODI[m];
   gl('chatName').textContent=cfg.name;
   gl('chatIco').innerHTML=cfg.ico;
@@ -497,6 +709,7 @@ function openChat(m){
     pushMsg('ai',greet);
   }
   showSection('chat');
+  if(prefill){gl('chatIn').value=prefill;autoGrow();}
   setTimeout(()=>gl('chatIn').focus(),300);
 }
 function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow();}
@@ -547,7 +760,7 @@ function isMobile(){return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
 async function send(){
   const inp=gl('chatIn'); const text=inp.value.trim();
   if(!text)return;
-  if(!getKey()){pushMsg('ai','⚙️ Kein API-Schlüssel hinterlegt. Tipp oben rechts auf das Zahnrad und trag Deinen Anthropic-Schlüssel ein.');return;}
+  if(!serverCfg.has_anthropic && !getKey()){pushMsg('ai','⚙️ Kein API-Schlüssel hinterlegt. Tipp oben rechts auf das Zahnrad und trag Deinen Anthropic-Schlüssel ein.');return;}
   pushMsg('me',text); inp.value=''; autoGrow();
   gl('sendBtn').disabled=true;
   // Typing-Indikator
@@ -588,6 +801,8 @@ async function send(){
 /* ============ START ============ */
 boot();
 clock();setInterval(clock,1000);
+// Falls der Browser Autoplay blockiert: Sound beim ersten Antippen nachholen
+['touchstart','click'].forEach(ev=>document.addEventListener(ev,function once(){playIntro();document.removeEventListener(ev,once);},{once:true}));
 </script>
 </body>
 </html>
