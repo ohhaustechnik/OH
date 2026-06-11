@@ -74,6 +74,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             ],
             'ki_alert' => oh_read('ki_status', ['alert' => false]),
             'mert'     => oh_read('mert_plan', []),
+            'wissen'   => oh_wissen_summary(),
         ]);
     } elseif ($a === 'mert_fresh') {
         $merr = null;
@@ -392,6 +393,34 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .briefing .bl{font-size:13px;color:var(--txt);padding:5px 0;display:flex;gap:9px;line-height:1.4;}
 .briefing .bl b{color:#fff;}
 
+/* --- AGENTEN-TEAM --- */
+.team{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px;}
+.agent-card{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:16px 13px;text-align:center;
+  cursor:pointer;backdrop-filter:blur(12px);transition:transform .15s,border-color .2s,box-shadow .2s;}
+.agent-card:active{transform:scale(.97);}
+.agent-card.chef{grid-column:1 / -1;border-color:var(--cyan);box-shadow:0 0 22px rgba(57,214,255,.2);
+  display:flex;align-items:center;gap:14px;text-align:left;}
+.agent-card.chef .agent-nm{font-size:17px;}
+.agent-av{width:54px;height:54px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,var(--cyan-d),#0e2c48);box-shadow:0 0 16px rgba(57,214,255,.3);overflow:hidden;flex-shrink:0;}
+.agent-card.chef .agent-av{margin:0;}
+.agent-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.agent-av.big{width:74px;height:74px;}
+.agent-emoji{font-size:25px;align-items:center;justify-content:center;width:100%;height:100%;}
+.agent-av.big .agent-emoji{font-size:34px;}
+.agent-nm{font-weight:700;font-size:14px;color:#fff;}
+.agent-nm.big{font-size:22px;}
+.agent-rl{font-size:10.5px;color:var(--txt-dim);margin-top:3px;line-height:1.35;}
+.agent-rl.big{font-size:12px;margin-bottom:12px;}
+.agent-hero{display:flex;align-items:center;gap:16px;background:var(--glass-2);border:1px solid var(--cyan);
+  border-radius:20px;padding:18px;margin:8px 14px 0;backdrop-filter:blur(14px);box-shadow:0 0 24px rgba(57,214,255,.18);}
+.agent-talk{margin-top:4px;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));color:var(--bg);border:none;
+  border-radius:11px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+.agent-area{display:flex;align-items:center;justify-content:space-between;background:var(--glass);border:1px solid var(--line);
+  border-radius:13px;padding:15px 16px;margin:8px 14px;cursor:pointer;font-size:14px;font-weight:600;color:#fff;backdrop-filter:blur(10px);}
+.agent-area:active{transform:scale(.98);}
+.agent-area .go{color:var(--cyan);font-size:18px;}
+
 /* --- KACHELN --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px;}
 .tile{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px 14px;text-align:left;
@@ -508,7 +537,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
 
 <div class="wrap" style="visibility:hidden" id="app">
 <header>
-  <div class="brand"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
+  <div class="brand" onclick="goHome()" style="cursor:pointer"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
   <div class="hbtns">
     <button class="icobtn" id="muteBtn" onclick="toggleMute()" title="Ton an/aus">&#128266;</button>
     <button class="icobtn" onclick="toggleSettings()" title="Einstellungen">&#9881;</button>
@@ -543,55 +572,16 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
   <div class="section-title">// Bereits erledigt</div>
   <div id="taskErledigt"><div class="prio-empty">–</div></div>
 
-  <div class="section-title">// Werkzeuge</div>
-  <div class="tiles">
-    <div class="tile aktiv" onclick="openChat('kalk')">
-      <div class="tile-ico">&#129518;</div>
-      <div class="tile-name">Kalkulator</div>
-      <div class="tile-desc">Baustelle beschreiben &rarr; KI rechnet live</div>
-    </div>
-    <div class="tile" onclick="openChat('marketing')">
-      <div class="tile-tag">NEU</div>
-      <div class="tile-ico">&#128640;</div>
-      <div class="tile-name">Marketing-KI</div>
-      <div class="tile-desc">Posts, Anzeigen &amp; Kampagnen</div>
-    </div>
-    <div class="tile" onclick="openChat('leads')">
-      <div class="tile-tag">NEU</div>
-      <div class="tile-ico">&#128202;</div>
-      <div class="tile-name">Leads</div>
-      <div class="tile-desc">Anfragen bewerten &amp; beantworten</div>
-    </div>
-    <div class="tile" onclick="openChat('angebot')">
-      <div class="tile-tag">NEU</div>
-      <div class="tile-ico">&#128196;</div>
-      <div class="tile-name">Angebote</div>
-      <div class="tile-desc">Angebotstexte automatisch</div>
-    </div>
-    <div class="tile" onclick="openChat('bewertung')">
-      <div class="tile-tag">NEU</div>
-      <div class="tile-ico">&#11088;</div>
-      <div class="tile-name">Bewertungen</div>
-      <div class="tile-desc">Google-Antworten formulieren</div>
-    </div>
-    <div class="tile" onclick="openChat('berater')">
-      <div class="tile-ico">&#129504;</div>
-      <div class="tile-name">Berater</div>
-      <div class="tile-desc">Dein KI-Sparringspartner</div>
-    </div>
-    <div class="tile" onclick="openAds()">
-      <div class="tile-tag">NEU</div>
-      <div class="tile-ico">&#128200;</div>
-      <div class="tile-name">Google Ads</div>
-      <div class="tile-desc">Kampagnen überwachen &amp; KI-Tipps</div>
-    </div>
-    <div class="tile" onclick="openChat('mert')">
-      <div class="tile-tag">NEU</div>
-      <div class="tile-ico">&#129504;</div>
-      <div class="tile-name">Mert Aldemir</div>
-      <div class="tile-desc">Dein 24/7-Geschäftsführer</div>
-    </div>
-  </div>
+  <div class="section-title">// Dein digitales Team</div>
+  <div class="team" id="teamGrid"></div>
+</div>
+
+<!-- AGENT-DETAIL -->
+<div id="s-agent" style="display:none">
+  <div class="agent-hero" id="agentHero"></div>
+  <div class="section-title">// Zuständigkeiten</div>
+  <div id="agentAreas"></div>
+  <button class="zurueck" onclick="goHome()">&larr; Zurück zum Team</button>
 </div>
 
 <!-- GOOGLE ADS -->
@@ -785,7 +775,38 @@ Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Ma
     quick:['Was ist heute am wichtigsten?','Wann brauche ich einen Mitarbeiter?','Wo verliere ich Geld?','Wie komme ich schneller zur Million?'],
     system(){return `Du bist Mert Aldemir, der digitale Geschäftsführer von OH Haustechnik. DEIN EINZIGES ZIEL: das Unternehmen in 5 Monaten Richtung 1.000.000 € Umsatz skalieren.
 ${FIRMA}
-Du überwachst alle Bereiche (Anfragen, Angebote, Werbung, Bewertungen, Prozesse), erkennst Engpässe und Wachstumschancen. Du denkst wie ein knallharter, kluger Geschäftsführer und bewertest jede Maßnahme danach, ob sie schneller Wachstum, mehr qualifizierte Anfragen oder mehr Umsatz bringt. Du erkennst, wann Mitarbeiter nötig sind und wann Budget erhöht werden soll. Sprich einfach mit dem Chef (Du-Form), kein Fachchinesisch, ehrlich und motivierend.`;}}
+Du überwachst alle Bereiche und koordinierst Dein Team: Dilara (Marketing), Kaan (Kommunikation), Emre (Kalkulation/Angebote), Aylin (Buchhaltung), Yusuf (Projekte), Baran (Personal). Du erkennst Engpässe und Wachstumschancen, verteilst Aufgaben, setzt Prioritäten. Du denkst wie ein knallharter, kluger Geschäftsführer und bewertest jede Maßnahme danach, ob sie schneller Wachstum, mehr qualifizierte Anfragen oder mehr Umsatz bringt. Sprich einfach mit dem Chef (Du-Form), kein Fachchinesisch, ehrlich und motivierend.`;}},
+  dilara:{ name:'Dilara', ico:'\u{1F680}',
+    quick:['Was bringt heute mehr Anfragen?','Instagram-Post für ein Projekt','Website-Optimierung','Was macht die Konkurrenz?'],
+    system(){return `Du bist Dilara, die Marketing-Agentin von OH Haustechnik. Verantwortung: Google Ads, Website, Bewertungen, Social Media, Conversion-Optimierung, Konkurrenzanalyse, SEO, Suchtrends.
+${FIRMA}
+Dein Ziel: jeden Tag mehr hochwertige Anfragen und mehr Umsatz (Fokus Altbausanierung, Wohnungssanierung, Smart-Home). Du gibst konkrete, umsetzbare Vorschläge und fertige Inhalte (Posts, Anzeigen, Antworten). Du-Form mit dem Chef, einfach und klar.`;}},
+  kaan:{ name:'Kaan', ico:'\u{1F4AC}',
+    quick:['Antwort auf diese E-Mail','WhatsApp-Antwort formulieren','Wer wartet auf Rückmeldung?','Rückruf-Liste für heute'],
+    system(){return `Du bist Kaan, die Kommunikations-Agentin von OH Haustechnik. Verantwortung: Gmail, WhatsApp Business, Kontaktformulare, Kundenanfragen, Rückruflisten, offene Nachrichten.
+${FIRMA}
+Du kategorisierst und beantwortest Kundenkommunikation professionell und freundlich. Du erinnerst Dich an alle bisherigen Gespräche (siehe Gedächtnis). Du erstellst fertige Antwortvorschläge zum Rauskopieren/Senden. Du-Form mit dem Chef.`;}},
+  emre:{ name:'Emre', ico:'\u{1F9EE}',
+    quick:['Angebot aus dieser Anfrage','100 m² Altbau Unterputz kalkulieren','Nachkalkulation','Deckungsbeitrag prüfen'],
+    system(){return `Du bist Emre, die Kalkulations- & Angebots-Agentin von OH Haustechnik. Du analysierst Anfragen, kalkulierst Material & Arbeitsstunden und erstellst fertige Angebote.
+${FIRMA}
+${KALK_WISSEN}
+Wenn genug Infos da sind, erstelle einen vollständigen Angebotsvorschlag (Text + Preis), den der Chef nur prüfen und versenden muss. Bei Kalkulation nutze die Faustformeln. Du-Form mit dem Chef.`;}},
+  aylin:{ name:'Aylin', ico:'\u{1F4B0}',
+    quick:['Welche Rechnungen sind offen?','Mahnung vorbereiten','Gewinn-Übersicht','Was an Lexware übergeben?'],
+    system(){return `Du bist Aylin, die Buchhaltungs- & Finanz-Agentin von OH Haustechnik (Kleinunternehmer, 0% USt §19). Verantwortung: Rechnungen, Zahlungseingänge, offene Posten, Mahnungen, Gewinn/Kosten-Auswertung, Übergabe an Lexware Office.
+${FIRMA}
+Du bereitest alles vor, sodass der Chef nur „Übernehmen" drücken muss. Du rechnest sauber und erklärst einfach. Hinweis: Die direkte Lexware-Anbindung wird noch eingerichtet – bis dahin bereitest Du die Daten klar auf. Du-Form mit dem Chef.`;}},
+  yusuf:{ name:'Yusuf', ico:'\u{1F3D7}',
+    quick:['Tagesplan Baustellen','Materialliste für ein Projekt','Termin koordinieren','Projektfortschritt'],
+    system(){return `Du bist Yusuf, die Projekt- & Baustellen-Agentin von OH Haustechnik. Verantwortung: Baustellenplanung, Materialstatus, Termine, Monteure, Projektfortschritt.
+${FIRMA}
+Du hilfst, Baustellen und Termine zu organisieren, Material und Abläufe zu planen. Du-Form mit dem Chef, praktisch und konkret.`;}},
+  baran:{ name:'Baran', ico:'\u{1F465}',
+    quick:['Brauche ich bald einen Mitarbeiter?','Stellenanzeige Geselle','Bewerbung bewerten','Kapazität planen'],
+    system(){return `Du bist Baran, die Personal-Agentin von OH Haustechnik. Verantwortung: Mitarbeitersuche, Bewerbungen, Kapazitätsplanung, Personalbedarf.
+${FIRMA}
+Du erkennst, wann ein Mitarbeiter/Geselle nötig ist (wenn mehr Anfragen als Kapazität), schreibst Stellenanzeigen und hilfst bei Bewerbungen. Du-Form mit dem Chef, ehrlich und vorausschauend.`;}}
 };
 
 /* ============ STATE ============ */
@@ -793,6 +814,7 @@ let mode='kalk';
 let history={}; // pro modus: [{role,content}]
 let leadsCache=[];
 let lastTasks=null;
+let WISSEN='';
 let serverCfg={has_anthropic:false,has_gmail_pass:false,gmail_user:''};
 
 /* ============ SERVER-API ============ */
@@ -815,8 +837,10 @@ async function loadDashboard(){
     renderOffen(d.offen||[]);
     renderErledigt(d.erledigt||[]);
     renderMert(d.mert||{});
+    if(d.wissen)WISSEN=d.wissen;
     buildBriefing(d);
   }catch(e){/* offline */}
+  renderTeam();
   try{serverCfg=await api('config_get');}catch(e){}
   // E-Mails & Website im Hintergrund aktualisieren (blockiert das Öffnen nicht)
   api('scan_now').then(d=>{if(d&&d.ok){renderWarn(d.warnung);renderOffen(d.offen||[]);renderErledigt(d.erledigt||[]);}}).catch(()=>{});
@@ -902,6 +926,47 @@ function openTaskRef(typ,ref){
   else openChat('kalk',(l?l.details||l.kategorie:'')+'\n\n['+leadInfo(l)+']');
 }
 
+/* ============ AGENTEN-TEAM ============ */
+const AGENTS={
+  mert:{name:'Mert Aldemir',rolle:'Geschäftsführer · überwacht & koordiniert alles',emoji:'🧠',chat:'mert',
+    areas:[['Tagesplan & Prioritäten',()=>openChat('mert','Was ist heute am wichtigsten für mein Wachstum?')],['Team koordinieren',()=>openChat('mert','Gib jedem Agenten heute eine sinnvolle Aufgabe.')],['Wachstum zur Million',()=>openChat('mert','Wie komme ich schneller Richtung 1 Million Umsatz?')]]},
+  dilara:{name:'Dilara',rolle:'Marketing & Wachstum',emoji:'🚀',chat:'dilara',
+    areas:[['Google Ads',()=>openAds()],['Website-Optimierung',()=>openChat('dilara','Analysiere meine Website und gib Optimierungstipps für mehr Anfragen.')],['Bewertungen',()=>openChat('bewertung')],['Social Media',()=>openChat('dilara','Mach mir Social-Media-Content für diese Woche.')],['SEO & Konkurrenz',()=>openChat('dilara','Was macht die Konkurrenz in Nürnberg und wo kann ich besser werden?')]]},
+  kaan:{name:'Kaan',rolle:'Kommunikation · E-Mail, WhatsApp, Anfragen',emoji:'💬',chat:'kaan',
+    areas:[['E-Mails',()=>openChat('kaan','Hilf mir, meine offenen E-Mails zu beantworten.')],['WhatsApp',()=>openChat('kaan','Hilf mir bei den WhatsApp-Antworten.')],['Anfragen',()=>openChat('leads')],['Rückrufe',()=>openChat('kaan','Wer wartet auf einen Rückruf?')]]},
+  emre:{name:'Emre',rolle:'Kalkulation & Angebote',emoji:'🧮',chat:'emre',
+    areas:[['Kalkulator',()=>openChat('emre')],['Angebote',()=>openChat('angebot')],['Nachkalkulation',()=>openChat('emre','Mach mir eine Nachkalkulation für ein Projekt.')]]},
+  aylin:{name:'Aylin',rolle:'Buchhaltung & Finanzen',emoji:'💰',chat:'aylin',
+    areas:[['Offene Rechnungen',()=>openChat('aylin','Welche Rechnungen sind offen?')],['Mahnungen',()=>openChat('aylin','Bereite eine freundliche Mahnung vor.')],['Auswertung',()=>openChat('aylin','Mach mir eine Gewinn- und Kosten-Übersicht.')],['Lexware-Übergabe',()=>openChat('aylin','Was soll an Lexware übergeben werden?')]]},
+  yusuf:{name:'Yusuf',rolle:'Projekte & Baustellen',emoji:'🏗️',chat:'yusuf',
+    areas:[['Baustellen-Tagesplan',()=>openChat('yusuf','Plane meine Baustellen für heute.')],['Materialliste',()=>openChat('yusuf','Mach mir eine Materialliste für ein Projekt.')],['Termine',()=>openChat('yusuf','Hilf mir, Termine zu koordinieren.')]]},
+  baran:{name:'Baran',rolle:'Mitarbeiter & Personal',emoji:'👥',chat:'baran',
+    areas:[['Personalbedarf',()=>openChat('baran','Brauche ich bald einen Mitarbeiter? Schau auf meine Auslastung.')],['Stellenanzeige',()=>openChat('baran','Schreib eine Stellenanzeige für einen Elektriker-Gesellen.')],['Bewerbungen',()=>openChat('baran','Hilf mir, eine Bewerbung zu bewerten.')]]},
+};
+const AGENT_ORDER=['mert','dilara','kaan','emre','aylin','yusuf','baran'];
+function agentAvatar(key,big){
+  const a=AGENTS[key];const sz=big?'agent-av big':'agent-av';
+  return `<span class="${sz}"><img src="assets/agents/${key}.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span class="agent-emoji" style="display:none">${a.emoji}</span></span>`;
+}
+function renderTeam(){
+  gl('teamGrid').innerHTML=AGENT_ORDER.map(key=>{const a=AGENTS[key];
+    return `<div class="agent-card${key==='mert'?' chef':''}" onclick="openAgent('${key}')">
+      ${agentAvatar(key)}
+      <div class="agent-nm">${a.name}</div>
+      <div class="agent-rl">${esc(a.rolle)}</div>
+    </div>`;}).join('');
+}
+let curAgent=null;
+function openAgent(key){
+  curAgent=key;const a=AGENTS[key];
+  gl('agentHero').innerHTML=`${agentAvatar(key,true)}
+    <div><div class="agent-nm big">${a.name}</div><div class="agent-rl big">${esc(a.rolle)}</div>
+    <button class="agent-talk" onclick="openChat('${a.chat}')">💬 Mit ${a.name} sprechen</button></div>`;
+  gl('agentAreas').innerHTML=a.areas.map((ar,i)=>`<div class="agent-area" onclick="agentArea('${key}',${i})"><span>${esc(ar[0])}</span><span class="go">›</span></div>`).join('');
+  showSection('agent');
+}
+function agentArea(key,i){AGENTS[key].areas[i][1]();}
+
 /* ============ INTRO-SOUND (JARVIS-Boot, WebAudio) ============ */
 let introPlayed=false, ohCtx=null;
 function playIntro(){
@@ -977,7 +1042,7 @@ function clock(){
 
 /* ============ NAVIGATION ============ */
 function showSection(s){
-  ['home','settings','chat','ads'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','agent'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1218,7 +1283,8 @@ async function send(){
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
   try{
     const msgs=history[mode].map(m=>({role:m.role,content:m.content}));
-    const payload=JSON.stringify({model:MODEL,max_tokens:2500,system:MODI[mode].system(),messages:msgs});
+    const sys=MODI[mode].system()+(WISSEN?('\n\n'+WISSEN):'');
+    const payload=JSON.stringify({model:MODEL,max_tokens:2500,system:sys,messages:msgs});
     const fd=new FormData();fd.append('ki_request',payload);fd.append('api_key',getKey());
     const r=await fetch(window.location.pathname,{method:'POST',body:fd});
     const d=await r.json();

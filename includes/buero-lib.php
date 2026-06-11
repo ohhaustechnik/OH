@@ -867,11 +867,86 @@ function oh_website_check(): array {
 
 /** Sammelt alle Anbindungen ein (für Cron & Button). */
 function oh_inbox_scan(): void {
-    oh_write('emails', ['list' => oh_gmail_unread(10), 'ts' => time()]);
+    $unread = oh_gmail_unread(15);
+    oh_write('emails', ['list' => $unread, 'ts' => time()]);
+    oh_wissen_add_emails($unread);
     oh_website_check();
 }
 
 /** Offene (unbeantwortete) WhatsApp-Nachrichten. */
 function oh_wa_open(): array {
     return array_values(array_filter(oh_read('whatsapp', []), function($m){ return ($m['status'] ?? 'offen') === 'offen'; }));
+}
+
+/* ==========================================================================
+ * WISSENSSPEICHER – dauerhaftes Gedächtnis (E-Mails, Kommunikation, Kontext)
+ * ======================================================================== */
+function oh_kategorie(string $s): string {
+    $s = mb_strtolower($s);
+    if (mb_strpos($s, 'rechnung') !== false || mb_strpos($s, 'zahlung') !== false || mb_strpos($s, 'mahnung') !== false) return 'Rechnung';
+    if (mb_strpos($s, 'angebot') !== false || mb_strpos($s, 'kostenvoranschlag') !== false) return 'Angebot';
+    if (mb_strpos($s, 'bewertung') !== false || mb_strpos($s, 'google') !== false) return 'Bewertung';
+    if (mb_strpos($s, 'anfrage') !== false || mb_strpos($s, 'sanierung') !== false || mb_strpos($s, 'elektr') !== false || mb_strpos($s, 'angebot') !== false) return 'Anfrage';
+    return 'Sonstiges';
+}
+
+/** Speichert E-Mails dauerhaft im Wissensspeicher (mit Dedupe + Kategorie). */
+function oh_wissen_add_emails(array $list): void {
+    if (!$list) return;
+    $w = oh_read('wissen', []);
+    $seen = [];
+    foreach ($w as $x) { if (!empty($x['hash'])) $seen[$x['hash']] = true; }
+    foreach ($list as $m) {
+        $hash = md5(($m['from'] ?? '') . '|' . ($m['subject'] ?? '') . '|' . date('Y-m-d', $m['ts'] ?? time()));
+        if (isset($seen[$hash])) continue;
+        $w[] = [
+            'hash' => $hash, 'typ' => 'email',
+            'from' => $m['from'] ?? '', 'subject' => $m['subject'] ?? '',
+            'ts' => $m['ts'] ?? time(), 'kategorie' => oh_kategorie($m['subject'] ?? ''),
+            'status' => 'offen',
+        ];
+        $seen[$hash] = true;
+    }
+    if (count($w) > 600) $w = array_slice($w, -600);
+    oh_write('wissen', $w);
+}
+
+/** Kompakte Gedächtnis-Zusammenfassung für alle Agenten-Prompts. */
+function oh_wissen_summary(): string {
+    $w = oh_read('wissen', []);
+    $leads = oh_read('leads', []);
+    $byCat = [];
+    foreach ($w as $x) { $k = $x['kategorie'] ?? 'Sonstiges'; $byCat[$k] = ($byCat[$k] ?? 0) + 1; }
+    $waiting = 0;
+    foreach ($leads as $l) { if (in_array($l['status'] ?? '', ['neu', 'angebot_raus', 'nachgefasst'])) $waiting++; }
+    $s = "UNTERNEHMENS-GEDÄCHTNIS (dauerhaft gespeichert, wächst mit jeder Info):\n";
+    $s .= "- Erfasste Nachrichten gesamt: " . count($w);
+    if ($byCat) { $p = []; foreach ($byCat as $k => $v) $p[] = "$k: $v"; $s .= " (" . implode(', ', $p) . ")"; }
+    $s .= "\n- Gespeicherte Kunden/Leads: " . count($leads) . ", davon warten " . $waiting . " auf Rückmeldung.\n";
+    $recent = array_slice($w, -10);
+    if ($recent) {
+        $s .= "- Zuletzt erfasste Nachrichten:\n";
+        foreach ($recent as $r) $s .= "  · [" . ($r['kategorie'] ?? '') . "] " . ($r['subject'] ?? '') . " – " . ($r['from'] ?? '') . "\n";
+    }
+    return $s;
+}
+
+/** Tägliche Sprach-/Alexa-Zusammenfassung. */
+function oh_alexa_summary(): string {
+    $leads = oh_read('leads', []); $em = oh_read('emails', []); $wa = oh_wa_open(); $mert = oh_read('mert_plan', []);
+    $hot = $neu = $angebot = 0;
+    foreach ($leads as $l) {
+        $st = $l['status'] ?? 'neu';
+        if ($st === 'neu') $neu++;
+        if (($l['stufe'] ?? '') === 'HOT' && $st === 'neu') $hot++;
+        if ($st === 'angebot_raus') $angebot++;
+    }
+    $mails = count($em['list'] ?? []);
+    $std = (int)date('G'); $gruss = $std < 11 ? 'Guten Morgen' : ($std < 18 ? 'Hallo' : 'Guten Abend');
+    $s = "$gruss Chef. ";
+    $s .= "$neu offene Anfragen, davon $hot heiß. ";
+    $s .= "$mails ungelesene E-Mails. " . count($wa) . " neue WhatsApp-Nachrichten. ";
+    if ($angebot) $s .= "$angebot Angebote warten auf Antwort. ";
+    if (!empty($mert['text'])) $s .= "Mert sagt: " . preg_replace('/\s+/', ' ', mb_substr($mert['text'], 0, 280));
+    return trim($s);
 }
