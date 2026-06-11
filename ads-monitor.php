@@ -49,6 +49,9 @@ $reco = oh_ads_recommendations($rerr);
 // Mert Aldemir: neuen Tagesplan erstellen
 $merr = null;
 oh_mert_briefing($merr);
+
+// Agenten-Runde: das Team stimmt sich ab (vernetzt)
+if (function_exists('oh_agenten_runde')) { $rr = null; oh_agenten_runde($rr); }
 $recoZeile = '';
 if (is_array($reco)) {
     $offen = array_filter($reco, function($r){ return ($r['status'] ?? '') === 'offen'; });

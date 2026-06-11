@@ -951,3 +951,55 @@ function oh_alexa_summary(): string {
     if (!empty($mert['text'])) $s .= "Mert sagt: " . preg_replace('/\s+/', ' ', mb_substr($mert['text'], 0, 280));
     return trim($s);
 }
+
+/* ==========================================================================
+ * AGENTEN-RUNDE – das vernetzte KI-Team stimmt sich ab (24/7 via Cron).
+ * Jeder Agent prüft seinen Bereich, gibt Wichtiges an Kollegen weiter,
+ * Mert setzt die Top-Prioritäten. Ergebnis in daten/agenten.json.
+ * ======================================================================== */
+function oh_agenten_runde(?string &$err = null): ?array {
+    $leads = oh_read('leads', []);
+    $neu = $hot = $angebot = $gewonnen = 0;
+    foreach ($leads as $l) {
+        $st = $l['status'] ?? 'neu';
+        if ($st === 'neu') $neu++;
+        if (($l['stufe'] ?? '') === 'HOT' && $st === 'neu') $hot++;
+        if ($st === 'angebot_raus') $angebot++;
+        if (in_array($st, ['gewonnen', 'abgeschlossen'])) $gewonnen++;
+    }
+    $e = null; $rep = oh_ads_report($e);
+    $kosten = $rep['summe']['kosten'] ?? '?'; $cpl = $rep['summe']['cpl'] ?? '?'; $adAnfr = $rep['summe']['conv'] ?? '?';
+    $recoOffen = count(array_filter(oh_read('ads_reco', []), function($r){ return ($r['status'] ?? '') === 'offen'; }));
+    $em = oh_read('emails', []); $mails = count($em['list'] ?? []);
+    $wa = count(oh_wa_open());
+    $ws = oh_read('web_status', []); $web = isset($ws['ok']) ? ($ws['ok'] ? 'erreichbar' : 'PROBLEM') : 'unbekannt';
+
+    $ctx = "AKTUELLE LAGE OH Haustechnik:\n"
+         . "- Offene Anfragen: $neu (heiß: $hot), Angebote draußen: $angebot, gewonnen: $gewonnen\n"
+         . "- Google Ads 7 Tage: Kosten {$kosten}€, Anfragen {$adAnfr}, Kosten/Anfrage {$cpl}€, offene Optimierungen: $recoOffen\n"
+         . "- Ungelesene E-Mails: $mails, neue WhatsApp: $wa, Website: $web\n"
+         . "- Mitarbeiter: aktuell Ein-Mann-Betrieb.\n";
+
+    $system = "Du bist das vernetzte KI-Team von OH Haustechnik. Gemeinsames Ziel ALLER: in 5 Monaten 1.000.000 € Umsatz. "
+        . "Simuliere die aktuelle Abstimmungs-Runde. Team: mert (Geschäftsführer), dilara (Marketing/Website/Ads), "
+        . "kaan (Kommunikation: E-Mail/WhatsApp/Anfragen), emre (Kalkulation/Angebote), aylin (Buchhaltung/Lexware), "
+        . "yusuf (Projekte/Baustellen), baran (Personal). "
+        . "Jeder Agent prüft SEINEN Bereich anhand der Lage, notiert 1-2 kurze, konkrete Funde/Vorschläge (Du-Form, mit erwartetem Nutzen, KEINE Fragen). "
+        . "WICHTIG: Wenn ein Fund einen anderen Bereich betrifft, schreib eine kurze Nachricht von Agent an Agent (z.B. emre an baran: viele Großaufträge, bald Mann nötig). "
+        . "Mert wertet alles aus und setzt die 3 wichtigsten Prioritäten fürs Wachstum. "
+        . "Antworte AUSSCHLIESSLICH mit JSON in diesem Format, nichts davor/danach:\n"
+        . "<runde>{\"agenten\":[{\"key\":\"dilara\",\"funde\":[\"...\"]},{\"key\":\"kaan\",\"funde\":[\"...\"]},{\"key\":\"emre\",\"funde\":[\"...\"]},{\"key\":\"aylin\",\"funde\":[\"...\"]},{\"key\":\"yusuf\",\"funde\":[\"...\"]},{\"key\":\"baran\",\"funde\":[\"...\"]}],\"nachrichten\":[{\"von\":\"emre\",\"an\":\"baran\",\"text\":\"...\"}],\"prioritaeten\":[\"...\",\"...\",\"...\"]}</runde>";
+
+    $resp = oh_ki($system, $ctx, 2000);
+    if (!$resp) { $err = 'KI nicht verfügbar (Schlüssel/Guthaben prüfen).'; return null; }
+    $json = $resp;
+    if (preg_match('/<runde>([\s\S]*?)<\/runde>/', $resp, $m)) $json = $m[1];
+    $json = preg_replace('/```(json)?/i', '', $json);
+    $lb = strpos($json, '{'); $rb = strrpos($json, '}');
+    if ($lb !== false && $rb !== false && $rb > $lb) $json = substr($json, $lb, $rb - $lb + 1);
+    $data = json_decode(trim($json), true);
+    if (!is_array($data)) { $err = 'KI-Antwort unlesbar.'; return null; }
+    $data['ts'] = time();
+    oh_write('agenten', $data);
+    return $data;
+}

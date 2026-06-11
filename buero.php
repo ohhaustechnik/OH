@@ -74,12 +74,17 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             ],
             'ki_alert' => oh_read('ki_status', ['alert' => false]),
             'mert'     => oh_read('mert_plan', []),
+            'agenten'  => oh_read('agenten', []),
             'wissen'   => oh_wissen_summary(),
         ]);
     } elseif ($a === 'mert_fresh') {
         $merr = null;
         $plan = oh_mert_briefing($merr);
         echo json_encode($plan !== null ? ['ok' => true, 'mert' => oh_read('mert_plan', [])] : ['ok' => false, 'error' => $merr]);
+    } elseif ($a === 'agenten_runde') {
+        $aerr = null;
+        $r = oh_agenten_runde($aerr);
+        echo json_encode($r !== null ? ['ok' => true, 'agenten' => $r] : ['ok' => false, 'error' => $aerr]);
     } elseif ($a === 'lead_add') {
         echo json_encode(['lead' => oh_add_lead($in)]);
     } elseif ($a === 'lead_update') {
@@ -331,6 +336,14 @@ header{padding:18px 18px 12px;padding-top:calc(18px + env(safe-area-inset-top));
 .tb{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
 .tb.ok{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan);}
 .tb.no{color:var(--red);border-color:rgba(255,93,108,.4);}
+/* Agenten-Runde */
+.ar-prio{font-size:13px;color:var(--txt);margin-bottom:10px;} .ar-prio b{color:var(--cyan);} .ar-prio ol{margin:6px 0 0 18px;line-height:1.7;}
+.ar-feed{margin:10px 0;} .ar-feed b{color:var(--cyan);font-size:12.5px;}
+.ar-msg{font-size:12.5px;color:var(--txt);background:rgba(57,214,255,.06);border-left:2px solid var(--cyan);border-radius:8px;padding:8px 10px;margin-top:7px;line-height:1.5;}
+.ar-from{color:var(--cyan);font-weight:700;display:block;font-size:11px;margin-bottom:2px;}
+.ar-funde{margin-top:10px;} .ar-ag{margin-top:8px;font-size:12.5px;} .ar-ag b{color:#fff;} .ar-ag ul{margin:3px 0 0 16px;color:var(--txt-dim);line-height:1.5;}
+.agent-funde{background:var(--glass-2);border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin:8px 14px;}
+.agent-funde b{color:var(--cyan);font-size:13px;} .agent-funde ul{margin:6px 0 0 16px;color:var(--txt);line-height:1.6;font-size:13px;}
 .card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin:12px 14px;
   backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
 h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
@@ -752,7 +765,8 @@ ZIEL: perfekte, sofort versendbare Angebote – konkret, sauber, ohne Übertreib
 
 const FIRMA=`FIRMA: OH Haustechnik, Inhaber arbeitet als Elektriker/Haustechniker im Raum Nürnberg.
 Leistungen: Elektroinstallation, Netzwerkverkabelung, Schutz-/Sicherheitstechnik. Kleinunternehmer (0% USt).
-Stil: bodenständig, ehrlich, handwerklich, regional. Kunde steht im Mittelpunkt, kein Marketing-Blabla.`;
+Stil: bodenständig, ehrlich, handwerklich, regional. Kunde steht im Mittelpunkt, kein Marketing-Blabla.
+GEMEINSAMES ZIEL DES GANZEN TEAMS: OH Haustechnik in 5 Monaten auf 1.000.000 € Umsatz bringen. Jede Entscheidung an diesem Ziel ausrichten (hochwertige Aufträge: Altbausanierung, Wohnungssanierung, Zähler, Smart-Home).`;
 
 /* ============ MODI ============ */
 const MODI={
@@ -902,7 +916,9 @@ function renderDashboard(d){
   // nach Agent gruppieren
   const groups={};
   offen.forEach(t=>{const ag=AGENT_OF[t.bereich]||'mert';(groups[ag]=groups[ag]||[]).push(t);});
+  agentenData=d.agenten||null;
   let html=accordion('📊 Geschäftsführer-Bericht von Mert Aldemir', mertBody(d.mert), false);
+  html+=accordion('🤝 Agenten-Runde · Team-Abstimmung', agentenBody(d.agenten), false);
   ['dilara','kaan','emre','aylin','yusuf','baran','mert'].forEach(ag=>{
     const list=groups[ag]; if(!list||!list.length)return;
     const badge=`<span class="pill ${list[0].prio}">${PLABEL[list[0].prio]||''}</span>`;
@@ -947,6 +963,34 @@ function renderFokus(list){
 function mertBody(m){
   const txt=(m&&m.text)?fmt(m.text):'<span style="color:var(--txt-dim)">Noch kein Tagesplan. Tipp „Neuen Tagesplan erstellen".</span>';
   return `<div class="mert-txt" id="mertTxt">${txt}</div><button class="mert-refresh" onclick="event.stopPropagation();mertFresh(this)">↻ Neuen Tagesplan erstellen</button>`;
+}
+let agentenData=null;
+const AG_NAME={mert:'Mert',dilara:'Dilara',kaan:'Kaan',emre:'Emre',aylin:'Aylin',yusuf:'Yusuf',baran:'Baran'};
+function agentenBody(a){
+  if(!a||(!a.nachrichten&&!a.prioritaeten&&!a.agenten)){
+    return `<div class="prio-empty">Noch keine Abstimmung. Das Team trifft sich automatisch (Cron) – oder jetzt starten:</div><button class="mert-refresh" onclick="event.stopPropagation();agentenRunde(this)">🤝 Agenten-Runde starten</button>`;
+  }
+  let h='';
+  if(a.prioritaeten&&a.prioritaeten.length){
+    h+='<div class="ar-prio"><b>🎯 Merts Prioritäten:</b><ol>'+a.prioritaeten.map(p=>`<li>${esc(p)}</li>`).join('')+'</ol></div>';
+  }
+  if(a.nachrichten&&a.nachrichten.length){
+    h+='<div class="ar-feed"><b>💬 Team-Nachrichten:</b>'+a.nachrichten.map(n=>
+      `<div class="ar-msg"><span class="ar-from">${AG_NAME[n.von]||n.von} → ${AG_NAME[n.an]||n.an}</span> ${esc(n.text)}</div>`).join('')+'</div>';
+  }
+  if(a.agenten&&a.agenten.length){
+    h+='<div class="ar-funde">'+a.agenten.map(ag=>{
+      const fu=(ag.funde||[]).map(f=>`<li>${esc(f)}</li>`).join('');
+      return fu?`<div class="ar-ag"><b>${AGENTS[ag.key]?AGENTS[ag.key].emoji+' '+AGENTS[ag.key].name:ag.key}</b><ul>${fu}</ul></div>`:'';
+    }).join('')+'</div>';
+  }
+  h+=`<div style="font-size:10.5px;color:var(--txt-dim);margin-top:8px">Stand: ${a.ts?new Date(a.ts*1000).toLocaleString('de-DE'):'–'}</div>`;
+  h+=`<button class="mert-refresh" onclick="event.stopPropagation();agentenRunde(this)">↻ Neue Agenten-Runde</button>`;
+  return h;
+}
+async function agentenRunde(btn){
+  btn.disabled=true;btn.textContent='🤝 Das Team stimmt sich ab …';
+  try{const d=await api('agenten_runde');if(d.ok){if(lastDash){lastDash.agenten=d.agenten;renderDashboard(lastDash);}speak('Das Team hat sich abgestimmt, Chef.');}else{btn.textContent='⚠️ '+(d.error||'Fehler');setTimeout(()=>{btn.disabled=false;btn.textContent='↻ Agenten-Runde';},2500);}}catch(e){btn.disabled=false;}
 }
 async function mertFresh(btn){
   btn.disabled=true;btn.textContent='🧠 Mert denkt nach …';
@@ -1014,7 +1058,14 @@ function openAgent(key){
   gl('agentHero').innerHTML=`${agentAvatar(key,true)}
     <div><div class="agent-nm big">${a.name}</div><div class="agent-rl big">${esc(a.rolle)}</div>
     <button class="agent-talk" onclick="openChat('${a.chat}')">💬 Mit ${a.name} sprechen</button></div>`;
-  gl('agentAreas').innerHTML=a.areas.map((ar,i)=>`<div class="agent-area" onclick="agentArea('${key}',${i})"><span>${esc(ar[0])}</span><span class="go">›</span></div>`).join('');
+  let fundeHtml='';
+  if(agentenData&&agentenData.agenten){
+    const mine=agentenData.agenten.find(x=>x.key===key);
+    if(mine&&mine.funde&&mine.funde.length){
+      fundeHtml=`<div class="agent-funde"><b>🔎 ${a.name}s aktuelle Funde:</b><ul>${mine.funde.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
+    }
+  }
+  gl('agentAreas').innerHTML=fundeHtml+a.areas.map((ar,i)=>`<div class="agent-area" onclick="agentArea('${key}',${i})"><span>${esc(ar[0])}</span><span class="go">›</span></div>`).join('');
   showSection('agent');
 }
 function agentArea(key,i){AGENTS[key].areas[i][1]();}
