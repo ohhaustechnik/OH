@@ -1108,7 +1108,14 @@ function oh_agent_context(string $agent): string {
         return "DEINE AKTUELLEN DATEN (Anfragen, die ein Angebot brauchen):" . $namen($offeneLeads, 8);
     } elseif ($agent === 'aylin') {
         $gew = array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen', 'abgeschlossen']); });
-        return "DEINE AKTUELLEN DATEN (Buchhaltung):\nGewonnene Aufträge (Rechnung/Anzahlung prüfen): " . count($gew);
+        $c = "DEINE AKTUELLEN DATEN (Buchhaltung):\nGewonnene Aufträge (Rechnung/Anzahlung prüfen): " . count($gew) . "\n";
+        $le = null; $inv = oh_lex_open_invoices($le);
+        if (is_array($inv)) {
+            $sum = 0; $ueb = 0; foreach ($inv as $i) { $sum += $i['offen']; if ($i['ueberfaellig']) $ueb++; }
+            $c .= "Offene Rechnungen in Lexware: " . count($inv) . " (offen gesamt " . number_format($sum, 2, ',', '.') . " €, überfällig: $ueb)\n";
+            foreach (array_slice($inv, 0, 6) as $i) $c .= "- " . $i['nummer'] . " " . $i['kunde'] . ": " . number_format($i['offen'], 2, ',', '.') . " €" . ($i['ueberfaellig'] ? ' ÜBERFÄLLIG' : '') . "\n";
+        }
+        return $c;
     } elseif ($agent === 'yusuf') {
         $gew = array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen']); });
         return "DEINE AKTUELLEN DATEN (Projekte):\nLaufende/gewonnene Projekte zum Planen: " . count($gew);
@@ -1118,4 +1125,44 @@ function oh_agent_context(string $agent): string {
         return oh_wissen_summary();
     }
     return '';
+}
+
+/* ==========================================================================
+ * AYLIN: Lexware Office Anbindung (Rechnungen lesen)
+ * Benötigt in der Konfiguration: lexware_key (Public-API-Schlüssel)
+ * ======================================================================== */
+function oh_lex_request(string $method, string $path, $body = null, ?string &$err = null) {
+    $key = oh_config()['lexware_key'] ?? '';
+    if (!$key) { $err = 'Kein Lexware-Schlüssel hinterlegt (⚙️ Einstellungen).'; return null; }
+    $ch = curl_init('https://api.lexoffice.io' . $path);
+    $h = ['Authorization: Bearer ' . $key, 'Accept: application/json'];
+    $opt = [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_CUSTOMREQUEST => $method];
+    if ($body !== null) { $h[] = 'Content-Type: application/json'; $opt[CURLOPT_POSTFIELDS] = json_encode($body); }
+    $opt[CURLOPT_HTTPHEADER] = $h;
+    curl_setopt_array($ch, $opt);
+    $r = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $d = json_decode($r, true);
+    if ($code < 200 || $code >= 300) { $err = 'Lexware HTTP ' . $code . ': ' . substr((string)$r, 0, 200); return null; }
+    return $d;
+}
+
+/** Offene (unbezahlte/überfällige) Rechnungen aus Lexware. */
+function oh_lex_open_invoices(?string &$err = null): ?array {
+    $d = oh_lex_request('GET', '/v1/voucherlist?voucherType=salesinvoice&voucherStatus=open&size=50', null, $err);
+    if ($d === null) return null;
+    $out = [];
+    foreach ($d['content'] ?? [] as $v) {
+        $out[] = [
+            'nummer'  => $v['voucherNumber'] ?? '?',
+            'kunde'   => $v['contactName'] ?? '?',
+            'betrag'  => round((float)($v['totalAmount'] ?? 0), 2),
+            'offen'   => round((float)($v['openAmount'] ?? ($v['totalAmount'] ?? 0)), 2),
+            'faellig' => $v['dueDate'] ?? '',
+            'status'  => $v['voucherStatus'] ?? '',
+            'ueberfaellig' => (!empty($v['dueDate']) && strtotime($v['dueDate']) < time()),
+        ];
+    }
+    return $out;
 }

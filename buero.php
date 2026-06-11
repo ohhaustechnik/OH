@@ -88,6 +88,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         echo json_encode($r !== null ? ['ok' => true, 'agenten' => $r] : ['ok' => false, 'error' => $aerr]);
     } elseif ($a === 'agent_context') {
         echo json_encode(['ctx' => oh_agent_context($in['agent'] ?? '')]);
+    } elseif ($a === 'lex_invoices') {
+        $le = null;
+        $inv = oh_lex_open_invoices($le);
+        echo json_encode($inv !== null ? ['ok' => true, 'invoices' => $inv] : ['ok' => false, 'error' => $le]);
     } elseif ($a === 'website_reco') {
         echo json_encode(['ok' => true, 'reco' => oh_read('website_reco', [])]);
     } elseif ($a === 'website_analyze') {
@@ -133,6 +137,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'wa_verify_token'=> $c['wa_verify_token'] ?? 'oh-wa',
             'wa_phone_id'    => $c['wa_phone_id'] ?? '',
             'has_wa'         => !empty($c['wa_token']),
+            'has_lexware'    => !empty($c['lexware_key']),
         ]);
     } elseif ($a === 'config_set') {
         oh_config_set([
@@ -149,6 +154,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'wa_token'        => $in['wa_token'] ?? '',
             'wa_verify_token' => $in['wa_verify_token'] ?? '',
             'wa_phone_id'     => $in['wa_phone_id'] ?? '',
+            'lexware_key'     => $in['lexware_key'] ?? '',
         ]);
         echo json_encode(['ok' => true]);
     } elseif ($a === 'scan_now') {
@@ -666,6 +672,17 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
   <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
 </div>
 
+<!-- AYLIN · LEXWARE -->
+<div id="s-lex" style="display:none">
+  <div class="card">
+    <h2>&#128176; Aylin · Offene Rechnungen (Lexware)</h2>
+    <p class="intro">Aylin liest Deine offenen Rechnungen direkt aus Lexware Office.</p>
+    <div id="lexBody"><div class="prio-empty">Lade …</div></div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="loadLex()">↻ Aktualisieren</button>
+  </div>
+  <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
+</div>
+
 <!-- DILARA · WEBSITE -->
 <div id="s-web" style="display:none">
   <div class="card">
@@ -734,6 +751,14 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <input type="text" id="siteUrl" placeholder="https://oh-haustechnik.de">
     <button class="btn btn-cyan" style="margin-top:12px" onclick="saveSite()">Speichern</button>
     <div id="siteMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#128176; Lexware Office (Aylin)</h2>
+    <p class="intro">Für Aylins Buchhaltung. Schlüssel von <b>app.lexoffice.de</b> → Einstellungen → Öffentliche API.</p>
+    <label>API-Schlüssel</label>
+    <input type="password" id="lexKey" placeholder="••• (leer = unverändert)">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveLex()">Speichern</button>
+    <div id="lexMsg" class="msg-ok"></div>
   </div>
   <div class="card">
     <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
@@ -1080,7 +1105,7 @@ const AGENTS={
   emre:{name:'Emre',rolle:'Kalkulation & Angebote',emoji:'🧮',chat:'emre',
     areas:[['Kalkulator',()=>openChat('emre')],['Angebote',()=>openChat('angebot')],['Nachkalkulation',()=>openChat('emre','Mach mir eine Nachkalkulation für ein Projekt.')]]},
   aylin:{name:'Aylin',rolle:'Buchhaltung & Finanzen',emoji:'💰',chat:'aylin',
-    areas:[['Offene Rechnungen',()=>openChat('aylin','Welche Rechnungen sind offen?')],['Mahnungen',()=>openChat('aylin','Bereite eine freundliche Mahnung vor.')],['Auswertung',()=>openChat('aylin','Mach mir eine Gewinn- und Kosten-Übersicht.')],['Lexware-Übergabe',()=>openChat('aylin','Was soll an Lexware übergeben werden?')]]},
+    areas:[['Offene Rechnungen (Lexware)',()=>openLex()],['Mahnungen',()=>openChat('aylin','Bereite eine freundliche Mahnung vor.')],['Auswertung',()=>openChat('aylin','Mach mir eine Gewinn- und Kosten-Übersicht.')],['Lexware-Übergabe',()=>openChat('aylin','Was soll an Lexware übergeben werden?')]]},
   yusuf:{name:'Yusuf',rolle:'Projekte & Baustellen',emoji:'🏗️',chat:'yusuf',
     areas:[['Baustellen-Tagesplan',()=>openChat('yusuf','Plane meine Baustellen für heute.')],['Materialliste',()=>openChat('yusuf','Mach mir eine Materialliste für ein Projekt.')],['Termine',()=>openChat('yusuf','Hilf mir, Termine zu koordinieren.')]]},
   baran:{name:'Baran',rolle:'Mitarbeiter & Personal',emoji:'👥',chat:'baran',
@@ -1197,7 +1222,7 @@ function clock(){
 
 /* ============ NAVIGATION ============ */
 function showSection(s){
-  ['home','settings','chat','ads','agent','web'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','agent','web','lex'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1206,7 +1231,7 @@ async function toggleSettings(){
   if(gl('s-settings').style.display==='block'){goHome();}
   else{
     gl('apiIn').value='';gl('gmailPass').value='';
-    ['adsDev','adsCid','adsSecret','adsRefresh','waToken'].forEach(id=>gl(id).value='');
+    ['adsDev','adsCid','adsSecret','adsRefresh','waToken','lexKey'].forEach(id=>gl(id).value='');
     try{const c=await api('config_get');serverCfg=c;
       gl('gmailUser').value=c.gmail_user||'';
       gl('adsCustomer').value=c.ads_customer_id||'';
@@ -1256,6 +1281,12 @@ async function saveSite(){
   await api('config_set',{site_url:gl('siteUrl').value.trim()});
   gl('siteMsg').textContent='✓ Gespeichert';
   setTimeout(()=>gl('siteMsg').textContent='',2500);
+}
+async function saveLex(){
+  await api('config_set',{lexware_key:gl('lexKey').value.trim()});
+  gl('lexKey').value='';
+  gl('lexMsg').textContent='✓ Lexware gespeichert';
+  setTimeout(()=>gl('lexMsg').textContent='',2500);
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
@@ -1418,6 +1449,29 @@ async function webApply(id,btn){
   setTimeout(()=>{loadWeb();loadDashboard();},2200);
 }
 async function webAct(action,id,btn){btn.disabled=true;await api(action,{id});setTimeout(loadWeb,400);}
+
+/* ============ AYLIN · LEXWARE ============ */
+function openLex(){showSection('lex');loadLex();}
+async function loadLex(){
+  gl('lexBody').innerHTML='<div class="prio-empty">Lade Rechnungen aus Lexware …</div>';
+  try{
+    const d=await api('lex_invoices');
+    if(!d.ok){gl('lexBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}<br><br>Tipp: Lexware-Schlüssel unter ⚙️ eingetragen?</div>`;return;}
+    renderLex(d.invoices||[]);
+  }catch(e){gl('lexBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+}
+function renderLex(list){
+  if(!list.length){gl('lexBody').innerHTML='<div class="prio-empty">✅ Keine offenen Rechnungen, Chef.</div>';return;}
+  let sum=0,ueb=0;list.forEach(i=>{sum+=(+i.offen||0);if(i.ueberfaellig)ueb++;});
+  let h=`<div class="ads-sum">
+    <div class="ads-stat"><div class="n">${list.length}</div><div class="l">Offene Rechnungen</div></div>
+    <div class="ads-stat"><div class="n">${eur(sum)}</div><div class="l">Offen gesamt</div></div>
+    <div class="ads-stat hot"><div class="n">${ueb}</div><div class="l">⚠️ Überfällig</div></div></div>`;
+  h+='<table class="ads-tbl"><tr><th>Nr.</th><th>Kunde</th><th>Offen</th><th>Fällig</th></tr>';
+  list.forEach(i=>{h+=`<tr style="${i.ueberfaellig?'color:#ff97a1':''}"><td>${esc(i.nummer)}</td><td>${esc(i.kunde)}</td><td>${eur(i.offen)}</td><td>${esc(i.faellig||'-')}</td></tr>`;});
+  h+='</table>';
+  gl('lexBody').innerHTML=h;
+}
 
 function adsAnalyse(){
   if(!lastAdsReport)return;
