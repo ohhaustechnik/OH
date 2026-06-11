@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root{color-scheme:dark;}
+*{-webkit-tap-highlight-color:transparent;}
+html,body,#root{height:100%;}
+body{margin:0;background:#070a12;color:#dfeaf6;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;}
+::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-thumb{background:#1e2940;border-radius:8px;}
+.glass{background:rgba(19,26,39,.7);backdrop-filter:blur(14px);border:1px solid #1e2940;}
+.glow{box-shadow:0 0 26px rgba(57,214,255,.18);}
