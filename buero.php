@@ -61,15 +61,24 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
     $in = json_decode($_POST['data'] ?? '{}', true) ?: [];
 
     if ($a === 'dashboard') {
+        $ct = oh_company_tasks();
         echo json_encode([
-            'tasks' => oh_dashboard_tasks(),
+            'offen'    => $ct['offen'],
+            'erledigt' => $ct['erledigt'],
+            'warnung'  => $ct['warnung'],
+            'anzahl'   => $ct['anzahl'],
             'leads' => oh_read('leads', []),
             'stats' => [
                 'leads'  => count(oh_read('leads', [])),
                 'hot'    => count(array_filter(oh_read('leads', []), function($l){ return ($l['stufe'] ?? '') === 'HOT' && ($l['status'] ?? '') === 'neu'; })),
             ],
             'ki_alert' => oh_read('ki_status', ['alert' => false]),
+            'mert'     => oh_read('mert_plan', []),
         ]);
+    } elseif ($a === 'mert_fresh') {
+        $merr = null;
+        $plan = oh_mert_briefing($merr);
+        echo json_encode($plan !== null ? ['ok' => true, 'mert' => oh_read('mert_plan', [])] : ['ok' => false, 'error' => $merr]);
     } elseif ($a === 'lead_add') {
         echo json_encode(['lead' => oh_add_lead($in)]);
     } elseif ($a === 'lead_update') {
@@ -316,6 +325,25 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
   background:linear-gradient(135deg,rgba(255,93,108,.95),rgba(200,40,55,.95));color:#fff;font-weight:600;
   box-shadow:0 0 22px rgba(255,93,108,.4);border:1px solid rgba(255,255,255,.2);}
 .ki-alert b{color:#fff;}
+.ki-alert.warn{background:linear-gradient(135deg,rgba(231,177,75,.95),rgba(190,130,30,.95));box-shadow:0 0 20px rgba(231,177,75,.35);}
+.ki-alert.warn.gelb{}
+/* Mert Aldemir Tagesplan */
+.mert-card{margin:8px 14px 0;background:linear-gradient(150deg,rgba(20,40,70,.85),rgba(10,20,38,.9));border:1px solid var(--cyan);
+  border-radius:18px;padding:16px;backdrop-filter:blur(14px);box-shadow:0 0 26px rgba(57,214,255,.18);}
+.mert-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.mert-av{width:42px;height:42px;border-radius:13px;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 0 16px rgba(57,214,255,.4);}
+.mert-nm{font-weight:800;font-size:15px;color:#fff;}
+.mert-rl{font-size:10.5px;color:var(--cyan);letter-spacing:.3px;}
+.mert-txt{font-size:14px;line-height:1.6;color:var(--txt);white-space:pre-wrap;}
+.mert-txt b{color:var(--cyan);}
+.mert-refresh{margin-top:12px;width:100%;padding:11px;background:var(--cyan-soft);border:1px solid var(--cyan);color:var(--cyan);border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+/* Aufgaben-Detail */
+.task{align-items:flex-start;}
+.task-ico{font-size:20px;flex-shrink:0;margin-top:1px;}
+.task-why{font-size:12.5px;color:var(--txt-dim);margin-top:8px;line-height:1.5;}
+.task-go{display:block;margin-top:8px;background:var(--cyan-soft);border:1px solid var(--cyan);color:var(--cyan);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.task.done{opacity:.6;}
+.task.done .tt{text-decoration:line-through;}
 /* Google Ads */
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
@@ -486,14 +514,20 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <div class="dash-stats" id="dashStats"></div>
   </div>
   <div id="kiAlert" class="ki-alert" style="display:none"></div>
-  <div id="briefing" class="briefing" style="display:none"></div>
+  <div id="martWarn" class="ki-alert warn" style="display:none"></div>
 
-  <div class="section-title">// Offene Aufgaben</div>
-  <div id="dashTasks">
-    <div class="prio-group" data-p="rot"><div class="prio-lbl"><span class="prio-dot rot"></span>SOFORT · heute erledigen</div><div class="prio-list" id="taskRot"></div></div>
-    <div class="prio-group" data-p="gelb"><div class="prio-lbl"><span class="prio-dot gelb"></span>BALD · innerhalb 24 h</div><div class="prio-list" id="taskGelb"></div></div>
-    <div class="prio-group" data-p="gruen"><div class="prio-lbl"><span class="prio-dot gruen"></span>KANN WARTEN</div><div class="prio-list" id="taskGruen"></div></div>
+  <!-- Mert Aldemir Tagesplan -->
+  <div class="mert-card" id="mertCard" style="display:none">
+    <div class="mert-head"><span class="mert-av">🧠</span><div><div class="mert-nm">Mert Aldemir</div><div class="mert-rl">Dein Geschäftsführer · Ziel: 1 Mio € in 5 Monaten</div></div></div>
+    <div class="mert-txt" id="mertTxt"></div>
+    <button class="mert-refresh" onclick="mertFresh(this)">↻ Neuen Tagesplan erstellen</button>
   </div>
+
+  <div class="section-title">// Sollte erledigt werden <span id="offenCount"></span></div>
+  <div id="taskOffen"><div class="prio-empty">Lade …</div></div>
+
+  <div class="section-title">// Bereits erledigt</div>
+  <div id="taskErledigt"><div class="prio-empty">–</div></div>
 
   <div class="section-title">// Werkzeuge</div>
   <div class="tiles">
@@ -536,6 +570,12 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
       <div class="tile-ico">&#128200;</div>
       <div class="tile-name">Google Ads</div>
       <div class="tile-desc">Kampagnen überwachen &amp; KI-Tipps</div>
+    </div>
+    <div class="tile" onclick="openChat('mert')">
+      <div class="tile-tag">NEU</div>
+      <div class="tile-ico">&#129504;</div>
+      <div class="tile-name">Mert Aldemir</div>
+      <div class="tile-desc">Dein 24/7-Geschäftsführer</div>
     </div>
   </div>
 </div>
@@ -706,7 +746,12 @@ Bei guten Bewertungen: herzlich, persönlich, danke. Bei schlechten: professione
     quick:['Wie gewinne ich mehr Aufträge?','Soll ich Preise erhöhen?','Tagesplanung für heute','Idee gegen Sommerloch'],
     system(){return `Du bist der persönliche Business-Berater & Sparringspartner des Chefs von OH Haustechnik – wie ein cleverer Mitgründer, der Handwerk, Zahlen und Marketing versteht.
 ${FIRMA}
-Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Marketing, Wachstum. Kurz, konkret, motivierend. Du-Form, auf Augenhöhe.`;}}
+Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Marketing, Wachstum. Kurz, konkret, motivierend. Du-Form, auf Augenhöhe.`;}},
+  mert:{ name:'Mert Aldemir', ico:'\u{1F9E0}',
+    quick:['Was ist heute am wichtigsten?','Wann brauche ich einen Mitarbeiter?','Wo verliere ich Geld?','Wie komme ich schneller zur Million?'],
+    system(){return `Du bist Mert Aldemir, der digitale Geschäftsführer von OH Haustechnik. DEIN EINZIGES ZIEL: das Unternehmen in 5 Monaten Richtung 1.000.000 € Umsatz skalieren.
+${FIRMA}
+Du überwachst alle Bereiche (Anfragen, Angebote, Werbung, Bewertungen, Prozesse), erkennst Engpässe und Wachstumschancen. Du denkst wie ein knallharter, kluger Geschäftsführer und bewertest jede Maßnahme danach, ob sie schneller Wachstum, mehr qualifizierte Anfragen oder mehr Umsatz bringt. Du erkennst, wann Mitarbeiter nötig sind und wann Budget erhöht werden soll. Sprich einfach mit dem Chef (Du-Form), kein Fachchinesisch, ehrlich und motivierend.`;}}
 };
 
 /* ============ STATE ============ */
@@ -724,33 +769,26 @@ async function api(action,data){
 }
 
 /* ============ DASHBOARD ============ */
+const PDOT={rot:'rot',gelb:'gelb',gruen:'gruen'};
+let briefingText='';
 async function loadDashboard(){
   try{
     const d=await api('dashboard');
     leadsCache=d.leads||[];
     renderStats(d.stats||{});
-    renderTasks(d.tasks||{rot:[],gelb:[],gruen:[]});
     renderKiAlert(d.ki_alert||{alert:false});
-  }catch(e){/* offline – Dashboard bleibt leer */}
+    renderWarn(d.warnung);
+    renderOffen(d.offen||[]);
+    renderErledigt(d.erledigt||[]);
+    renderMert(d.mert||{});
+    buildBriefing(d);
+  }catch(e){/* offline */}
   try{serverCfg=await api('config_get');}catch(e){}
-  await loadBriefing();
 }
-/* Morgen-Briefing: „Guten Morgen Chef" + heute wichtig */
-let briefingText='';
-async function loadBriefing(){
-  try{
-    const d=await api('ads_reco');
-    const reco=(d.reco||[]).filter(r=>r.status==='offen');
-    const rot=reco.filter(r=>r.dringlichkeit==='rot').length;
-    const hot=(leadsCache||[]).filter(l=>l.stufe==='HOT'&&l.status==='neu').length;
-    const std=new Date().getHours();
-    const gruss=std<11?'Guten Morgen':std<18?'Hallo':'Guten Abend';
-    let bl=`<h3>// ${gruss}, Chef · Heute wichtig</h3>`;
-    bl+=`<div class="bl">📈 <span><b>Google Ads:</b> ${reco.length} Optimierung${reco.length===1?'':'en'} gefunden${rot?`, davon ${rot} sofort übernehmen`:''}</span></div>`;
-    bl+=`<div class="bl">📊 <span><b>Leads:</b> ${hot} heiße Anfrage${hot===1?'':'n'} offen</span></div>`;
-    gl('briefing').innerHTML=bl; gl('briefing').style.display='block';
-    briefingText=`${gruss} Chef. `+(reco.length?`Ich habe ${reco.length} Optimierung${reco.length===1?'':'en'} für die Werbung gefunden${rot?`, ${rot} davon solltest Du sofort übernehmen`:''}. `:'Bei der Werbung ist gerade nichts dringend. ')+(hot?`Außerdem ${hot} heiße Anfrage${hot===1?'':'n'}. `:'');
-  }catch(e){gl('briefing').style.display='none';}
+function renderStats(s){
+  gl('dashStats').innerHTML=
+    `<div class="stat"><div class="n">${s.leads||0}</div><div class="l">Leads gesamt</div></div>`+
+    `<div class="stat hot"><div class="n">${s.hot||0}</div><div class="l">🔥 Heiß &amp; offen</div></div>`;
 }
 function renderKiAlert(a){
   const el=gl('kiAlert');
@@ -760,39 +798,63 @@ function renderKiAlert(a){
     speak('Achtung Chef, das KI-Guthaben ist leer. Bitte aufladen.');
   }else{el.style.display='none';}
 }
-function renderStats(s){
-  gl('dashStats').innerHTML=
-    `<div class="stat"><div class="n">${s.leads||0}</div><div class="l">Leads gesamt</div></div>`+
-    `<div class="stat hot"><div class="n">${s.hot||0}</div><div class="l">🔥 Heiß &amp; offen</div></div>`;
+function renderWarn(w){
+  const el=gl('martWarn');
+  if(w){el.innerHTML='⚠️ <b>'+(w.prio==='rot'?'Marktanalyse veraltet!':'Marktanalyse aktualisieren')+'</b> '+esc(w.text);el.style.display='block';el.className='ki-alert warn'+(w.prio==='rot'?'':' gelb');}
+  else{el.style.display='none';}
 }
-function renderTasks(t){
-  lastTasks=t;
-  const map={rot:'taskRot',gelb:'taskGelb',gruen:'taskGruen'};
-  let total=0;
-  Object.keys(map).forEach(p=>{
-    const list=t[p]||[]; total+=list.length;
-    gl(map[p]).innerHTML=list.length?list.map(x=>
-      `<div class="task ${p}" onclick="openTask('${x.id}','${x.typ}')">
-         <div class="tx"><div class="tt">${esc(x.titel)}</div><div class="ta">${esc(x.aktion)} →</div></div>
-         <div class="go">›</div>
-       </div>`).join(''):'<div class="prio-empty">Nichts offen.</div>';
-  });
-  if(total===0){gl('taskGruen').innerHTML='<div class="prio-empty">Alles erledigt, Chef. 🎯 Neue Anfragen erscheinen hier automatisch.</div>';}
+const BICON={Anfrage:'📥',Angebot:'📄',Bewertung:'⭐','Google Ads':'📈',Markt:'🔍',Auftrag:'✅'};
+function renderOffen(list){
+  lastOffen=list;
+  gl('offenCount').textContent=list.length?`(${list.length})`:'';
+  if(!list.length){gl('taskOffen').innerHTML='<div class="prio-empty">✅ Alles erledigt, Chef. Neue Aufgaben erscheinen hier automatisch.</div>';return;}
+  gl('taskOffen').innerHTML=list.map((x,i)=>`
+    <div class="task ${PDOT[x.prio]||'gelb'}" onclick="toggleTask(${i})">
+      <div class="task-ico">${x.icon||BICON[x.bereich]||'•'}</div>
+      <div class="tx">
+        <div class="tt">${esc(x.titel)}</div>
+        <div class="ta">${esc(x.bereich)} · 📈 ${esc(x.nutzen||'')}</div>
+        <div class="task-why" id="why${i}" style="display:none">💡 ${esc(x.warum||'')}
+          <button class="task-go" onclick="event.stopPropagation();openTaskRef('${x.typ}','${x.ref}')">Erledigen →</button>
+        </div>
+      </div>
+      <div class="go">›</div>
+    </div>`).join('');
 }
+function toggleTask(i){const w=gl('why'+i);if(w)w.style.display=w.style.display==='none'?'block':'none';}
+function renderErledigt(list){
+  if(!list||!list.length){gl('taskErledigt').innerHTML='<div class="prio-empty">Noch nichts erledigt heute.</div>';return;}
+  gl('taskErledigt').innerHTML=list.map(x=>`<div class="task done"><div class="task-ico">${x.icon||'✅'}</div><div class="tx"><div class="tt">${esc(x.titel)}</div><div class="ta">${esc(x.bereich||'')}</div></div></div>`).join('');
+}
+function renderMert(m){
+  if(m&&m.text){gl('mertTxt').innerHTML=fmt(m.text);gl('mertCard').style.display='block';}
+  else{gl('mertTxt').innerHTML='<span style="color:var(--txt-dim)">Noch kein Tagesplan. Tipp „Neuen Tagesplan erstellen".</span>';gl('mertCard').style.display='block';}
+}
+async function mertFresh(btn){
+  btn.disabled=true;btn.textContent='🧠 Mert denkt nach …';
+  gl('mertTxt').innerHTML='<span style="color:var(--txt-dim)">Mert wertet alle Zahlen aus …</span>';
+  try{const d=await api('mert_fresh');if(d.ok){renderMert(d.mert);if(d.mert&&d.mert.text)speak(cleanSpeech(d.mert.text.split('\n')[0]));}else gl('mertTxt').innerHTML='<span class="prio-empty">'+esc(d.error||'Fehler')+'</span>';}catch(e){}
+  btn.disabled=false;btn.textContent='↻ Neuen Tagesplan erstellen';
+}
+function buildBriefing(d){
+  const offen=(d.offen||[]).length, rot=(d.anzahl&&d.anzahl.rot)||0;
+  const std=new Date().getHours();
+  const gruss=std<11?'Guten Morgen':std<18?'Hallo':'Guten Abend';
+  briefingText=`${gruss} Chef. Du hast ${offen} offene Aufgabe${offen===1?'':'n'}${rot?`, ${rot} davon dringend`:''}. `;
+  if(d.mert&&d.mert.text)briefingText+='Mert sagt: '+cleanSpeech(d.mert.text.split('\n').slice(0,2).join(' '));
+}
+let lastOffen=[];
 function leadById(id){return leadsCache.find(l=>l.id===id);}
 function leadInfo(l){
   if(!l)return '';
   return `Lead-Infos:\n- Name: ${l.name||'?'}\n- E-Mail: ${l.email||'?'}\n- Telefon: ${l.telefon||'?'}\n- Leistung: ${l.kategorie||'?'}\n- Größe: ${l.objektgroesse||'?'}\n- Zeitraum: ${l.zeitraum||'?'}\n- Ort: ${(l.plz||'')+' '+(l.ort||'')}\n- Details: ${l.details||'-'}`;
 }
-function openTask(id,typ){
-  const l=leadById(id);
-  if(typ==='bewertung'){
-    openChat('bewertung','Schreib eine freundliche Bewertungs-Anfrage per E-Mail an diesen abgeschlossenen Kunden:\n\n'+leadInfo(l));
-  }else if(typ==='followup'){
-    openChat('leads','Schreib eine freundliche Follow-up-Nachricht (das Angebot ist 2 Tage raus, noch keine Antwort) an:\n\n'+leadInfo(l));
-  }else{
-    openChat('kalk',(l?l.details||l.kategorie:'')+'\n\n['+leadInfo(l)+']');
-  }
+function openTaskRef(typ,ref){
+  if(typ==='reco'||typ==='markt'){openAds();return;}
+  const l=leadById(ref);
+  if(typ==='bewertung')openChat('bewertung','Schreib eine freundliche Bewertungs-Anfrage per E-Mail an diesen abgeschlossenen Kunden:\n\n'+leadInfo(l));
+  else if(typ==='followup')openChat('leads','Schreib eine freundliche Follow-up-Nachricht (Angebot ist 2 Tage raus, keine Antwort) an:\n\n'+leadInfo(l));
+  else openChat('kalk',(l?l.details||l.kategorie:'')+'\n\n['+leadInfo(l)+']');
 }
 
 /* ============ INTRO-SOUND (JARVIS-Boot, WebAudio) ============ */

@@ -498,6 +498,13 @@ function oh_ads_recommendations(?string &$err = null): ?array {
     if ($kws) { $ctx .= "\nKEYWORDS (30 Tage, teuerste zuerst):\n"; foreach (array_slice($kws, 0, 20) as $k) $ctx .= "- \"{$k['keyword']}\" [{$k['match']}]: {$k['kosten']}€, {$k['klicks']} Kl., {$k['conv']} Anfr.\n"; }
     if ($terms) { $ctx .= "\nSUCHBEGRIFFE (wonach Leute wirklich gesucht haben, 30 Tage):\n"; foreach (array_slice($terms, 0, 25) as $t) $ctx .= "- \"{$t['begriff']}\": {$t['kosten']}€, {$t['klicks']} Kl., {$t['conv']} Anfr.\n"; }
 
+    // Bereits vorgeschlagene / erledigte Maßnahmen sammeln (nicht wiederholen!)
+    $hist = [];
+    foreach (oh_read('ads_reco', []) as $p) if (!empty($p['titel'])) $hist[] = $p['titel'];
+    foreach (array_slice(oh_read('ads_changes', []), 0, 15) as $c) if (!empty($c['titel'])) $hist[] = $c['titel'];
+    $hist = array_values(array_filter(array_unique($hist)));
+    if ($hist) $ctx .= "\nBEREITS VORGESCHLAGEN ODER ERLEDIGT (NICHT wiederholen – bring NEUE, frische Ideen aus den aktuellen Daten):\n- " . implode("\n- ", array_slice($hist, 0, 20)) . "\n";
+
     $system = "Du bist der digitale Geschäftsführer von OH Haustechnik (Elektriker Nürnberg, Kleinunternehmer). "
         . "ZIEL: möglichst viele HOCHWERTIGE Anfragen für Altbausanierung, Wohnungsmodernisierung, komplette Elektro-Sanierung (3-4 Zimmer), Zähleranlagen, Unterverteilungen und Smart-Home. "
         . "Qualität vor Menge. Werbekosten senken, profitable Aufträge gewinnen.\n"
@@ -506,7 +513,8 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         . "Gib AUSSCHLIESSLICH einen JSON-Block in genau diesem Format zurück (3-6 Empfehlungen, wichtigste zuerst), nichts davor/danach:\n"
         . "<reco>[{\"titel\":\"Chef, ...\",\"was\":\"<was genau ändern>\",\"warum\":\"<warum, einfach>\",\"anfragen\":\"<z.B. 2-4 pro Woche>\",\"wahrscheinlichkeit\":\"<hoch|mittel|niedrig>\",\"dringlichkeit\":\"<rot|gelb|gruen>\",\"typ\":\"<negativ_keyword|keyword|budget|gebot|standort|zeit|anzeige|info>\",\"wert\":\"<z.B. das auszuschließende Suchwort oder das neue Keyword>\",\"schritte\":\"<1-2 ganz einfache Schritte zum Umsetzen>\"}]</reco>\n"
         . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'), starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt. "
-        . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt.";
+        . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt. "
+        . "WICHTIG: Wiederhole KEINE bereits vorgeschlagenen/erledigten Maßnahmen. Liefere jeden Tag NEUE, frische, andere Empfehlungen aus den aktuellen Zahlen.";
 
     $resp = oh_ki($system, $ctx, 1800);
     if (!$resp) { $err = 'KI-Analyse nicht verfügbar (Anthropic-Schlüssel/Guthaben prüfen).'; return null; }
@@ -534,7 +542,14 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         ]);
     }
     oh_write('ads_reco', $reco);
+    oh_write('ads_meta', ['last_analysis' => time()]);
     return $reco;
+}
+
+/** Zeitpunkt der letzten Marktanalyse. */
+function oh_ads_last_analysis(): int {
+    $m = oh_read('ads_meta', []);
+    return (int)($m['last_analysis'] ?? 0);
 }
 
 /** Dokumentiert eine übernommene Änderung. */
@@ -644,3 +659,118 @@ function oh_ads_apply(array $reco, ?string &$err = null): array {
     return ['executed' => false, 'msg' => 'Notiert, Chef. Diese Änderung bitte kurz selbst umsetzen – die Schritte stehen in der Empfehlung.'];
 }
 
+
+/* ==========================================================================
+ * FIRMENWEITES AUFGABEN-DASHBOARD ("Sollte erledigt" / "Bereits erledigt")
+ * Sammelt offene Aufgaben aus allen Bereichen: Google Ads, Anfragen/Leads,
+ * Angebote, Bewertungen, Markt-Aktualität. (E-Mail/WhatsApp/Website folgen,
+ * sobald angebunden.)
+ * ======================================================================== */
+function oh_company_tasks(): array {
+    $now = time();
+    $offen = []; $erledigt = [];
+
+    // 1) Google-Ads-Empfehlungen
+    foreach (oh_read('ads_reco', []) as $r) {
+        $st = $r['status'] ?? 'offen';
+        if ($st === 'offen') {
+            $offen[] = [
+                'bereich' => 'Google Ads', 'icon' => '📈',
+                'prio'    => $r['dringlichkeit'] ?? 'gelb',
+                'titel'   => $r['titel'] ?? 'Optimierung',
+                'nutzen'  => 'ca. ' . ($r['anfragen'] ?? '?') . ' mehr Anfragen',
+                'warum'   => $r['warum'] ?? '',
+                'typ'     => 'reco', 'ref' => $r['id'] ?? '',
+            ];
+        } elseif ($st === 'uebernommen') {
+            $erledigt[] = ['bereich' => 'Google Ads', 'icon' => '📈', 'titel' => $r['titel'] ?? '', 'ts' => $r['created'] ?? $now];
+        }
+    }
+
+    // 2) Anfragen / Leads / Angebote / Bewertungen
+    foreach (oh_read('leads', []) as $l) {
+        $status = $l['status'] ?? 'neu';
+        $name = $l['name'] ?: ($l['email'] ?: $l['id']);
+        if ($status === 'neu' && ($l['stufe'] ?? '') === 'HOT') {
+            $offen[] = ['bereich' => 'Anfrage', 'icon' => '🔥', 'prio' => 'rot', 'titel' => "Heißer Lead: $name", 'nutzen' => 'möglicher Auftrag', 'warum' => 'Will wahrscheinlich beauftragen – sofort reagieren, sonst geht er zur Konkurrenz.', 'typ' => 'lead', 'ref' => $l['id']];
+        } elseif ($status === 'angebot_raus' && !empty($l['angebot_ts']) && ($now - $l['angebot_ts']) >= 2 * 86400) {
+            $offen[] = ['bereich' => 'Angebot', 'icon' => '📄', 'prio' => 'rot', 'titel' => "Nachfassen: $name", 'nutzen' => 'Abschluss sichern', 'warum' => 'Angebot ist 2+ Tage raus – jetzt nachfassen bringt oft den Auftrag.', 'typ' => 'followup', 'ref' => $l['id']];
+        } elseif (in_array($status, ['gewonnen', 'abgeschlossen']) && empty($l['bewertung_angefragt']) && !empty($l['abschluss_ts']) && ($now - $l['abschluss_ts']) >= 5 * 86400) {
+            $offen[] = ['bereich' => 'Bewertung', 'icon' => '⭐', 'prio' => 'gelb', 'titel' => "Bewertung anfragen: $name", 'nutzen' => 'bessere Google-Sichtbarkeit', 'warum' => 'Zufriedener Kunde – jetzt um Bewertung bitten bringt neue Anfragen.', 'typ' => 'bewertung', 'ref' => $l['id']];
+        } elseif ($status === 'neu' && ($l['stufe'] ?? '') === 'WARM') {
+            $offen[] = ['bereich' => 'Anfrage', 'icon' => '📋', 'prio' => 'gelb', 'titel' => "Anfrage prüfen: $name", 'nutzen' => 'möglicher Auftrag', 'warum' => 'Interesse ist da – heute antworten erhöht die Abschlusschance.', 'typ' => 'lead', 'ref' => $l['id']];
+        } elseif ($status === 'neu' && ($l['stufe'] ?? '') === 'KALT') {
+            $offen[] = ['bereich' => 'Anfrage', 'icon' => '💬', 'prio' => 'gruen', 'titel' => "Info-Anfrage: $name", 'nutzen' => 'Kontakt warmhalten', 'warum' => 'Eher unverbindlich – bei Gelegenheit beantworten.', 'typ' => 'lead', 'ref' => $l['id']];
+        }
+        if (in_array($status, ['gewonnen', 'abgeschlossen'])) {
+            $erledigt[] = ['bereich' => 'Auftrag', 'icon' => '✅', 'titel' => "Auftrag gewonnen: $name", 'ts' => $l['abschluss_ts'] ?: $now];
+        }
+    }
+
+    // 3) Markt-Aktualität (Warnung wenn Analyse veraltet)
+    $warnung = null;
+    if (!empty(oh_config()['ads_refresh_token'])) {
+        $last = oh_ads_last_analysis();
+        $age = $last ? ($now - $last) : PHP_INT_MAX;
+        if ($age > 24 * 3600) {
+            $tage = $last ? max(1, (int)floor($age / 86400)) : 0;
+            $prio = ($tage >= 3 || !$last) ? 'rot' : 'gelb';
+            $hinweis = $last
+                ? "Letzte Marktanalyse vor $tage Tag(en)."
+                : 'Es wurde noch keine Marktanalyse durchgeführt.';
+            $offen[] = ['bereich' => 'Markt', 'icon' => '🔍', 'prio' => $prio, 'titel' => 'Marktanalyse aktualisieren', 'nutzen' => 'aktuelle Chancen & Konkurrenz', 'warum' => "$hinweis Eine neue Analyse berücksichtigt aktuelle Marktveränderungen, Konkurrenz, Suchtrends und neue Chancen – für die bestmögliche Kampagnenleistung.", 'typ' => 'markt', 'ref' => ''];
+            $warnung = ['prio' => $prio, 'tage' => $tage, 'text' => "Die aktuelle Marktanalyse könnte veraltet sein. Es wird empfohlen, eine neue Marktanalyse durchzuführen, um aktuelle Marktveränderungen, Konkurrenzaktivitäten, Suchtrends und neue Chancen zu berücksichtigen."];
+        }
+    }
+
+    $ord = ['rot' => 0, 'gelb' => 1, 'gruen' => 2];
+    usort($offen, function($a, $b) use ($ord) { return ($ord[$a['prio']] ?? 1) - ($ord[$b['prio']] ?? 1); });
+    usort($erledigt, function($a, $b) { return ($b['ts'] ?? 0) - ($a['ts'] ?? 0); });
+
+    return [
+        'offen'    => $offen,
+        'erledigt' => array_slice($erledigt, 0, 15),
+        'warnung'  => $warnung,
+        'anzahl'   => ['offen' => count($offen), 'rot' => count(array_filter($offen, function($t){ return $t['prio'] === 'rot'; }))],
+    ];
+}
+
+/* ==========================================================================
+ * MERT ALDEMIR – 24/7 KI-Geschäftsführer. Einziges Ziel: in 5 Monaten
+ * Richtung 1.000.000 € Umsatz. Erstellt täglich einen Prioritätenplan.
+ * ======================================================================== */
+function oh_mert_briefing(?string &$err = null): ?string {
+    $leads = oh_read('leads', []);
+    $reco  = oh_read('ads_reco', []);
+    $offenReco = array_filter($reco, function($r){ return ($r['status'] ?? '') === 'offen'; });
+    $neu = $hot = $angebot = $gewonnen = 0;
+    foreach ($leads as $l) {
+        $s = $l['status'] ?? 'neu';
+        if ($s === 'neu') $neu++;
+        if (($l['stufe'] ?? '') === 'HOT' && $s === 'neu') $hot++;
+        if ($s === 'angebot_raus') $angebot++;
+        if (in_array($s, ['gewonnen', 'abgeschlossen'])) $gewonnen++;
+    }
+    $e = null; $rep = oh_ads_report($e);
+    $cpl = $rep['summe']['cpl'] ?? null; $kosten = $rep['summe']['kosten'] ?? null; $adAnfr = $rep['summe']['conv'] ?? null;
+
+    $ctx = "STAND OH Haustechnik (Elektriker Nürnberg, aktuell Ein-Mann-Betrieb):\n"
+         . "- Offene Anfragen: $neu (davon $hot heiß)\n"
+         . "- Angebote draußen, warten auf Antwort: $angebot\n"
+         . "- Gewonnene Aufträge gespeichert: $gewonnen\n"
+         . "- Google Ads (7 Tage): Kosten " . ($kosten ?? '?') . "€, Anfragen " . ($adAnfr ?? '?') . ", Kosten pro Anfrage " . ($cpl ?? '?') . "€\n"
+         . "- Offene Ads-Optimierungen: " . count($offenReco) . "\n";
+
+    $system = "Du bist Mert Aldemir, der digitale Geschäftsführer von OH Haustechnik. "
+        . "DEIN EINZIGES ZIEL: das Unternehmen in 5 Monaten in Richtung 1.000.000 € Umsatz skalieren. "
+        . "Hochwertige Aufträge (Altbausanierung, komplette Wohnungssanierung, Zähleranlagen, Smart-Home) bringen am meisten. "
+        . "Denke wie ein knallharter, kluger Geschäftsführer. Erkenne Engpässe (zu wenig Anfragen, zu teure Werbung, Kapazität/Mitarbeiter nötig, Budget erhöhen, Prozesse). "
+        . "Sprich EINFACH mit dem Chef (Du-Form), kein Fachchinesisch, motivierend aber ehrlich.\n"
+        . "Erstelle einen kurzen TAGESPLAN: die 3 wichtigsten Hebel HEUTE, nach Wirkung aufs Wachstum sortiert, je 1 klarer Satz mit Begründung. "
+        . "Wenn ein Engpass da ist (z.B. zu wenig Anfragen, Werbung zu teuer, bald Mitarbeiter nötig), sag es deutlich. Max 9 Zeilen. Beginne mit 'Chef,'.";
+
+    $out = oh_ki($system, $ctx, 700);
+    if ($out) { oh_write('mert_plan', ['text' => $out, 'ts' => time()]); }
+    else { $err = 'KI nicht verfügbar (Anthropic-Schlüssel/Guthaben prüfen).'; }
+    return $out;
+}

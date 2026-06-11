@@ -45,6 +45,10 @@ if (!$analyse) $analyse = "(KI-Analyse nicht verfügbar – Anthropic-Schlüssel
 // Frische Empfehlungen für das Dashboard erzeugen
 $rerr = null;
 $reco = oh_ads_recommendations($rerr);
+
+// Mert Aldemir: neuen Tagesplan erstellen
+$merr = null;
+oh_mert_briefing($merr);
 $recoZeile = '';
 if (is_array($reco)) {
     $offen = array_filter($reco, function($r){ return ($r['status'] ?? '') === 'offen'; });
