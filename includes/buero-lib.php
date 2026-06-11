@@ -1017,3 +1017,105 @@ function oh_log_activity(string $agent, string $text): void {
     if (count($a) > 150) $a = array_slice($a, 0, 150);
     oh_write('aktivitaet', $a);
 }
+
+/* ==========================================================================
+ * DILARA: Website wirklich lesen & analysieren
+ * ======================================================================== */
+function oh_fetch_website(): array {
+    $base = rtrim(oh_config()['site_url'] ?? 'https://oh-haustechnik.de', '/');
+    $ch = curl_init($base . '/');
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_USERAGENT => 'Mozilla/5.0 OHBot']);
+    $html = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if (!$html || $code >= 400) return ['ok' => false];
+    preg_match('/<title>(.*?)<\/title>/is', $html, $t);
+    preg_match_all('/<h1[^>]*>(.*?)<\/h1>/is', $html, $h1);
+    preg_match_all('/<h2[^>]*>(.*?)<\/h2>/is', $html, $h2);
+    preg_match('/<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']/is', $html, $md);
+    $text = trim(preg_replace('/\s+/', ' ', strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $html))));
+    return [
+        'ok' => true,
+        'title' => trim(strip_tags($t[1] ?? '')),
+        'h1' => array_map(function($x){ return trim(strip_tags($x)); }, $h1[1] ?? []),
+        'h2' => array_slice(array_map(function($x){ return trim(strip_tags($x)); }, $h2[1] ?? []), 0, 8),
+        'desc' => trim($md[1] ?? ''),
+        'hasForm' => stripos($html, '<form') !== false,
+        'text' => mb_substr($text, 0, 4000),
+    ];
+}
+
+function oh_website_analyze(?string &$err = null): ?array {
+    $w = oh_fetch_website();
+    if (empty($w['ok'])) { $err = 'Website konnte nicht geladen werden (Adresse unter ⚙️ prüfen).'; return null; }
+    $ctx = "WEBSITE OH Haustechnik:\nTitel: {$w['title']}\nH1: " . implode(' | ', $w['h1'])
+         . "\nH2: " . implode(' | ', $w['h2']) . "\nMeta-Beschreibung: {$w['desc']}\n"
+         . "Kontaktformular vorhanden: " . ($w['hasForm'] ? 'ja' : 'NEIN') . "\n\nSeitentext (Auszug):\n{$w['text']}";
+    $system = "Du bist Dilara, die Marketing-/Website-Agentin von OH Haustechnik (Elektriker Nürnberg). "
+        . "Ziel: mehr hochwertige Anfragen über die Website (Conversion). Analysiere die echte Website und liefere 3-5 KONKRETE Optimierungen "
+        . "(Überschrift/Headline, Vertrauenselemente, Kontaktformular, Klarheit des Angebots, Handlungsaufforderung, Mobil). "
+        . "STELLE KEINE FRAGEN. Fertige Vorschläge mit erwarteter Verbesserung in Prozent. Du-Form. "
+        . "Antworte AUSSCHLIESSLICH mit JSON: <web>[{\"titel\":\"Chef, ...\",\"was\":\"<konkrete Änderung, ggf. mit fertigem neuen Text>\",\"warum\":\"<warum, einfach>\",\"verbesserung\":\"+18% Anfragen\",\"dringlichkeit\":\"rot|gelb|gruen\"}]</web>";
+    $resp = oh_ki($system, $ctx, 1800);
+    if (!$resp) { $err = 'KI nicht verfügbar (Schlüssel/Guthaben).'; return null; }
+    $json = $resp;
+    if (preg_match('/<web>([\s\S]*?)<\/web>/', $resp, $m)) $json = $m[1];
+    $json = preg_replace('/```(json)?/i', '', $json);
+    $lb = strpos($json, '['); $rb = strrpos($json, ']');
+    if ($lb !== false && $rb !== false) $json = substr($json, $lb, $rb - $lb + 1);
+    $list = json_decode(trim($json), true);
+    if (!is_array($list) || !count($list)) { $err = 'Dilara konnte keine klaren Vorschläge bilden – nochmal versuchen.'; return null; }
+    $reco = [];
+    foreach ($list as $i => $r) {
+        $reco[] = array_merge($r, ['id' => 'W' . date('ymd') . $i, 'status' => 'offen', 'created' => time()]);
+    }
+    oh_write('website_reco', $reco);
+    if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website analysiert: ' . count($reco) . ' Optimierungs-Vorschlag/Vorschläge erstellt');
+    return $reco;
+}
+
+/* ==========================================================================
+ * AGENTEN-WISSEN: jeder Agent kennt seine echten Daten (wird damit „schlauer")
+ * ======================================================================== */
+function oh_agent_context(string $agent): string {
+    $leads = oh_read('leads', []);
+    $offeneLeads = array_filter($leads, function($l){ return ($l['status'] ?? '') === 'neu'; });
+    $namen = function($arr, $n = 6) {
+        $out = [];
+        foreach (array_slice(array_values($arr), 0, $n) as $l) {
+            $out[] = ($l['name'] ?: ($l['email'] ?: '?')) . ' [' . ($l['stufe'] ?? '') . '] ' . mb_substr($l['details'] ?? '', 0, 60);
+        }
+        return $out ? "\n- " . implode("\n- ", $out) : ' keine';
+    };
+    if ($agent === 'kaan') {
+        $em = oh_read('emails', []); $list = $em['list'] ?? [];
+        $c = "DEINE AKTUELLEN DATEN (Kommunikation):\nUngelesene E-Mails (" . count($list) . "):";
+        foreach (array_slice($list, 0, 8) as $m) $c .= "\n- " . ($m['subject'] ?: '(kein Betreff)') . " – " . ($m['from'] ?: '');
+        $wa = oh_wa_open();
+        $c .= "\nOffene WhatsApp (" . count($wa) . "):";
+        foreach ($wa as $w) $c .= "\n- " . ($w['name'] ?: $w['from']) . ": " . mb_substr($w['text'] ?? '', 0, 80);
+        $c .= "\nOffene Anfragen:" . $namen($offeneLeads);
+        return $c;
+    } elseif ($agent === 'dilara') {
+        $e = null; $rep = oh_ads_report($e);
+        $wreco = oh_read('website_reco', []);
+        $c = "DEINE AKTUELLEN DATEN (Marketing):\n";
+        if ($rep) $c .= "Google Ads 7 Tage: Kosten {$rep['summe']['kosten']}€, Anfragen {$rep['summe']['conv']}, Kosten/Anfrage " . ($rep['summe']['cpl'] ?? '?') . "€\n";
+        $c .= "Website-Status: " . ((oh_read('web_status', [])['ok'] ?? null) ? 'erreichbar' : 'unbekannt/Problem') . "\n";
+        $c .= "Offene Website-Vorschläge: " . count(array_filter($wreco, function($r){ return ($r['status'] ?? '') === 'offen'; }));
+        return $c;
+    } elseif ($agent === 'emre') {
+        return "DEINE AKTUELLEN DATEN (Anfragen, die ein Angebot brauchen):" . $namen($offeneLeads, 8);
+    } elseif ($agent === 'aylin') {
+        $gew = array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen', 'abgeschlossen']); });
+        return "DEINE AKTUELLEN DATEN (Buchhaltung):\nGewonnene Aufträge (Rechnung/Anzahlung prüfen): " . count($gew);
+    } elseif ($agent === 'yusuf') {
+        $gew = array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen']); });
+        return "DEINE AKTUELLEN DATEN (Projekte):\nLaufende/gewonnene Projekte zum Planen: " . count($gew);
+    } elseif ($agent === 'baran') {
+        return "DEINE AKTUELLEN DATEN (Personal):\nOffene Anfragen gesamt: " . count($offeneLeads) . " – aktuell Ein-Mann-Betrieb. Prüfe, ob die Auslastung Verstärkung nötig macht.";
+    } elseif ($agent === 'mert') {
+        return oh_wissen_summary();
+    }
+    return '';
+}

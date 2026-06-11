@@ -86,6 +86,24 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $aerr = null;
         $r = oh_agenten_runde($aerr);
         echo json_encode($r !== null ? ['ok' => true, 'agenten' => $r] : ['ok' => false, 'error' => $aerr]);
+    } elseif ($a === 'agent_context') {
+        echo json_encode(['ctx' => oh_agent_context($in['agent'] ?? '')]);
+    } elseif ($a === 'website_reco') {
+        echo json_encode(['ok' => true, 'reco' => oh_read('website_reco', [])]);
+    } elseif ($a === 'website_analyze') {
+        $werr = null;
+        $r = oh_website_analyze($werr);
+        echo json_encode($r !== null ? ['ok' => true, 'reco' => $r] : ['ok' => false, 'error' => $werr]);
+    } elseif ($a === 'website_apply' || $a === 'website_later' || $a === 'website_dismiss') {
+        $id = $in['id'] ?? '';
+        $reco = oh_read('website_reco', []);
+        $newStatus = $a === 'website_apply' ? 'uebernommen' : ($a === 'website_dismiss' ? 'abgelehnt' : 'spaeter');
+        $hit = null;
+        foreach ($reco as &$rr) { if (($rr['id'] ?? '') === $id) { $rr['status'] = $newStatus; $hit = $rr; } }
+        unset($rr);
+        oh_write('website_reco', $reco);
+        if ($a === 'website_apply' && $hit) oh_log_activity('dilara', 'Website-Optimierung vorgemerkt: ' . ($hit['titel'] ?? ''));
+        echo json_encode(['ok' => true, 'msg' => $a === 'website_apply' ? 'Notiert, Chef! Dilara hat den Vorschlag vorbereitet. (Automatisches Live-Ändern der Website bauen wir als sicheren Baustein als Nächstes.)' : '']);
     } elseif ($a === 'lead_add') {
         echo json_encode(['lead' => oh_add_lead($in)]);
     } elseif ($a === 'lead_update') {
@@ -648,6 +666,17 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
   <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
 </div>
 
+<!-- DILARA · WEBSITE -->
+<div id="s-web" style="display:none">
+  <div class="card">
+    <h2>&#127760; Dilara · Website-Optimierung</h2>
+    <p class="intro">Dilara liest Deine echte Website und schlägt konkrete Verbesserungen für mehr Anfragen vor.</p>
+    <div id="webBody"><div class="prio-empty">Lade …</div></div>
+    <button class="btn btn-cyan" style="margin-top:12px" id="webBtn" onclick="webAnalyze()">🔍 Website jetzt analysieren</button>
+  </div>
+  <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
+</div>
+
 <!-- SETTINGS -->
 <div id="s-settings" style="display:none">
   <div class="card">
@@ -864,6 +893,7 @@ let history={}; // pro modus: [{role,content}]
 let leadsCache=[];
 let lastTasks=null;
 let WISSEN='';
+let AGENT_CTX='';
 let serverCfg={has_anthropic:false,has_gmail_pass:false,gmail_user:''};
 
 /* ============ SERVER-API ============ */
@@ -1044,7 +1074,7 @@ const AGENTS={
   mert:{name:'Mert Aldemir',rolle:'Geschäftsführer · überwacht & koordiniert alles',emoji:'🧠',chat:'mert',
     areas:[['Tagesplan & Prioritäten',()=>openChat('mert','Was ist heute am wichtigsten für mein Wachstum?')],['Team koordinieren',()=>openChat('mert','Gib jedem Agenten heute eine sinnvolle Aufgabe.')],['Wachstum zur Million',()=>openChat('mert','Wie komme ich schneller Richtung 1 Million Umsatz?')]]},
   dilara:{name:'Dilara',rolle:'Marketing & Wachstum',emoji:'🚀',chat:'dilara',
-    areas:[['Google Ads',()=>openAds()],['Website-Optimierung',()=>openChat('dilara','Analysiere meine Website und gib Optimierungstipps für mehr Anfragen.')],['Bewertungen',()=>openChat('bewertung')],['Social Media',()=>openChat('dilara','Mach mir Social-Media-Content für diese Woche.')],['SEO & Konkurrenz',()=>openChat('dilara','Was macht die Konkurrenz in Nürnberg und wo kann ich besser werden?')]]},
+    areas:[['Google Ads',()=>openAds()],['Website-Optimierung',()=>openWeb()],['Bewertungen',()=>openChat('bewertung')],['Social Media',()=>openChat('dilara','Mach mir Social-Media-Content für diese Woche.')],['SEO & Konkurrenz',()=>openChat('dilara','Was macht die Konkurrenz in Nürnberg und wo kann ich besser werden?')]]},
   kaan:{name:'Kaan',rolle:'Kommunikation · E-Mail, WhatsApp, Anfragen',emoji:'💬',chat:'kaan',
     areas:[['E-Mails',()=>openChat('kaan','Hilf mir, meine offenen E-Mails zu beantworten.')],['WhatsApp',()=>openChat('kaan','Hilf mir bei den WhatsApp-Antworten.')],['Anfragen',()=>openChat('leads')],['Rückrufe',()=>openChat('kaan','Wer wartet auf einen Rückruf?')]]},
   emre:{name:'Emre',rolle:'Kalkulation & Angebote',emoji:'🧮',chat:'emre',
@@ -1167,7 +1197,7 @@ function clock(){
 
 /* ============ NAVIGATION ============ */
 function showSection(s){
-  ['home','settings','chat','ads','agent'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','agent','web'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1236,6 +1266,8 @@ function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
 /* ============ CHAT ÖFFNEN ============ */
 function openChat(m,prefill){
   mode=m; const cfg=MODI[m];
+  AGENT_CTX='';
+  if(AGENTS[m]){api('agent_context',{agent:m}).then(d=>{AGENT_CTX=d.ctx||'';}).catch(()=>{});}
   gl('chatName').textContent=cfg.name;
   gl('chatIco').innerHTML=cfg.ico;
   gl('quickRow').innerHTML=cfg.quick.map(q=>`<button class="qchip" onclick="quick(this)">${esc(q)}</button>`).join('');
@@ -1352,6 +1384,41 @@ function renderAds(r){
   }
   gl('adsBody').innerHTML=html;
 }
+/* ============ DILARA · WEBSITE ============ */
+function openWeb(){showSection('web');loadWeb();}
+async function loadWeb(){
+  gl('webBody').innerHTML='<div class="prio-empty">Lade …</div>';
+  try{const d=await api('website_reco');renderWeb(d.reco||[]);}catch(e){gl('webBody').innerHTML='<div class="prio-empty">Noch keine Analyse. Tipp „Website jetzt analysieren".</div>';}
+}
+async function webAnalyze(){
+  const b=gl('webBtn');b.disabled=true;b.textContent='🔍 Dilara liest Deine Website …';
+  gl('webBody').innerHTML='<div class="prio-empty">Dilara analysiert die Seite …</div>';
+  try{const d=await api('website_analyze');if(!d.ok)gl('webBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}</div>`;else{renderWeb(d.reco||[]);loadDashboard();}}catch(e){gl('webBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+  b.disabled=false;b.textContent='🔍 Website neu analysieren';
+}
+function renderWeb(list){
+  const offen=(list||[]).filter(r=>r.status==='offen').sort((a,b)=>ordPrio(a.dringlichkeit)-ordPrio(b.dringlichkeit));
+  if(!offen.length){gl('webBody').innerHTML='<div class="prio-empty">✅ Keine offenen Website-Vorschläge. Tipp „Website analysieren" für eine frische Prüfung.</div>';return;}
+  gl('webBody').innerHTML=offen.map(r=>{const p=PRIO[r.dringlichkeit]||PRIO.gelb;
+    return `<div class="reco ${p.c}"><div class="reco-prio">${p.t}</div>
+      <div class="reco-tit">${esc(r.titel||'')}</div>
+      <div class="reco-line"><b>Was:</b> ${esc(r.was||'')}</div>
+      <div class="reco-line"><b>Warum:</b> ${esc(r.warum||'')}</div>
+      <div class="reco-meta">📈 erwartet: ${esc(r.verbesserung||'?')}</div>
+      <div class="reco-btns">
+        <button class="btn btn-cyan reco-ok" onclick="webApply('${r.id}',this)">✅ Übernehmen</button>
+        <button class="btn btn-ghost reco-later" onclick="webAct('website_later','${r.id}',this)">Später</button>
+        <button class="btn btn-ghost reco-later" onclick="webAct('website_dismiss','${r.id}',this)" style="color:var(--red)">Ablehnen</button>
+      </div></div>`;}).join('');
+}
+async function webApply(id,btn){
+  btn.disabled=true;btn.textContent='✓';
+  let d={};try{d=await api('website_apply',{id});}catch(e){}
+  const card=btn.closest('.reco');if(card&&d.msg){const m=document.createElement('div');m.className='reco-result';m.textContent='📝 '+d.msg;card.appendChild(m);}
+  setTimeout(()=>{loadWeb();loadDashboard();},2200);
+}
+async function webAct(action,id,btn){btn.disabled=true;await api(action,{id});setTimeout(loadWeb,400);}
+
 function adsAnalyse(){
   if(!lastAdsReport)return;
   const r=lastAdsReport;
@@ -1415,7 +1482,7 @@ async function send(){
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
   try{
     const msgs=history[mode].filter(m=>m.content&&(''+m.content).trim()).map(m=>({role:m.role,content:m.content}));
-    const sys=MODI[mode].system()+(WISSEN?('\n\n'+WISSEN):'');
+    const sys=MODI[mode].system()+(WISSEN?('\n\n'+WISSEN):'')+(AGENT_CTX?('\n\nDEINE AKTUELLEN LIVE-DATEN:\n'+AGENT_CTX):'');
     const payload=JSON.stringify({model:MODEL,max_tokens:2500,system:sys,messages:msgs});
     const fd=new FormData();fd.append('ki_request',payload);fd.append('api_key',getKey());
     const r=await fetch(window.location.pathname,{method:'POST',body:fd});
