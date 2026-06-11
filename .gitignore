@@ -12,3 +12,4 @@ Backup.zip
 daten/config.json
 daten/cron.log
 daten/leads.json
+daten/ki_status.json

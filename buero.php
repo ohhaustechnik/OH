@@ -56,6 +56,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
                 'leads'  => count(oh_read('leads', [])),
                 'hot'    => count(array_filter(oh_read('leads', []), function($l){ return ($l['stufe'] ?? '') === 'HOT' && ($l['status'] ?? '') === 'neu'; })),
             ],
+            'ki_alert' => oh_read('ki_status', ['alert' => false]),
         ]);
     } elseif ($a === 'lead_add') {
         echo json_encode(['lead' => oh_add_lead($in)]);
@@ -126,6 +127,18 @@ if (isset($_POST['ki_request']) && !empty($_SESSION['eingeloggt'])) {
     if ($response === false) {
         echo json_encode(['error' => ['message' => curl_error($ch)]]);
     } else {
+        // Guthaben-/Fehlerstatus für die Dashboard-Warnung merken
+        $rd = json_decode($response, true);
+        if (isset($rd['error'])) {
+            $em = strtolower($rd['error']['message'] ?? '');
+            if (strpos($em, 'credit') !== false || strpos($em, 'balance') !== false
+                || strpos($em, 'insufficient') !== false || strpos($em, 'quota') !== false
+                || strpos($em, 'billing') !== false) {
+                oh_write('ki_status', ['alert' => true, 'msg' => 'KI-Guthaben aufgebraucht – bitte bei console.anthropic.com aufladen', 'ts' => time()]);
+            }
+        } elseif (isset($rd['content'])) {
+            oh_write('ki_status', ['alert' => false]);
+        }
         echo $response;
     }
     curl_close($ch);
@@ -252,6 +265,11 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .task .ta{font-size:11.5px;color:var(--cyan);margin-top:2px;}
 .task .go{color:var(--cyan);font-size:18px;flex-shrink:0;}
 .prio-empty{font-size:12px;color:var(--txt-dim);padding:4px 2px;opacity:.7;}
+/* KI-Guthaben-Warnung */
+.ki-alert{margin:10px 14px 0;padding:13px 15px;border-radius:13px;font-size:13px;line-height:1.5;
+  background:linear-gradient(135deg,rgba(255,93,108,.95),rgba(200,40,55,.95));color:#fff;font-weight:600;
+  box-shadow:0 0 22px rgba(255,93,108,.4);border:1px solid rgba(255,255,255,.2);}
+.ki-alert b{color:#fff;}
 /* Google Ads */
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
@@ -398,6 +416,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <div class="dash-hi" id="dashHi">Kommandozentrale</div>
     <div class="dash-stats" id="dashStats"></div>
   </div>
+  <div id="kiAlert" class="ki-alert" style="display:none"></div>
 
   <div class="section-title">// Offene Aufgaben</div>
   <div id="dashTasks">
@@ -637,8 +656,17 @@ async function loadDashboard(){
     leadsCache=d.leads||[];
     renderStats(d.stats||{});
     renderTasks(d.tasks||{rot:[],gelb:[],gruen:[]});
+    renderKiAlert(d.ki_alert||{alert:false});
   }catch(e){/* offline – Dashboard bleibt leer */}
   try{serverCfg=await api('config_get');}catch(e){}
+}
+function renderKiAlert(a){
+  const el=gl('kiAlert');
+  if(a&&a.alert){
+    el.innerHTML='⚠️ <b>KI-Guthaben leer!</b> '+esc(a.msg||'Bitte aufladen')+' — <a href="https://console.anthropic.com" target="_blank" style="color:#fff;text-decoration:underline">jetzt aufladen</a>';
+    el.style.display='block';
+    speak('Achtung Chef, das KI-Guthaben ist leer. Bitte aufladen.');
+  }else{el.style.display='none';}
 }
 function renderStats(s){
   gl('dashStats').innerHTML=
