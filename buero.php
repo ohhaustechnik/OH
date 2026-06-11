@@ -1175,9 +1175,16 @@ function openChat(m,prefill){
       leads:'Leg los, Chef! 📊 Füg eine Kundenanfrage ein – ich bewerte sie (heiß/warm/kalt) und schreib Dir gleich die passende Antwort.',
       angebot:'Bereit! 📄 Gib mir Stichpunkte oder eine Kalkulation und ich mach ein sauberes Angebot draus.',
       bewertung:'Bereit! ⭐ Kopier mir die Google-Bewertung rein und ich formulier Dir die perfekte Antwort.',
-      berater:'Ich bin da, Chef. 🧠 Erzähl, was ansteht – Aufträge, Preise, Zeit, Wachstum. Ich denk mit.'
-    }[m];
-    pushMsg('ai',greet);
+      berater:'Ich bin da, Chef. 🧠 Erzähl, was ansteht – Aufträge, Preise, Zeit, Wachstum. Ich denk mit.',
+      mert:'Servus Chef! 🧠 Ich bin Mert, Dein Geschäftsführer. Ich hab die ganze Firma im Blick. Frag mich, was heute am wichtigsten ist.',
+      dilara:'Hi Chef! 🚀 Ich bin Dilara, Marketing. Sag mir, was beworben werden soll – ich liefere fertige Vorschläge für mehr Anfragen.',
+      kaan:'Hi Chef! 💬 Ich bin Kaan, Kommunikation. Füg mir eine Nachricht/Anfrage rein, ich formulier Dir die perfekte Antwort.',
+      emre:'Servus Chef! 🧮 Ich bin Emre, Kalkulation & Angebote. Beschreib die Baustelle, ich mach Dir Preis + fertiges Angebot.',
+      aylin:'Hallo Chef! 💰 Ich bin Aylin, Buchhaltung. Ich kümmere mich um Rechnungen, offene Posten und Auswertungen.',
+      yusuf:'Servus Chef! 🏗️ Ich bin Yusuf, Projekte & Baustellen. Sag mir, was ansteht – ich plan Dir Termine und Material.',
+      baran:'Hi Chef! 👥 Ich bin Baran, Personal. Ich sag Dir, wann Du Verstärkung brauchst und schreib Stellenanzeigen.'
+    }[m] || ('Bereit, Chef! Ich bin '+cfg.name+'. Sag mir, was Du brauchst.');
+    if(greet)pushMsg('ai',greet);
   }
   showSection('chat');
   if(prefill){gl('chatIn').value=prefill;autoGrow();}
@@ -1334,7 +1341,7 @@ async function send(){
   const log=gl('chatLog');const tp=document.createElement('div');tp.className='msg ai';tp.innerHTML='<span class="typing"><span></span><span></span><span></span></span>';log.appendChild(tp);
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
   try{
-    const msgs=history[mode].map(m=>({role:m.role,content:m.content}));
+    const msgs=history[mode].filter(m=>m.content&&(''+m.content).trim()).map(m=>({role:m.role,content:m.content}));
     const sys=MODI[mode].system()+(WISSEN?('\n\n'+WISSEN):'');
     const payload=JSON.stringify({model:MODEL,max_tokens:2500,system:sys,messages:msgs});
     const fd=new FormData();fd.append('ki_request',payload);fd.append('api_key',getKey());
