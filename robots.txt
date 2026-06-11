@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /includes/
+Disallow: /assets/
+Allow: /
+
+Sitemap: https://oh-haustechnik.de/sitemap.xml

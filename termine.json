@@ -1,0 +1,117 @@
+[
+    {
+        "datum": "2026-06-08",
+        "uhrzeit": "09:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-08",
+        "uhrzeit": "11:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-08",
+        "uhrzeit": "13:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-08",
+        "uhrzeit": "14:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-08",
+        "uhrzeit": "15:30",
+        "status": "gebucht"
+    },
+    {
+        "datum": "2026-06-09",
+        "uhrzeit": "08:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-09",
+        "uhrzeit": "10:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-09",
+        "uhrzeit": "12:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-09",
+        "uhrzeit": "14:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-10",
+        "uhrzeit": "07:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-10",
+        "uhrzeit": "09:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-10",
+        "uhrzeit": "12:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-10",
+        "uhrzeit": "13:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-10",
+        "uhrzeit": "16:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-11",
+        "uhrzeit": "07:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-11",
+        "uhrzeit": "10:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-11",
+        "uhrzeit": "12:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-11",
+        "uhrzeit": "14:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-11",
+        "uhrzeit": "16:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-12",
+        "uhrzeit": "07:00",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-12",
+        "uhrzeit": "08:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-12",
+        "uhrzeit": "10:30",
+        "status": "frei"
+    },
+    {
+        "datum": "2026-06-12",
+        "uhrzeit": "12:30",
+        "status": "frei"
+    }
+]
