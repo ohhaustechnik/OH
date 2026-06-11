@@ -2,7 +2,7 @@
 session_start();
 $PASSWORT = 'oh';
 
-// API-Key serverseitig - HIER DEINEN KEY EINTRAGEN nach dem Hochladen
+// API-Key serverseitig - als Umgebungsvariable CLAUDE_KEY hinterlegen (oder im Settings-Bereich pro Gerät)
 $API_KEY = getenv('CLAUDE_KEY') ?: '';
 
 // Login-Logik
@@ -19,15 +19,17 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// API-Proxy fuer Kalkulation
-if (isset($_POST['kalk_request']) && !empty($_SESSION['eingeloggt'])) {
+// Generischer API-Proxy fuer alle KI-Module (Kalkulation, Marketing, Leads, Chat)
+if (isset($_POST['ki_request']) && !empty($_SESSION['eingeloggt'])) {
     header('Content-Type: application/json');
-    $userKey = $_POST['api_key'] ?? $API_KEY;
-    $body = $_POST['kalk_request'];
+    $userKey = $_POST['api_key'] ?: $API_KEY;
+    if (!$userKey) { echo json_encode(['error' => ['message' => 'Kein API-Schlüssel hinterlegt.']]); exit; }
+    $body = $_POST['ki_request'];
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
         'x-api-key: ' . $userKey,
@@ -52,133 +54,251 @@ $eingeloggt = !empty($_SESSION['eingeloggt']);
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="OH Büro">
+<meta name="apple-mobile-web-app-title" content="OH System">
+<meta name="theme-color" content="#04070d">
 <meta name="robots" content="noindex, nofollow">
-<title>OH Haustechnik · Büro</title>
+<title>OH · System</title>
 <style>
-:root{--blau:#2e5c8a;--blau-d:#1c3d6b;--blau-dd:#142d50;--gruen:#2e8b57;--grau:#6b7280;--linie:#e5e7eb;--bg:#0f1d33;--karte:#fff;--text:#1a2330;--gold:#c8973f;}
+:root{
+  --bg:#04070d; --bg2:#070d18;
+  --cyan:#39d6ff; --cyan-d:#1693c4; --cyan-soft:rgba(57,214,255,.12);
+  --gold:#e7b14b; --green:#34e09a; --red:#ff5d6c;
+  --txt:#dfeaf6; --txt-dim:#7e93ad; --line:rgba(57,214,255,.18);
+  --glass:rgba(12,22,38,.55); --glass-2:rgba(16,28,48,.72);
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:40px;}
-.wrap{max-width:520px;margin:0 auto;}
-header{background:linear-gradient(160deg,var(--blau-dd),var(--blau));color:#fff;padding:22px 18px 16px;padding-top:calc(22px + env(safe-area-inset-top));position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 14px rgba(0,0,0,.3);}
-.logo{font-size:24px;font-weight:300;letter-spacing:7px;}
-.logo-sub{font-size:9px;letter-spacing:3px;opacity:.85;margin-top:3px;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;
+  background:var(--bg); color:var(--txt); min-height:100vh; overflow-x:hidden;
+  position:relative;
+}
+/* --- HUD HINTERGRUND --- */
+.bg-fx{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.bg-fx .glow{position:absolute;width:120vmax;height:120vmax;left:50%;top:-30%;transform:translateX(-50%);
+  background:radial-gradient(circle at center, rgba(25,120,170,.35), rgba(8,18,34,.0) 60%);}
+.bg-fx .glow2{position:absolute;width:80vmax;height:80vmax;right:-20%;bottom:-30%;
+  background:radial-gradient(circle at center, rgba(40,90,140,.22), rgba(8,18,34,0) 60%);}
+.bg-fx .grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(57,214,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(57,214,255,.05) 1px,transparent 1px);
+  background-size:46px 46px;mask-image:radial-gradient(circle at 50% 30%,#000 30%,transparent 80%);}
+.bg-fx .scan{position:absolute;inset:0;background:linear-gradient(rgba(57,214,255,.04),rgba(57,214,255,0) 3px);
+  background-size:100% 4px;animation:scan 8s linear infinite;opacity:.5;}
+@keyframes scan{to{background-position:0 400px;}}
+.corner{position:fixed;width:26px;height:26px;border:2px solid var(--cyan);opacity:.5;z-index:5;pointer-events:none;}
+.corner.tl{top:14px;left:14px;border-right:0;border-bottom:0;}
+.corner.tr{top:14px;right:14px;border-left:0;border-bottom:0;}
+.corner.bl{bottom:14px;left:14px;border-right:0;border-top:0;}
+.corner.br{bottom:14px;right:14px;border-left:0;border-top:0;}
+
+.wrap{max-width:560px;margin:0 auto;position:relative;z-index:2;padding-bottom:40px;}
+
+/* --- HEADER --- */
+header{padding:18px 18px 12px;padding-top:calc(18px + env(safe-area-inset-top));
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;
+  background:linear-gradient(180deg,rgba(4,7,13,.92),rgba(4,7,13,.4) 70%,transparent);backdrop-filter:blur(6px);}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand .mark{font-size:23px;font-weight:300;letter-spacing:6px;color:#fff;
+  text-shadow:0 0 14px rgba(57,214,255,.55);}
+.brand .sub{font-size:8.5px;letter-spacing:3px;color:var(--cyan);opacity:.8;margin-top:2px;font-family:'SF Mono',ui-monospace,monospace;}
 .hbtns{display:flex;gap:8px;}
-.icobtn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:17px;width:40px;height:40px;border-radius:20px;cursor:pointer;}
-.card{background:var(--karte);border-radius:18px;padding:20px 17px;margin:14px;box-shadow:0 2px 10px rgba(0,0,0,.15);}
-h2{font-size:16px;font-weight:700;color:var(--blau-d);margin-bottom:9px;}
-.intro{font-size:13px;color:var(--grau);margin-bottom:13px;line-height:1.55;}
-label{display:block;font-size:13px;font-weight:600;color:var(--grau);margin:15px 0 6px;}
-textarea,input,select{width:100%;padding:14px;border:1.5px solid var(--linie);border-radius:13px;font-size:16px;font-family:inherit;background:#fff;color:var(--text);outline:none;}
-textarea{min-height:115px;resize:vertical;}
-textarea:focus,input:focus,select:focus{border-color:var(--blau);}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
-.chip{padding:10px 17px;border-radius:21px;border:1.5px solid var(--linie);background:#fff;color:var(--grau);font-size:14px;cursor:pointer;font-family:inherit;}
-.chip.on{background:var(--blau);color:#fff;border-color:var(--blau);font-weight:600;}
-.btn-green{width:100%;padding:17px;background:var(--gruen);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:18px;font-family:inherit;}
-.btn-blue{width:100%;padding:15px;background:var(--blau);color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:inherit;}
-.btn-outline{width:100%;padding:15px;background:#fff;color:var(--blau);border:1.5px solid var(--blau);border-radius:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:inherit;}
-.price-box{background:linear-gradient(135deg,var(--blau),var(--blau-dd));color:#fff;border-radius:18px;padding:24px 18px;margin:14px;text-align:center;}
-.price-lbl{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;}
-.price-num{font-size:40px;font-weight:800;margin:5px 0;}
-.price-sub{font-size:13px;opacity:.92;margin-top:7px;border-top:1px solid rgba(255,255,255,.2);padding-top:9px;line-height:1.5;}
-.kt{width:100%;border-collapse:collapse;font-size:14px;}
-.kt td{padding:9px 0;border-bottom:1px solid var(--linie);vertical-align:top;}
-.kt td:last-child{text-align:right;font-weight:600;white-space:nowrap;padding-left:10px;}
-.kt .summe td{border-bottom:none;border-top:2px solid var(--blau);font-weight:800;color:var(--blau-d);padding-top:12px;font-size:16px;}
-.ml{list-style:none;}
-.ml li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linie);font-size:14px;gap:10px;}
-.ml li:last-child{border-bottom:none;}
-.ml li span:last-child{color:var(--blau);font-weight:600;white-space:nowrap;}
-.at{background:#f9fafb;border:1.5px solid var(--linie);border-radius:13px;padding:15px;font-size:13px;white-space:pre-wrap;line-height:1.65;font-family:monospace;}
-.lern-card{background:#f0faf4;border:1.5px solid #bbf0cc;border-radius:18px;padding:17px;margin:14px;}
-.fehler{background:#fef2f2;color:#b91c1c;padding:13px;border-radius:12px;font-size:13px;margin:8px 0 0;}
-.denkweg{background:#eef3fa;border-radius:13px;padding:13px 15px;font-size:13px;color:#374151;line-height:1.6;margin:0 14px 14px;}
-.warnung{font-size:12px;color:#92400e;background:#fffbeb;padding:11px;border-radius:9px;margin-top:11px;}
-.badge{display:inline-block;font-size:11px;background:var(--gold);color:#fff;padding:4px 11px;border-radius:11px;font-weight:600;margin-bottom:11px;letter-spacing:.5px;}
-.kopiert{color:var(--gruen);font-size:13px;font-weight:600;text-align:center;margin-top:8px;min-height:18px;}
-.spinner{width:50px;height:50px;border:3px solid var(--linie);border-top-color:var(--blau);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px;}
+.icobtn{background:var(--glass);border:1px solid var(--line);color:var(--cyan);font-size:16px;width:40px;height:40px;
+  border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;backdrop-filter:blur(8px);}
+.icobtn:active{transform:scale(.93);}
+.statusbar{display:flex;gap:14px;align-items:center;padding:0 20px 6px;font-family:'SF Mono',ui-monospace,monospace;
+  font-size:10px;color:var(--txt-dim);letter-spacing:1px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite;}
+@keyframes pulse{50%{opacity:.4;}}
+
+/* --- BOOT / WILLKOMMEN OVERLAY --- */
+#boot{position:fixed;inset:0;z-index:100;background:radial-gradient(circle at 50% 35%,#081426,#03060c 70%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;
+  transition:opacity .7s ease;}
+#boot .ring{width:128px;height:128px;border-radius:50%;position:relative;margin-bottom:30px;}
+#boot .ring:before,#boot .ring:after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid transparent;}
+#boot .ring:before{border-top-color:var(--cyan);border-right-color:var(--cyan);animation:spin 1.4s linear infinite;
+  box-shadow:0 0 22px rgba(57,214,255,.5);}
+#boot .ring:after{inset:16px;border-bottom-color:rgba(57,214,255,.5);border-left-color:rgba(57,214,255,.5);animation:spin 2s linear infinite reverse;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.lern-item{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--linie);font-size:13px;gap:10px;}
-.del{color:#b91c1c;cursor:pointer;font-size:11px;white-space:nowrap;}
-/* Login */
-.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-.login-card{background:#fff;border-radius:22px;padding:36px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.4);}
-.login-logo{font-size:38px;font-weight:300;letter-spacing:10px;color:var(--blau-d);}
-.login-sub{font-size:10px;letter-spacing:4px;color:var(--grau);margin:6px 0 28px;}
-.login-card input{text-align:center;font-size:20px;letter-spacing:4px;margin-bottom:16px;}
-/* Büro Kacheln */
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px;}
-.tile{background:#fff;border-radius:16px;padding:18px 14px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);position:relative;}
-.tile-ico{font-size:30px;margin-bottom:8px;}
-.tile-name{font-size:13px;font-weight:700;color:var(--blau-d);}
-.tile-soon{font-size:9px;color:#fff;background:var(--gold);padding:2px 7px;border-radius:8px;position:absolute;top:8px;right:8px;font-weight:600;}
-.tile.aktiv{background:linear-gradient(135deg,var(--blau),var(--blau-dd));}
-.tile.aktiv .tile-name{color:#fff;}
-.section-title{color:#fff;font-size:13px;font-weight:600;letter-spacing:1px;margin:18px 14px 2px;opacity:.7;text-transform:uppercase;}
-.zurueck{color:#9db8dd;background:none;border:none;font-size:14px;padding:14px;cursor:pointer;font-family:inherit;}
+#boot .core{position:absolute;inset:42px;border-radius:50%;background:radial-gradient(circle,#fff,var(--cyan) 70%);
+  box-shadow:0 0 30px var(--cyan);animation:pulse 1.6s infinite;}
+#boot .lines{font-family:'SF Mono',ui-monospace,monospace;font-size:12px;color:var(--cyan);text-align:left;
+  min-height:90px;letter-spacing:1px;line-height:2;text-shadow:0 0 8px rgba(57,214,255,.4);}
+#boot .greet{font-size:26px;font-weight:300;letter-spacing:2px;color:#fff;margin-top:26px;opacity:0;transition:opacity .8s;
+  text-shadow:0 0 20px rgba(57,214,255,.5);}
+#boot .greet b{font-weight:600;color:var(--cyan);}
+#boot .greet small{display:block;font-size:12px;color:var(--txt-dim);letter-spacing:2px;margin-top:10px;font-family:'SF Mono',monospace;}
+
+/* --- KARTEN / GLAS --- */
+.section-title{font-family:'SF Mono',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:2px;
+  color:var(--cyan);margin:20px 18px 4px;opacity:.8;text-transform:uppercase;}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin:12px 14px;
+  backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
+h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.intro{font-size:13px;color:var(--txt-dim);margin-bottom:12px;line-height:1.6;}
+
+/* --- KACHELN --- */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px;}
+.tile{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px 14px;text-align:left;
+  cursor:pointer;position:relative;backdrop-filter:blur(12px);transition:transform .15s, border-color .2s, box-shadow .2s;overflow:hidden;}
+.tile:active{transform:scale(.97);}
+.tile:before{content:'';position:absolute;top:-40%;right:-40%;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,var(--cyan-soft),transparent 70%);}
+.tile.aktiv{border-color:var(--cyan);box-shadow:0 0 22px rgba(57,214,255,.25);}
+.tile-ico{font-size:26px;margin-bottom:10px;filter:drop-shadow(0 0 6px rgba(57,214,255,.4));}
+.tile-name{font-size:14px;font-weight:700;color:#fff;}
+.tile-desc{font-size:10.5px;color:var(--txt-dim);margin-top:3px;line-height:1.4;}
+.tile-tag{font-size:8px;color:var(--bg);background:var(--cyan);padding:3px 7px;border-radius:7px;position:absolute;
+  top:10px;right:10px;font-weight:700;letter-spacing:.5px;}
+.tile-tag.soon{background:var(--gold);}
+
+/* --- CHAT --- */
+.chat-wrap{margin:0 14px;}
+.chat-head{display:flex;align-items:center;gap:11px;margin:8px 0 12px;}
+.chat-head .av{width:42px;height:42px;border-radius:13px;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));
+  display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 18px rgba(57,214,255,.4);}
+.chat-head .nm{font-weight:700;font-size:15px;color:#fff;}
+.chat-head .st{font-size:10px;color:var(--green);font-family:'SF Mono',monospace;letter-spacing:1px;}
+.chat-log{display:flex;flex-direction:column;gap:12px;padding:6px 0 4px;min-height:120px;}
+.msg{max-width:88%;padding:12px 14px;border-radius:16px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word;}
+.msg.ai{align-self:flex-start;background:var(--glass-2);border:1px solid var(--line);border-bottom-left-radius:5px;backdrop-filter:blur(10px);}
+.msg.me{align-self:flex-end;background:linear-gradient(140deg,var(--cyan-d),#0e6a92);color:#fff;border-bottom-right-radius:5px;}
+.msg.ai b{color:var(--cyan);}
+.typing{display:inline-flex;gap:4px;align-items:center;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:blink 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;}.typing span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,60%,100%{opacity:.25;}30%{opacity:1;}}
+
+/* Kalkulations-Ergebnis-Karte im Chat */
+.calc-card{align-self:stretch;max-width:100%;background:linear-gradient(150deg,rgba(14,40,62,.85),rgba(8,20,36,.85));
+  border:1px solid var(--cyan);border-radius:16px;padding:16px;box-shadow:0 0 26px rgba(57,214,255,.2);backdrop-filter:blur(10px);}
+.calc-card .lbl{font-size:10px;letter-spacing:1.5px;color:var(--cyan);text-transform:uppercase;font-family:'SF Mono',monospace;}
+.calc-card .big{font-size:34px;font-weight:800;color:#fff;margin:3px 0 2px;text-shadow:0 0 16px rgba(57,214,255,.4);}
+.calc-card .meta{font-size:12px;color:var(--txt-dim);border-top:1px solid var(--line);padding-top:9px;margin-top:9px;line-height:1.6;}
+.calc-card table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+.calc-card td{padding:7px 0;border-bottom:1px solid var(--line);color:var(--txt);}
+.calc-card td:last-child{text-align:right;font-weight:600;white-space:nowrap;color:#fff;}
+.calc-card .copybtn{margin-top:12px;width:100%;padding:11px;background:var(--cyan-soft);border:1px solid var(--cyan);
+  color:var(--cyan);border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+
+/* Eingabezeile */
+.composer{position:sticky;bottom:0;background:linear-gradient(0deg,var(--bg) 60%,transparent);padding:10px 14px calc(14px + env(safe-area-inset-bottom));margin-top:8px;}
+.composer-in{display:flex;gap:9px;align-items:flex-end;background:var(--glass-2);border:1px solid var(--line);
+  border-radius:18px;padding:7px 7px 7px 15px;backdrop-filter:blur(14px);}
+.composer textarea{flex:1;background:transparent;border:none;color:var(--txt);font-size:15px;font-family:inherit;
+  resize:none;outline:none;max-height:130px;line-height:1.4;padding:8px 0;}
+.send{width:42px;height:42px;border-radius:14px;border:none;background:linear-gradient(140deg,var(--cyan),var(--cyan-d));
+  color:var(--bg);font-size:19px;cursor:pointer;flex-shrink:0;box-shadow:0 0 16px rgba(57,214,255,.45);display:flex;align-items:center;justify-content:center;}
+.send:active{transform:scale(.92);}
+.send:disabled{opacity:.4;box-shadow:none;}
+.quick{display:flex;gap:8px;overflow-x:auto;padding:0 14px 4px;margin-bottom:2px;-webkit-overflow-scrolling:touch;}
+.quick::-webkit-scrollbar{display:none;}
+.qchip{flex-shrink:0;padding:9px 14px;border-radius:14px;border:1px solid var(--line);background:var(--glass);
+  color:var(--cyan);font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap;backdrop-filter:blur(8px);}
+.qchip:active{transform:scale(.95);}
+
+/* --- BUTTONS / FORM --- */
+.btn{width:100%;padding:14px;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-cyan{background:linear-gradient(140deg,var(--cyan),var(--cyan-d));color:var(--bg);box-shadow:0 0 18px rgba(57,214,255,.4);}
+.btn-ghost{background:var(--glass);color:var(--cyan);border:1px solid var(--line);}
+input[type=password],input[type=text]{width:100%;padding:14px;border:1px solid var(--line);border-radius:13px;font-size:16px;
+  font-family:inherit;background:rgba(8,16,30,.7);color:var(--txt);outline:none;}
+input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-soft);}
+label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:14px 0 6px;letter-spacing:.5px;}
+.zurueck{color:var(--txt-dim);background:none;border:none;font-size:13px;padding:16px;cursor:pointer;font-family:inherit;width:100%;letter-spacing:.5px;}
+.msg-ok{color:var(--green);font-size:13px;font-weight:600;text-align:center;margin-top:10px;min-height:18px;}
+.fehler{background:rgba(255,93,108,.12);color:#ff97a1;border:1px solid rgba(255,93,108,.4);padding:12px;border-radius:11px;font-size:13px;margin:10px 0 0;}
+.lern-item{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;gap:10px;color:var(--txt);}
+.del{color:var(--red);cursor:pointer;font-size:11px;white-space:nowrap;}
+
+/* --- LOGIN --- */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;position:relative;z-index:2;}
+.login-card{background:var(--glass-2);border:1px solid var(--line);border-radius:24px;padding:40px 30px;max-width:380px;width:100%;
+  text-align:center;backdrop-filter:blur(18px);box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05);}
+.login-logo{font-size:40px;font-weight:300;letter-spacing:12px;color:#fff;text-shadow:0 0 22px rgba(57,214,255,.6);}
+.login-sub{font-size:9px;letter-spacing:5px;color:var(--cyan);margin:8px 0 30px;font-family:'SF Mono',monospace;}
+.login-card input{text-align:center;font-size:20px;letter-spacing:6px;margin-bottom:16px;}
 </style>
 </head>
 <body>
+<div class="bg-fx"><div class="glow"></div><div class="glow2"></div><div class="grid"></div><div class="scan"></div></div>
+<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
 
 <?php if (!$eingeloggt): ?>
 <div class="login-wrap">
   <div class="login-card">
     <div class="login-logo">OH</div>
-    <div class="login-sub">HAUSTECHNIK · BÜRO</div>
+    <div class="login-sub">SYSTEM · ZUGANG</div>
     <form method="POST">
-      <input type="password" name="login_pw" placeholder="Passwort" autofocus inputmode="text">
-      <button type="submit" class="btn-green" style="margin-top:0">Anmelden</button>
+      <input type="password" name="login_pw" placeholder="• • • •" autofocus inputmode="text">
+      <button type="submit" class="btn btn-cyan">Authentifizieren</button>
     </form>
     <?php if (!empty($login_fehler)): ?>
-      <div class="fehler" style="margin-top:14px">Falsches Passwort.</div>
+      <div class="fehler" style="margin-top:16px">Zugang verweigert.</div>
     <?php endif; ?>
   </div>
 </div>
 
 <?php else: ?>
-<div class="wrap">
+
+<!-- BOOT / WILLKOMMEN -->
+<div id="boot">
+  <div class="ring"><div class="core"></div></div>
+  <div class="lines" id="bootLines"></div>
+  <div class="greet" id="greet"></div>
+</div>
+
+<div class="wrap" style="visibility:hidden" id="app">
 <header>
-  <div><div class="logo">OH</div><div class="logo-sub">HAUSTECHNIK · BÜRO</div></div>
+  <div class="brand"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
   <div class="hbtns">
     <button class="icobtn" onclick="toggleSettings()" title="Einstellungen">&#9881;</button>
-    <a href="?logout=1" class="icobtn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" title="Abmelden">&#10162;</a>
+    <a href="?logout=1" class="icobtn" title="Abmelden">&#10162;</a>
   </div>
 </header>
+<div class="statusbar">
+  <span><span class="dot"></span>KI AKTIV</span>
+  <span id="clock">--:--:--</span>
+  <span style="margin-left:auto" id="datum"></span>
+</div>
 
-<!-- ÜBERSICHT / BÜRO -->
+<!-- HOME -->
 <div id="s-home">
-  <div class="section-title">Werkzeuge</div>
+  <div class="section-title">// Kommandozentrale</div>
   <div class="tiles">
-    <div class="tile aktiv" onclick="zeige('form')">
+    <div class="tile aktiv" onclick="openChat('kalk')">
       <div class="tile-ico">&#129518;</div>
       <div class="tile-name">Kalkulator</div>
+      <div class="tile-desc">Baustelle beschreiben &rarr; KI rechnet live</div>
     </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: Automatische Lead-Auswertung – kalt/warm Bewertung deiner Anfragen.')">
-      <div class="tile-soon">BALD</div>
+    <div class="tile" onclick="openChat('marketing')">
+      <div class="tile-tag">NEU</div>
+      <div class="tile-ico">&#128640;</div>
+      <div class="tile-name">Marketing-KI</div>
+      <div class="tile-desc">Posts, Anzeigen &amp; Kampagnen</div>
+    </div>
+    <div class="tile" onclick="openChat('leads')">
+      <div class="tile-tag">NEU</div>
       <div class="tile-ico">&#128202;</div>
       <div class="tile-name">Leads</div>
+      <div class="tile-desc">Anfragen bewerten &amp; beantworten</div>
     </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: KI schreibt Angebote automatisch raus.')">
-      <div class="tile-soon">BALD</div>
+    <div class="tile" onclick="openChat('angebot')">
+      <div class="tile-tag">NEU</div>
       <div class="tile-ico">&#128196;</div>
       <div class="tile-name">Angebote</div>
+      <div class="tile-desc">Angebotstexte automatisch</div>
     </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: KI beantwortet E-Mails automatisch.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#9993;</div>
-      <div class="tile-name">E-Mails</div>
-    </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: KI beantwortet Google-Bewertungen automatisch.')">
-      <div class="tile-soon">BALD</div>
+    <div class="tile" onclick="openChat('bewertung')">
+      <div class="tile-tag">NEU</div>
       <div class="tile-ico">&#11088;</div>
       <div class="tile-name">Bewertungen</div>
+      <div class="tile-desc">Google-Antworten formulieren</div>
     </div>
-    <div class="tile" onclick="alert('Kommt in Phase 2: Automatische Bewertungs-Anfrage nach 5 Tagen + Kundengewinnung.')">
-      <div class="tile-soon">BALD</div>
-      <div class="tile-ico">&#128226;</div>
-      <div class="tile-name">Marketing</div>
+    <div class="tile" onclick="openChat('berater')">
+      <div class="tile-ico">&#129504;</div>
+      <div class="tile-name">Berater</div>
+      <div class="tile-desc">Dein KI-Sparringspartner</div>
     </div>
   </div>
 </div>
@@ -187,206 +307,287 @@ textarea:focus,input:focus,select:focus{border-color:var(--blau);}
 <div id="s-settings" style="display:none">
   <div class="card">
     <h2>&#9881; API-Schlüssel</h2>
-    <p class="intro">Dein Anthropic-Schlüssel von <b>console.anthropic.com</b>. Wird nur in diesem Gerät gespeichert.</p>
+    <p class="intro">Dein Anthropic-Schlüssel von <b>console.anthropic.com</b>. Wird nur auf diesem Gerät gespeichert.</p>
     <label>API-Schlüssel</label>
     <input type="password" id="apiIn" placeholder="sk-ant-...">
-    <button class="btn-green" style="margin-top:12px" onclick="saveKey()">Speichern</button>
-    <div id="keyMsg" class="kopiert"></div>
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveKey()">Speichern</button>
+    <div id="keyMsg" class="msg-ok"></div>
   </div>
   <div class="card">
-    <h2>&#128218; Gelernte Korrekturen</h2>
-    <div id="lernListe"><p style="font-size:13px;color:#9ca3af">Noch keine.</p></div>
+    <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
+    <p class="intro">Das System lernt aus Deinen Korrekturen für genauere Preise.</p>
+    <div id="lernListe"></div>
   </div>
-  <button class="zurueck" onclick="zeige('home')" style="width:100%">&larr; Zurück zur Übersicht</button>
+  <button class="zurueck" onclick="goHome()">&larr; Zurück zur Kommandozentrale</button>
 </div>
 
-<!-- KALKULATOR FORM -->
-<div id="s-form" style="display:none">
-  <div id="noKey" class="card" style="background:#fffbeb;border:1.5px solid #fcd34d;display:none">
-    <span style="font-size:13px;color:#92400e">&#9881; Bitte zuerst oben den API-Schlüssel eintragen (Zahnrad-Symbol).</span>
-  </div>
-  <div class="card">
-    <div class="badge">DEIN DIGITALER KALKULATOR</div>
-    <h2>Baustelle beschreiben</h2>
-    <p class="intro">Beschreib die Baustelle in eigenen Worten. Die KI rechnet Manntage, Material und Preis nach deiner Logik.</p>
-    <textarea id="beschr" placeholder="Beispiel: Wohnungssanierung 3 Zimmer, Unterputz, Altbau, neuer Hager Verteiler, Küche mit Herd und Spülmaschine, Demontage nötig, 15 km Fahrt"></textarea>
-    <label>Installationsart</label>
-    <div class="chips">
-      <button class="chip" onclick="setArt('Aufputz',this)">Aufputz</button>
-      <button class="chip on" onclick="setArt('Unterputz',this)">Unterputz</button>
-      <button class="chip" onclick="setArt('Gemischt',this)">Gemischt</button>
+<!-- CHAT (universal) -->
+<div id="s-chat" style="display:none">
+  <div class="chat-wrap">
+    <div class="chat-head">
+      <div class="av" id="chatIco">&#129518;</div>
+      <div><div class="nm" id="chatName">Kalkulator</div><div class="st">&#9679; ONLINE · bereit</div></div>
     </div>
-    <div class="row" style="margin-top:15px">
-      <div><label style="margin-top:0">m² (optional)</label><input type="number" id="qm" placeholder="z.B. 85" inputmode="numeric"></div>
-      <div><label style="margin-top:0">Fahrt km (opt.)</label><input type="number" id="km" placeholder="z.B. 15" inputmode="numeric"></div>
+    <div class="chat-log" id="chatLog"></div>
+  </div>
+  <div class="quick" id="quickRow"></div>
+  <div class="composer">
+    <div class="composer-in">
+      <textarea id="chatIn" rows="1" placeholder="Schreib einfach drauf los…"></textarea>
+      <button class="send" id="sendBtn" onclick="send()">&#10148;</button>
     </div>
-    <label>Wer stellt das Material?</label>
-    <select id="matQ">
-      <option value="ich">Ich (im Preis enthalten)</option>
-      <option value="bauseits">Bauseits (Kunde stellt Material)</option>
-    </select>
-    <div id="fehler" class="fehler" style="display:none"></div>
-    <button class="btn-green" onclick="kalk()">&#9889; Baustelle kalkulieren</button>
+    <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
   </div>
-  <button class="zurueck" onclick="zeige('home')" style="width:100%">&larr; Zurück zur Übersicht</button>
 </div>
 
-<!-- LOADING -->
-<div id="s-load" style="display:none;text-align:center;padding:80px 20px">
-  <div class="spinner"></div>
-  <p style="color:#cdd9ea;font-size:15px">Kalkuliert deine Baustelle …</p>
-  <p style="color:#7d93b3;font-size:13px;margin-top:8px">Arbeitszeit · Material · Preis</p>
-</div>
-
-<!-- RESULT -->
-<div id="s-result" style="display:none">
-  <div class="price-box">
-    <div class="price-lbl">Zielpreis (netto, 0% USt)</div>
-    <div class="price-num" id="r-ziel">–</div>
-    <div class="price-sub" id="r-sub"></div>
-  </div>
-  <div class="denkweg" id="r-denkweg"></div>
-  <div class="card">
-    <h2>&#129518; Kalkulation</h2>
-    <table class="kt"><tbody id="r-kt"></tbody></table>
-    <p style="font-size:12px;color:#9ca3af;margin-top:8px">68€×2=136€/Std · 8,5 Std/Tag · Material +10%</p>
-  </div>
-  <div class="card" id="r-matcard">
-    <h2>&#128230; Materialliste</h2>
-    <ul class="ml" id="r-mat"></ul>
-    <div class="warnung">&#9888;&#65039; Mengen nach Faustregeln geschätzt. Vor Bestellung prüfen.</div>
-  </div>
-  <div class="card">
-    <h2>&#128196; Angebotstext</h2>
-    <div class="at" id="r-at"></div>
-    <button class="btn-blue" onclick="kopier()">&#128203; Text kopieren</button>
-    <div class="kopiert" id="kopMsg"></div>
-  </div>
-  <div class="lern-card">
-    <h2 style="color:#166534">&#127919; Stimmt die Kalkulation?</h2>
-    <p class="intro">Korrigiere hier – die App lernt für das nächste Mal.</p>
-    <textarea id="korr" placeholder="z.B. 'Zu wenig Tage, Altbau braucht 5 Tage Rohmontage'" style="min-height:80px"></textarea>
-    <button class="btn-green" style="margin-top:10px" onclick="lernNeu()">Speichern & neu rechnen</button>
-    <div class="kopiert" id="lernMsg"></div>
-  </div>
-  <button class="btn-outline" style="margin:0 14px;width:calc(100% - 28px)" onclick="neuBau()">↺ Neue Baustelle</button>
-  <button class="zurueck" onclick="zeige('home')" style="width:100%">&larr; Zurück zur Übersicht</button>
-</div>
-</div>
+</div><!-- /app -->
 
 <script>
-const W=`KALKULATIONS-LOGIK OH Haustechnik (Kleinunternehmer, 0% USt):
-ARBEITSZEIT in MANNTAGEN:
-- Stundensatz Sanierung: 68€×2=136€/Std, Arbeitstag=8,5h
-- Wohnungssanierung 3Z UP Altbau: Rohmontage 4 Tage(2 Pers)+Fertigmontage 1,5T=8-11 Manntage
-- Rohmontage: Demontage(mehrere Std!),anzeichnen,fräsen,schlitzen,stemmen,Leitungen,Verteiler
-- Fertigmontage: Schalter/Steckdosen/Lampen,Verteiler anklemmen,messen,prüfen+Puffer
-- Aufputz(Zuleitung liegt): ca.2,5Std/Raum(4Steckdosen+Schalter+Lampe)
-- Unterputz: ca.4Std/Raum
-- Endpreis 3-Zimmer-Sanierung: 8.000-11.000€ inkl.Material
-MATERIAL:
-- NYM-J 3×1,5: ca.1,5m/m²+10%Verschnitt
-- Separate Verbraucher+10m Reserve: Herd→NYM5×2,5|Spülm/Waschm/Trockner→NYM3×2,5|DLE→NYM4×6
-- Dosen: 1 Steckdose=1Dose,Doppel=2Dosen
-- Verteiler: Hager VU48NC,2×FI40A,12×LSB16,1×LSB163pol,ÜSS Typ2
-- Material 3-Zimmer-Sanierung: ca.1.000-1.500€
-- Anfahrt>10km: 100-200€ Pauschale
-- Material immer +10% Aufschlag (Marge)
-VERHANDLUNG: bei wenig Auftragslage 1.000-1.500€ runter möglich (Zielpreis + Minimalpreis)`;
-
-let art='Unterputz',letzterT='',letzterF={};
+/* ============ KONFIG ============ */
+const MODEL='claude-sonnet-4-5';
 const gl=id=>document.getElementById(id);
-const eur=n=>(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 const getKey=()=>localStorage.getItem('oh_key')||'';
 const getLern=()=>{try{return JSON.parse(localStorage.getItem('oh_lern')||'[]');}catch(e){return[];}};
 const setLernS=a=>localStorage.setItem('oh_lern',JSON.stringify(a));
+const eur=n=>(+n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 
-function zeige(s){
-  ['home','settings','form','load','result'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+/* ============ KALKULATIONS-WISSEN ============ */
+const KALK_WISSEN=`KALKULATIONS-LOGIK OH Haustechnik (Kleinunternehmer, 0% USt):
+ARBEITSZEIT in MANNTAGEN:
+- Stundensatz Sanierung: 68€×2=136€/Std, Arbeitstag=8,5h
+- Wohnungssanierung 3Z UP Altbau: Rohmontage 4 Tage(2 Pers)+Fertigmontage 1,5T = 8-11 Manntage
+- Rohmontage: Demontage(mehrere Std!), anzeichnen, fräsen, schlitzen, stemmen, Leitungen, Verteiler
+- Fertigmontage: Schalter/Steckdosen/Lampen, Verteiler anklemmen, messen, prüfen + Puffer
+- Aufputz (Zuleitung liegt): ca. 2,5 Std/Raum (4 Steckdosen+Schalter+Lampe)
+- Unterputz: ca. 4 Std/Raum
+- Endpreis 3-Zimmer-Sanierung: 8.000-11.000€ inkl. Material
+MATERIAL:
+- NYM-J 3×1,5: ca. 1,5m/m² +10% Verschnitt
+- Separate Verbraucher +10m Reserve: Herd→NYM5×2,5 | Spülm/Waschm/Trockner→NYM3×2,5 | DLE→NYM4×6
+- Dosen: 1 Steckdose=1 Dose, Doppel=2 Dosen
+- Verteiler: Hager VU48NC, 2×FI 40A, 12×LSB16, 1×LSB16 3pol, ÜSS Typ2
+- Material 3-Zimmer-Sanierung: ca. 1.000-1.500€
+- Anfahrt >10km: 100-200€ Pauschale
+- Material immer +10% Aufschlag (Marge)
+VERHANDLUNG: bei wenig Auftragslage 1.000-1.500€ runter möglich (Zielpreis + Minimalpreis)`;
+
+const FIRMA=`FIRMA: OH Haustechnik, Inhaber arbeitet als Elektriker/Haustechniker im Raum Nürnberg.
+Leistungen: Elektroinstallation, Netzwerkverkabelung, Schutz-/Sicherheitstechnik. Kleinunternehmer (0% USt).
+Stil: bodenständig, ehrlich, handwerklich, regional. Kunde steht im Mittelpunkt, kein Marketing-Blabla.`;
+
+/* ============ MODI ============ */
+const MODI={
+  kalk:{ name:'Kalkulator', ico:'\u{1F9EE}',
+    quick:['Wohnung 3 Zimmer Altbau, Unterputz sanieren','Neubau EFH komplett','Nur Verteiler tauschen','Smart-Home nachrüsten'],
+    system(){
+      const lern=getLern(); const lT=lern.length?`\n\nGELERNTE KORREKTUREN (unbedingt beachten):\n- ${lern.join('\n- ')}`:'';
+      return `Du bist der digitale Kalkulator von OH Haustechnik. Du sprichst locker, direkt und auf Augenhöhe mit dem Chef (Du-Form, kurz).
+${FIRMA}
+${KALK_WISSEN}${lT}
+
+ARBEITSWEISE:
+- Der Chef beschreibt eine Baustelle in eigenen Worten – oft unvollständig. Stell höchstens 1-2 kurze Rückfragen, wenn etwas Wichtiges fehlt (z.B. Aufputz/Unterputz, Material durch uns oder bauseits). Wenn genug Info da ist, RECHNE einfach.
+- Wenn Du eine vollständige Kalkulation hast, gib eine kurze Erklärung in normalem Text UND danach EINEN Block in genau diesem Format (nichts dahinter):
+<calc>{"zielpreis":<n>,"minimalpreis":<n>,"manntage":<n>,"arbeitsstunden":<n>,"arbeitskosten":<n>,"fahrtkosten":<n>,"material_mit_aufschlag":<n>,"denkweg":"<1 Satz>","material_liste":[{"pos":"x","menge":"x"}],"angebotstext":"<fertiger Angebotstext>"}</calc>
+- Zahlen sind reine Zahlen ohne €. Bei bauseits material_liste leer lassen.
+- Sei der proaktive Sparringspartner: weise auf Risiken hin (Altbau, Demontage), schlag Verhandlungsspielraum vor.`;
+    }},
+  marketing:{ name:'Marketing-KI', ico:'\u{1F680}',
+    quick:['Instagram-Post für ein fertiges Bad-Projekt','Google-Anzeige Elektriker Nürnberg','5 Reel-Ideen für diese Woche','Aktion für Winter-Flaute'],
+    system(){return `Du bist die Marketing-KI von OH Haustechnik – ein cleverer, regionaler Online-Marketing-Experte für Handwerker.
+${FIRMA}
+AUFGABE: Hilf dem Chef, mehr Anfragen zu bekommen. Du schreibst sofort einsatzbereite Inhalte: Instagram-/Facebook-Posts (mit Hashtags & Emojis, regional Nürnberg), Google-Anzeigentexte, Reel-/Story-Ideen, Flyer-Texte, Aktionen.
+STIL: handwerklich-bodenständig, kein leeres Buzzword-Marketing, vertrauenswürdig, lokal. Immer konkret und fertig zum Rauskopieren. Frag kurz nach, wenn ein Detail (Projektfoto, Leistung, Zielgruppe) fehlt, sonst leg direkt los. Du-Form mit dem Chef.`;}},
+  leads:{ name:'Leads', ico:'\u{1F4CA}',
+    quick:['Anfrage bewerten (Text einfügen)','Erstantwort schreiben','Nachfass-Nachricht nach 3 Tagen','Lead ist abgesprungen – zurückholen'],
+    system(){return `Du bist der Lead-Manager von OH Haustechnik. Du hilfst dem Chef, eingehende Kundenanfragen zu bearbeiten.
+${FIRMA}
+AUFGABE: (1) Anfragen bewerten – heiß/warm/kalt + kurze Begründung + Priorität. (2) Professionelle, freundliche Antworten formulieren (WhatsApp/E-Mail, Du oder Sie je nach Anfrage). (3) Nachfass-Nachrichten texten, die nicht aufdringlich wirken. (4) Vorschlagen, welche Infos noch fehlen, um ein Angebot zu machen.
+STIL: schnell, klar, verkaufsstark aber ehrlich. Gib Antworten fertig zum Rauskopieren. Du-Form mit dem Chef.`;}},
+  angebot:{ name:'Angebote', ico:'\u{1F4C4}',
+    quick:['Angebot aus Stichpunkten','Angebot freundlicher machen','Nachtrag formulieren','Angebot kürzen'],
+    system(){return `Du bist der Angebots-Assistent von OH Haustechnik. Aus Stichpunkten oder einer Kalkulation machst Du saubere, professionelle Angebotstexte.
+${FIRMA}
+Wichtig: Kleinunternehmer = 0% USt, kein USt-Ausweis. Struktur: Anrede, Leistungsbeschreibung, Hinweis zu Material (im Preis enthalten oder bauseits), Preis netto, Gültigkeit, freundlicher Abschluss. Liefere den Text fertig zum Rauskopieren. Du-Form mit dem Chef bei Rückfragen.`;}},
+  bewertung:{ name:'Bewertungen', ico:'⭐',
+    quick:['Antwort auf 5-Sterne-Bewertung','Antwort auf schlechte Bewertung','Kunden um Bewertung bitten','Mehrere Antworten generieren'],
+    system(){return `Du bist der Reputations-Assistent von OH Haustechnik. Du schreibst Antworten auf Google-Bewertungen.
+${FIRMA}
+Bei guten Bewertungen: herzlich, persönlich, danke. Bei schlechten: professionell, deeskalierend, lösungsorientiert, niemals streiten. Immer regional & menschlich. Liefere Antworten fertig zum Rauskopieren. Du-Form mit dem Chef bei Rückfragen.`;}},
+  berater:{ name:'Berater', ico:'\u{1F9E0}',
+    quick:['Wie gewinne ich mehr Aufträge?','Soll ich Preise erhöhen?','Tagesplanung für heute','Idee gegen Sommerloch'],
+    system(){return `Du bist der persönliche Business-Berater & Sparringspartner des Chefs von OH Haustechnik – wie ein cleverer Mitgründer, der Handwerk, Zahlen und Marketing versteht.
+${FIRMA}
+Du denkst mit, gibst ehrliche, umsetzbare Tipps zu Aufträgen, Preisen, Zeit, Marketing, Wachstum. Kurz, konkret, motivierend. Du-Form, auf Augenhöhe.`;}}
+};
+
+/* ============ STATE ============ */
+let mode='kalk';
+let history={}; // pro modus: [{role,content}]
+
+/* ============ BOOT / WILLKOMMEN ============ */
+function boot(){
+  const titel=['großer Meister','große Herrschaft','Chef','Kommandant','Boss'];
+  const t=titel[Math.floor(Math.random()*titel.length)];
+  const seq=['> Initialisiere OH-System…','> KI-Kerne geladen ✓','> Module: Kalkulator · Marketing · Leads ✓','> Verbindung gesichert ✓','> Alle Systeme bereit ✓'];
+  const lines=gl('bootLines'); let i=0;
+  const iv=setInterval(()=>{
+    if(i<seq.length){lines.innerHTML+=seq[i]+'<br>';i++;}
+    else{
+      clearInterval(iv);
+      const g=gl('greet');
+      g.innerHTML=`Willkommen, <b>${t}</b>.<small>OH HAUSTECHNIK · SYSTEM ZU DEINEN DIENSTEN</small>`;
+      g.style.opacity='1';
+      setTimeout(()=>{
+        gl('boot').style.opacity='0';
+        gl('app').style.visibility='visible';
+        setTimeout(()=>gl('boot').remove(),700);
+      },1700);
+    }
+  },330);
+}
+
+/* ============ UHR ============ */
+function clock(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  gl('clock').textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  gl('datum').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'});
+}
+
+/* ============ NAVIGATION ============ */
+function showSection(s){
+  ['home','settings','chat'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display='block';
-  if(s==='form'){gl('noKey').style.display=getKey()?'none':'block';}
   window.scrollTo({top:0,behavior:'smooth'});
 }
+function goHome(){showSection('home');}
 function toggleSettings(){
-  if(gl('s-settings').style.display==='block'){zeige('home');}
-  else{gl('apiIn').value=getKey();renderLL();zeige('settings');}
+  if(gl('s-settings').style.display==='block'){goHome();}
+  else{gl('apiIn').value=getKey();renderLL();showSection('settings');}
 }
 function saveKey(){
   localStorage.setItem('oh_key',gl('apiIn').value.trim());
-  gl('keyMsg').textContent='✓ Gespeichert!';
+  gl('keyMsg').textContent='✓ Gespeichert';
   setTimeout(()=>gl('keyMsg').textContent='',2000);
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
-  el.innerHTML=l.length?l.map((t,i)=>`<div class="lern-item"><span>• ${t}</span><span class="del" onclick="delL(${i})">löschen</span></div>`).join(''):'<p style="font-size:13px;color:#9ca3af">Noch keine.</p>';
+  el.innerHTML=l.length?l.map((t,i)=>`<div class="lern-item"><span>• ${esc(t)}</span><span class="del" onclick="delL(${i})">löschen</span></div>`).join(''):'<p style="font-size:13px;color:var(--txt-dim)">Noch keine.</p>';
 }
 function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
-function setArt(a,b){art=a;document.querySelectorAll('#s-form .chip').forEach(c=>c.classList.remove('on'));b.classList.add('on');}
 
-async function kalk(extra=''){
-  const key=getKey(),beschr=gl('beschr').value.trim(),fe=gl('fehler');
-  fe.style.display='none';
-  if(!key){fe.textContent='Kein API-Schlüssel. Tippe oben auf das Zahnrad.';fe.style.display='block';return;}
-  if(beschr.length<8){fe.textContent='Bitte Baustelle beschreiben.';fe.style.display='block';return;}
-  const qm=gl('qm').value||'unbekannt',km=gl('km').value||'0',mat=gl('matQ').value;
-  letzterF={beschr,art,qm,km,mat};
-  const lern=getLern();
-  const lT=lern.length?'\nGELERNTE KORREKTUREN:\n- '+lern.join('\n- '):'';
-  const eT=extra?`\nZUSATZ: ${extra}`:'';
-  const prompt=`${W}${lT}${eT}\n\nBAUSTELLE: "${beschr}"\nArt:${art} m²:${qm} Fahrt:${km}km Material:${mat==='ich'?'durch OH':'bauseits'}\n\nKalkuliere vollständig in Manntagen mit Puffer. Antworte NUR JSON:\n{"manntage":<n>,"arbeitsstunden":<n>,"arbeitskosten":<n>,"fahrtkosten":<n>,"material_netto":<n>,"material_mit_aufschlag":<n>,"zielpreis":<n>,"minimalpreis":<n>,"denkweg":"<2 Sätze>","material_liste":[{"pos":"x","menge":"x"}],"leistungen":["x"]}`;
-  zeige('load');
+/* ============ CHAT ÖFFNEN ============ */
+function openChat(m){
+  mode=m; const cfg=MODI[m];
+  gl('chatName').textContent=cfg.name;
+  gl('chatIco').innerHTML=cfg.ico;
+  gl('quickRow').innerHTML=cfg.quick.map(q=>`<button class="qchip" onclick="quick(this)">${esc(q)}</button>`).join('');
+  if(!history[m]){history[m]=[];}
+  renderLog();
+  if(history[m].length===0){
+    const greet={
+      kalk:'Servus Chef! 🧮 Beschreib mir einfach die Baustelle – egal wie, in eigenen Worten. Ich rechne Dir Manntage, Material und Preis aus. Frag mich auch gern, wie wir die Kalkulation noch besser hinbekommen.',
+      marketing:'Bereit, Chef! 🚀 Sag mir, was Du bewerben willst – ein fertiges Projekt, eine Leistung oder eine Aktion – und ich schreib Dir Posts, Anzeigen und Ideen, die in Nürnberg ziehen.',
+      leads:'Leg los, Chef! 📊 Füg eine Kundenanfrage ein – ich bewerte sie (heiß/warm/kalt) und schreib Dir gleich die passende Antwort.',
+      angebot:'Bereit! 📄 Gib mir Stichpunkte oder eine Kalkulation und ich mach ein sauberes Angebot draus.',
+      bewertung:'Bereit! ⭐ Kopier mir die Google-Bewertung rein und ich formulier Dir die perfekte Antwort.',
+      berater:'Ich bin da, Chef. 🧠 Erzähl, was ansteht – Aufträge, Preise, Zeit, Wachstum. Ich denk mit.'
+    }[m];
+    pushMsg('ai',greet);
+  }
+  showSection('chat');
+  setTimeout(()=>gl('chatIn').focus(),300);
+}
+function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow();}
+
+/* ============ RENDERING ============ */
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function fmt(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');}
+function pushMsg(role,text,raw){history[mode].push({role:role==='ai'?'assistant':'user',content:raw||text,_render:text});renderLog();}
+function renderLog(){
+  const log=gl('chatLog'); log.innerHTML='';
+  history[mode].forEach(m=>{
+    const txt=m._render!==undefined?m._render:m.content;
+    if(txt){
+      const d=document.createElement('div');
+      d.className='msg '+(m.role==='assistant'?'ai':'me');
+      d.innerHTML=fmt(txt);
+      log.appendChild(d);
+    }
+    if(m._calc){log.appendChild(calcCard(m._calc));}
+  });
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+function calcCard(k){
+  const div=document.createElement('div'); div.className='calc-card';
+  let rows=`<tr><td>Arbeit (${k.arbeitsstunden||'?'} Std × 136€)</td><td>${eur(k.arbeitskosten)}</td></tr>`;
+  if(+k.fahrtkosten>0)rows+=`<tr><td>Anfahrt</td><td>${eur(k.fahrtkosten)}</td></tr>`;
+  if(+k.material_mit_aufschlag>0)rows+=`<tr><td>Material (+10%)</td><td>${eur(k.material_mit_aufschlag)}</td></tr>`;
+  let mat='';
+  if(k.material_liste&&k.material_liste.length){
+    mat='<div class="meta"><b style="color:var(--cyan)">📦 Material:</b><br>'+k.material_liste.map(m=>`${esc(m.pos)} — ${esc(m.menge||'')}`).join('<br>')+'</div>';
+  }
+  div.innerHTML=`
+    <div class="lbl">Zielpreis · netto · 0% USt</div>
+    <div class="big">${eur(k.zielpreis)}</div>
+    <div class="meta">${k.manntage||'?'} Manntage · verhandelbar bis <b style="color:#fff">${eur(k.minimalpreis)}</b>${k.denkweg?'<br>💭 '+esc(k.denkweg):''}</div>
+    <table>${rows}</table>${mat}
+    ${k.angebotstext?`<button class="copybtn" onclick='copyTxt(this,${JSON.stringify(k.angebotstext)})'>📋 Angebotstext kopieren</button>`:''}`;
+  return div;
+}
+function copyTxt(btn,t){navigator.clipboard.writeText(t).then(()=>{const o=btn.textContent;btn.textContent='✓ Kopiert!';setTimeout(()=>btn.textContent=o,2000);});}
+
+/* ============ SENDEN ============ */
+function autoGrow(){const t=gl('chatIn');t.style.height='auto';t.style.height=Math.min(t.scrollHeight,130)+'px';}
+gl('chatIn').addEventListener('input',autoGrow);
+gl('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!isMobile()){e.preventDefault();send();}});
+function isMobile(){return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);}
+
+async function send(){
+  const inp=gl('chatIn'); const text=inp.value.trim();
+  if(!text)return;
+  if(!getKey()){pushMsg('ai','⚙️ Kein API-Schlüssel hinterlegt. Tipp oben rechts auf das Zahnrad und trag Deinen Anthropic-Schlüssel ein.');return;}
+  pushMsg('me',text); inp.value=''; autoGrow();
+  gl('sendBtn').disabled=true;
+  // Typing-Indikator
+  const log=gl('chatLog');const tp=document.createElement('div');tp.className='msg ai';tp.innerHTML='<span class="typing"><span></span><span></span><span></span></span>';log.appendChild(tp);
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
   try{
-    const payload=JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,messages:[{role:'user',content:prompt}]});
-    const fd=new FormData();
-    fd.append('kalk_request',payload);
-    fd.append('api_key',key);
+    const msgs=history[mode].map(m=>({role:m.role,content:m.content}));
+    const payload=JSON.stringify({model:MODEL,max_tokens:2500,system:MODI[mode].system(),messages:msgs});
+    const fd=new FormData();fd.append('ki_request',payload);fd.append('api_key',getKey());
     const r=await fetch(window.location.pathname,{method:'POST',body:fd});
     const d=await r.json();
+    tp.remove();
     if(d.error){throw new Error(d.error.message||'Fehler');}
-    let t=d.content.map(i=>i.type==='text'?i.text:'').join('').trim().replace(/\`\`\`json|\`\`\`/g,'').trim();
-    const s=t.indexOf('{'),en=t.lastIndexOf('}');
-    if(s>=0&&en>=0)t=t.slice(s,en+1);
-    zeigR(JSON.parse(t),mat);
+    let txt=d.content.map(i=>i.type==='text'?i.text:'').join('').trim();
+    // Kalkulations-Block extrahieren
+    const cm=txt.match(/<calc>([\s\S]*?)<\/calc>/);
+    if(cm){
+      const vor=txt.slice(0,cm.index).trim();
+      let k=null; try{k=JSON.parse(cm[1]);}catch(e){}
+      if(k){history[mode].push({role:'assistant',content:txt,_render:vor,_calc:k});}
+      else{history[mode].push({role:'assistant',content:txt,_render:txt});}
+      renderLog();
+    }else{
+      pushMsg('ai',txt);
+    }
   }catch(e){
-    zeige('form');
-    let m='Fehler: ';
-    const em=(e.message||'')+'';
-    if(em.includes('401')||em.includes('authentication'))m+='API-Schlüssel ungültig. Unter Zahnrad prüfen.';
-    else if(em.includes('credit')||em.includes('balance'))m+='Guthaben aufladen: console.anthropic.com';
-    else m+=em||'Bitte nochmal versuchen.';
-    fe.textContent=m;fe.style.display='block';
+    tp.remove();
+    let m=(e.message||'')+'';
+    let out='⚠️ ';
+    if(m.includes('401')||m.includes('authentication'))out+='API-Schlüssel ungültig. Unter dem Zahnrad prüfen.';
+    else if(m.includes('credit')||m.includes('balance'))out+='Guthaben aufladen unter console.anthropic.com';
+    else out+='Fehler: '+(m||'Bitte nochmal versuchen.');
+    pushMsg('ai',out);
   }
+  gl('sendBtn').disabled=false;
 }
-function zeigR(k,mat){
-  gl('r-ziel').textContent=eur(k.zielpreis);
-  gl('r-sub').innerHTML=`${k.manntage} Manntage · ${k.arbeitsstunden} Std<br>Verhandelbar bis: <b>${eur(k.minimalpreis)}</b>`;
-  gl('r-denkweg').textContent=k.denkweg?'💭 '+k.denkweg:'';
-  let rows=`<tr><td>Arbeit (${k.arbeitsstunden} Std × 136€)</td><td>${eur(k.arbeitskosten)}</td></tr>`;
-  if(k.fahrtkosten>0)rows+=`<tr><td>Anfahrt</td><td>${eur(k.fahrtkosten)}</td></tr>`;
-  if(k.material_mit_aufschlag>0)rows+=`<tr><td>Material (+10%)</td><td>${eur(k.material_mit_aufschlag)}</td></tr>`;
-  rows+=`<tr class="summe"><td>Zielpreis</td><td>${eur(k.zielpreis)}</td></tr>`;
-  gl('r-kt').innerHTML=rows;
-  if(mat==='bauseits'||!k.material_liste||!k.material_liste.length){gl('r-matcard').style.display='none';}
-  else{gl('r-matcard').style.display='block';gl('r-mat').innerHTML=k.material_liste.map(m=>`<li><span>${m.pos}</span><span>${m.menge||''}</span></li>`).join('');}
-  let t='Arbeitsleistung\nLeistungsumfang:\n'+k.leistungen.map(l=>'• '+l).join('\n');
-  t+=mat==='bauseits'?'\n\nHinweis:\nMaterial wird bauseits gestellt.':'\n\nHinweis:\nMaterial ist im Angebotspreis enthalten.';
-  letzterT=t;gl('r-at').textContent=t;
-  gl('korr').value='';gl('lernMsg').textContent='';gl('kopMsg').textContent='';
-  zeige('result');
-}
-function kopier(){
-  navigator.clipboard.writeText(letzterT).then(()=>{gl('kopMsg').textContent='✓ Kopiert!';setTimeout(()=>gl('kopMsg').textContent='',2500);}).catch(()=>{
-    const r=document.createRange();r.selectNode(gl('r-at'));window.getSelection().removeAllRanges();window.getSelection().addRange(r);try{document.execCommand('copy');}catch(e){}window.getSelection().removeAllRanges();gl('kopMsg').textContent='✓ Kopiert!';
-  });
-}
-function lernNeu(){
-  const k=gl('korr').value.trim();if(k.length<4)return;
-  const l=getLern();l.push(k);setLernS(l);
-  gl('lernMsg').textContent='✓ Gelernt! Rechne neu …';
-  setTimeout(()=>{gl('beschr').value=letzterF.beschr||'';gl('qm').value=letzterF.qm||'';gl('km').value=letzterF.km||'';gl('matQ').value=letzterF.mat||'ich';kalk(k);},600);
-}
-function neuBau(){gl('beschr').value='';gl('qm').value='';gl('km').value='';zeige('form');}
-zeige('home');
+
+/* ============ START ============ */
+boot();
+clock();setInterval(clock,1000);
 </script>
 </body>
 </html>
