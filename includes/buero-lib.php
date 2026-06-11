@@ -136,6 +136,7 @@ function oh_add_lead(array $data): array {
 
     array_unshift($leads, $lead);
     oh_write('leads', $leads);
+    if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Neue ' . $lead['stufe'] . '-Anfrage erfasst: ' . ($lead['name'] ?: ($lead['email'] ?: $lead['id'])));
     return $lead;
 }
 
@@ -544,6 +545,7 @@ function oh_ads_recommendations(?string &$err = null): ?array {
     }
     oh_write('ads_reco', $reco);
     oh_write('ads_meta', ['last_analysis' => time()]);
+    if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Google Ads geprüft: ' . count($reco) . ' Optimierung(en) gefunden');
     return $reco;
 }
 
@@ -653,6 +655,7 @@ function oh_ads_apply(array $reco, ?string &$err = null): array {
     $wert = trim($reco['wert'] ?? '');
     if ($typ === 'negativ_keyword' && $wert !== '') {
         if (oh_ads_add_negative_keyword($wert, $err)) {
+            if (function_exists('oh_log_activity')) oh_log_activity('dilara', "Ausschluss-Wort \"{$wert}\" in Google Ads eingetragen (spart Werbegeld)");
             return ['executed' => true, 'msg' => "Erledigt, Chef! \"{$wert}\" wird ab sofort ausgeschlossen – das spart Werbegeld."];
         }
         return ['executed' => false, 'msg' => 'Konnte nicht automatisch ausgeführt werden (' . $err . '). Bitte kurz manuell im Ads-Konto eintragen.'];
@@ -803,7 +806,7 @@ function oh_mert_briefing(?string &$err = null): ?string {
         . "Wenn ein Engpass da ist (z.B. zu wenig Anfragen, Werbung zu teuer, bald Mitarbeiter nötig), sag es deutlich. Max 9 Zeilen. Beginne mit 'Chef,'.";
 
     $out = oh_ki($system, $ctx, 700);
-    if ($out) { oh_write('mert_plan', ['text' => $out, 'ts' => time()]); }
+    if ($out) { oh_write('mert_plan', ['text' => $out, 'ts' => time()]); if (function_exists('oh_log_activity')) oh_log_activity('mert', 'Tagesplan & Prioritäten aktualisiert'); }
     else { $err = 'KI nicht verfügbar (Anthropic-Schlüssel/Guthaben prüfen).'; }
     return $out;
 }
@@ -1001,5 +1004,16 @@ function oh_agenten_runde(?string &$err = null): ?array {
     if (!is_array($data)) { $err = 'KI-Antwort unlesbar.'; return null; }
     $data['ts'] = time();
     oh_write('agenten', $data);
+    if (function_exists('oh_log_activity')) oh_log_activity('mert', 'Agenten-Runde durchgeführt – Team hat sich abgestimmt (' . count($data['nachrichten'] ?? []) . ' Nachrichten)');
     return $data;
+}
+
+/* ==========================================================================
+ * AKTIVITÄTS-PROTOKOLL – wer (welcher Agent) hat was erledigt
+ * ======================================================================== */
+function oh_log_activity(string $agent, string $text): void {
+    $a = oh_read('aktivitaet', []);
+    array_unshift($a, ['ts' => time(), 'agent' => $agent, 'text' => $text]);
+    if (count($a) > 150) $a = array_slice($a, 0, 150);
+    oh_write('aktivitaet', $a);
 }

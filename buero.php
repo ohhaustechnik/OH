@@ -75,6 +75,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'ki_alert' => oh_read('ki_status', ['alert' => false]),
             'mert'     => oh_read('mert_plan', []),
             'agenten'  => oh_read('agenten', []),
+            'aktivitaet' => array_slice(oh_read('aktivitaet', []), 0, 40),
             'wissen'   => oh_wissen_summary(),
         ]);
     } elseif ($a === 'mert_fresh') {
@@ -344,6 +345,13 @@ header{padding:18px 18px 12px;padding-top:calc(18px + env(safe-area-inset-top));
 .ar-funde{margin-top:10px;} .ar-ag{margin-top:8px;font-size:12.5px;} .ar-ag b{color:#fff;} .ar-ag ul{margin:3px 0 0 16px;color:var(--txt-dim);line-height:1.5;}
 .agent-funde{background:var(--glass-2);border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin:8px 14px;}
 .agent-funde b{color:var(--cyan);font-size:13px;} .agent-funde ul{margin:6px 0 0 16px;color:var(--txt);line-height:1.6;font-size:13px;}
+/* Aktivitäts-Protokoll */
+.akt-feed{display:flex;flex-direction:column;gap:2px;}
+.akt-row{display:flex;gap:11px;align-items:flex-start;padding:9px 2px;border-bottom:1px solid var(--line);}
+.akt-row:last-child{border-bottom:none;}
+.akt-ico{font-size:17px;flex-shrink:0;margin-top:1px;}
+.akt-t{font-size:13px;color:var(--txt);line-height:1.45;} .akt-t b{color:var(--cyan);}
+.akt-z{font-size:10.5px;color:var(--txt-dim);margin-top:2px;}
 .card{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin:12px 14px;
   backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
 h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
@@ -916,9 +924,10 @@ function renderDashboard(d){
   // nach Agent gruppieren
   const groups={};
   offen.forEach(t=>{const ag=AGENT_OF[t.bereich]||'mert';(groups[ag]=groups[ag]||[]).push(t);});
-  agentenData=d.agenten||null;
+  agentenData=d.agenten||null; aktivData=d.aktivitaet||[];
   let html=accordion('📊 Geschäftsführer-Bericht von Mert Aldemir', mertBody(d.mert), false);
   html+=accordion('🤝 Agenten-Runde · Team-Abstimmung', agentenBody(d.agenten), false);
+  html+=accordion(`📋 Was wurde erledigt <span class="acc-cnt">${aktivData.length}</span>`, aktivBody(aktivData), false);
   ['dilara','kaan','emre','aylin','yusuf','baran','mert'].forEach(ag=>{
     const list=groups[ag]; if(!list||!list.length)return;
     const badge=`<span class="pill ${list[0].prio}">${PLABEL[list[0].prio]||''}</span>`;
@@ -964,8 +973,16 @@ function mertBody(m){
   const txt=(m&&m.text)?fmt(m.text):'<span style="color:var(--txt-dim)">Noch kein Tagesplan. Tipp „Neuen Tagesplan erstellen".</span>';
   return `<div class="mert-txt" id="mertTxt">${txt}</div><button class="mert-refresh" onclick="event.stopPropagation();mertFresh(this)">↻ Neuen Tagesplan erstellen</button>`;
 }
-let agentenData=null;
-const AG_NAME={mert:'Mert',dilara:'Dilara',kaan:'Kaan',emre:'Emre',aylin:'Aylin',yusuf:'Yusuf',baran:'Baran'};
+let agentenData=null, aktivData=[];
+const AG_NAME={mert:'Mert',dilara:'Dilara',kaan:'Kaan',emre:'Emre',aylin:'Aylin',yusuf:'Yusuf',baran:'Baran',system:'System'};
+function zeitHer(ts){const s=Math.floor(Date.now()/1000)-ts;if(s<60)return'gerade eben';if(s<3600)return Math.floor(s/60)+' Min her';if(s<86400)return Math.floor(s/3600)+' Std her';return Math.floor(s/86400)+' Tg her';}
+function aktivBody(list){
+  if(!list||!list.length)return '<div class="prio-empty">Noch keine Aktivität. Sobald die Agenten arbeiten, erscheint hier, wer was erledigt hat.</div>';
+  return '<div class="akt-feed">'+list.map(a=>{
+    const em=AGENTS[a.agent]?AGENTS[a.agent].emoji:'•';
+    return `<div class="akt-row"><span class="akt-ico">${em}</span><div><div class="akt-t"><b>${AG_NAME[a.agent]||a.agent}</b> ${esc(a.text)}</div><div class="akt-z">${zeitHer(a.ts)}</div></div></div>`;
+  }).join('')+'</div>';
+}
 function agentenBody(a){
   if(!a||(!a.nachrichten&&!a.prioritaeten&&!a.agenten)){
     return `<div class="prio-empty">Noch keine Abstimmung. Das Team trifft sich automatisch (Cron) – oder jetzt starten:</div><button class="mert-refresh" onclick="event.stopPropagation();agentenRunde(this)">🤝 Agenten-Runde starten</button>`;
@@ -1065,7 +1082,12 @@ function openAgent(key){
       fundeHtml=`<div class="agent-funde"><b>🔎 ${a.name}s aktuelle Funde:</b><ul>${mine.funde.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
     }
   }
-  gl('agentAreas').innerHTML=fundeHtml+a.areas.map((ar,i)=>`<div class="agent-area" onclick="agentArea('${key}',${i})"><span>${esc(ar[0])}</span><span class="go">›</span></div>`).join('');
+  const myAkt=(aktivData||[]).filter(x=>x.agent===key).slice(0,6);
+  let aktHtml='';
+  if(myAkt.length){
+    aktHtml=`<div class="agent-funde"><b>📋 Zuletzt von ${a.name} erledigt:</b><ul>${myAkt.map(x=>`<li>${esc(x.text)} <span style="color:var(--txt-dim)">· ${zeitHer(x.ts)}</span></li>`).join('')}</ul></div>`;
+  }
+  gl('agentAreas').innerHTML=fundeHtml+aktHtml+a.areas.map((ar,i)=>`<div class="agent-area" onclick="agentArea('${key}',${i})"><span>${esc(ar[0])}</span><span class="go">›</span></div>`).join('');
   showSection('agent');
 }
 function agentArea(key,i){AGENTS[key].areas[i][1]();}

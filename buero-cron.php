@@ -54,6 +54,7 @@ foreach ($leads as $l) {
             $res = oh_send_mail($email, 'Kurze Nachfrage zu Ihrem Angebot – OH Haustechnik', $body, $absender);
             if (!empty($res['ok'])) {
                 oh_update_lead($l['id'], ['status' => 'nachgefasst'], 'Automatik: Follow-up-E-Mail gesendet');
+                if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Follow-up-E-Mail automatisch gesendet an ' . $name);
                 $log[] = "Follow-up an {$email} ({$name})";
             } else {
                 $log[] = "FEHLER Follow-up {$email}: " . $res['info'];
@@ -76,6 +77,7 @@ foreach ($leads as $l) {
             $res = oh_send_mail($email, 'Wie zufrieden waren Sie? – OH Haustechnik', $body, $absender);
             if (!empty($res['ok'])) {
                 oh_update_lead($l['id'], ['bewertung_angefragt' => true], 'Automatik: Bewertungs-Anfrage gesendet');
+                if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Bewertungs-Anfrage automatisch gesendet an ' . $name);
                 $log[] = "Bewertungs-Anfrage an {$email} ({$name})";
             } else {
                 $log[] = "FEHLER Bewertung {$email}: " . $res['info'];
