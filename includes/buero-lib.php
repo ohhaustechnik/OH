@@ -321,3 +321,109 @@ function oh_ki(string $system, string $userMsg, int $maxTokens = 1500): ?string 
     }
     return trim($out);
 }
+
+/* --------------------------------------------------------------------------
+ * GOOGLE ADS – Überwachung der eigenen Kampagnen
+ * Benötigt in der Konfiguration: ads_developer_token, ads_client_id,
+ * ads_client_secret, ads_refresh_token, ads_customer_id (zu prüfendes Konto),
+ * ads_login_customer_id (Verwalterkonto, optional aber empfohlen).
+ * ------------------------------------------------------------------------ */
+define('OH_ADS_API_VERSION', 'v23'); // bei API-Versionsfehler hier hochzählen (v24, v25 ...)
+
+/** Holt ein frisches Access-Token aus dem Refresh-Token. */
+function oh_ads_access_token(): ?string {
+    $cfg = oh_config();
+    foreach (['ads_client_id', 'ads_client_secret', 'ads_refresh_token'] as $k) {
+        if (empty($cfg[$k])) return null;
+    }
+    $ch = curl_init('https://oauth2.googleapis.com/token');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'client_id'     => $cfg['ads_client_id'],
+            'client_secret' => $cfg['ads_client_secret'],
+            'refresh_token' => $cfg['ads_refresh_token'],
+            'grant_type'    => 'refresh_token',
+        ]),
+    ]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+    $d = json_decode($resp, true);
+    return $d['access_token'] ?? null;
+}
+
+/** Führt eine GAQL-Abfrage gegen das eigene Ads-Konto aus. */
+function oh_ads_search(string $gaql, ?string &$err = null): ?array {
+    $cfg = oh_config();
+    $token = oh_ads_access_token();
+    if (!$token) { $err = 'Login fehlgeschlagen (Refresh-Token/Client prüfen).'; return null; }
+    $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
+    if (!$cid) { $err = 'Keine Kundennummer hinterlegt.'; return null; }
+    $login = preg_replace('/\D/', '', $cfg['ads_login_customer_id'] ?? '');
+
+    $headers = [
+        'Authorization: Bearer ' . $token,
+        'developer-token: ' . ($cfg['ads_developer_token'] ?? ''),
+        'Content-Type: application/json',
+    ];
+    if ($login) $headers[] = 'login-customer-id: ' . $login;
+
+    $url = 'https://googleads.googleapis.com/' . OH_ADS_API_VERSION . '/customers/' . $cid . '/googleAds:search';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 60,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_POSTFIELDS => json_encode(['query' => $gaql]),
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $d = json_decode($resp, true);
+    if ($code !== 200) {
+        $err = $d['error']['message'] ?? ('HTTP ' . $code . ': ' . substr((string)$resp, 0, 300));
+        return null;
+    }
+    return $d['results'] ?? [];
+}
+
+/** Liefert eine Kampagnen-Auswertung der letzten 7 Tage (aufbereitet). */
+function oh_ads_report(?string &$err = null): ?array {
+    $gaql = "SELECT campaign.name, campaign.status, "
+          . "metrics.cost_micros, metrics.clicks, metrics.impressions, "
+          . "metrics.conversions, metrics.ctr, metrics.average_cpc "
+          . "FROM campaign WHERE segments.date DURING LAST_7_DAYS "
+          . "ORDER BY metrics.cost_micros DESC";
+    $rows = oh_ads_search($gaql, $err);
+    if ($rows === null) return null;
+
+    $kampagnen = [];
+    $sum = ['kosten' => 0, 'klicks' => 0, 'impr' => 0, 'conv' => 0];
+    foreach ($rows as $r) {
+        $m = $r['metrics'] ?? [];
+        $kosten = ($m['costMicros'] ?? 0) / 1e6;
+        $klicks = (int)($m['clicks'] ?? 0);
+        $impr   = (int)($m['impressions'] ?? 0);
+        $conv   = (float)($m['conversions'] ?? 0);
+        $kampagnen[] = [
+            'name'    => $r['campaign']['name'] ?? '–',
+            'status'  => $r['campaign']['status'] ?? '',
+            'kosten'  => round($kosten, 2),
+            'klicks'  => $klicks,
+            'impr'    => $impr,
+            'conv'    => round($conv, 1),
+            'ctr'     => round(((float)($m['ctr'] ?? 0)) * 100, 2),
+            'cpc'     => round((($m['averageCpc'] ?? 0) / 1e6), 2),
+        ];
+        $sum['kosten'] += $kosten; $sum['klicks'] += $klicks;
+        $sum['impr'] += $impr; $sum['conv'] += $conv;
+    }
+    $sum['kosten'] = round($sum['kosten'], 2);
+    $sum['conv']   = round($sum['conv'], 1);
+    $sum['cpl']    = $sum['conv'] > 0 ? round($sum['kosten'] / $sum['conv'], 2) : null; // Kosten pro Anfrage
+    return ['zeitraum' => 'Letzte 7 Tage', 'kampagnen' => $kampagnen, 'summe' => $sum];
+}
+

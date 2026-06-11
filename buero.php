@@ -79,14 +79,27 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'gmail_user'     => $c['gmail_user'] ?? '',
             'has_gmail_pass' => !empty($c['gmail_pass']),
             'has_anthropic'  => !empty($c['anthropic_key']),
+            'ads_customer_id'=> $c['ads_customer_id'] ?? '',
+            'ads_login_customer_id' => $c['ads_login_customer_id'] ?? '',
+            'has_ads'        => !empty($c['ads_developer_token']) && !empty($c['ads_refresh_token']),
         ]);
     } elseif ($a === 'config_set') {
         oh_config_set([
             'anthropic_key' => $in['anthropic_key'] ?? '',
             'gmail_user'    => $in['gmail_user'] ?? '',
             'gmail_pass'    => $in['gmail_pass'] ?? '',
+            'ads_developer_token'    => $in['ads_developer_token'] ?? '',
+            'ads_client_id'          => $in['ads_client_id'] ?? '',
+            'ads_client_secret'      => $in['ads_client_secret'] ?? '',
+            'ads_refresh_token'      => $in['ads_refresh_token'] ?? '',
+            'ads_customer_id'        => $in['ads_customer_id'] ?? '',
+            'ads_login_customer_id'  => $in['ads_login_customer_id'] ?? '',
         ]);
         echo json_encode(['ok' => true]);
+    } elseif ($a === 'ads_report') {
+        $err = null;
+        $rep = oh_ads_report($err);
+        echo json_encode($rep !== null ? ['ok' => true, 'report' => $rep] : ['ok' => false, 'error' => $err]);
     } else {
         echo json_encode(['error' => 'unbekannte Aktion']);
     }
@@ -239,6 +252,16 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .task .ta{font-size:11.5px;color:var(--cyan);margin-top:2px;}
 .task .go{color:var(--cyan);font-size:18px;flex-shrink:0;}
 .prio-empty{font-size:12px;color:var(--txt-dim);padding:4px 2px;opacity:.7;}
+/* Google Ads */
+.ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+.ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
+.ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
+.ads-stat .l{font-size:10px;color:var(--txt-dim);letter-spacing:.5px;text-transform:uppercase;margin-top:2px;}
+.ads-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.ads-tbl th{text-align:left;color:var(--cyan);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 4px;border-bottom:1px solid var(--line);}
+.ads-tbl td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--txt);}
+.ads-tbl td:nth-child(n+2){text-align:right;white-space:nowrap;}
+.spinner-mini{font-size:12px;color:var(--txt-dim);}
 
 /* --- KACHELN --- */
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 14px;}
@@ -419,7 +442,25 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
       <div class="tile-name">Berater</div>
       <div class="tile-desc">Dein KI-Sparringspartner</div>
     </div>
+    <div class="tile" onclick="openAds()">
+      <div class="tile-tag">NEU</div>
+      <div class="tile-ico">&#128200;</div>
+      <div class="tile-name">Google Ads</div>
+      <div class="tile-desc">Kampagnen überwachen &amp; KI-Tipps</div>
+    </div>
   </div>
+</div>
+
+<!-- GOOGLE ADS -->
+<div id="s-ads" style="display:none">
+  <div class="card">
+    <h2>&#128200; Google Ads · Überwachung</h2>
+    <p class="intro">Auswertung Deiner Kampagnen der letzten 7 Tage – direkt aus Deinem Google-Ads-Konto.</p>
+    <div id="adsBody"><div class="spinner-mini">Lade …</div></div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="loadAds()">↻ Aktualisieren</button>
+    <button class="btn btn-cyan" style="margin-top:10px" id="adsKiBtn" onclick="adsAnalyse()" disabled>🧠 Von KI analysieren lassen</button>
+  </div>
+  <button class="zurueck" onclick="goHome()">&larr; Kommandozentrale</button>
 </div>
 
 <!-- SETTINGS -->
@@ -441,6 +482,24 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <input type="password" id="gmailPass" placeholder="•••• •••• •••• ••••  (leer = unverändert)">
     <button class="btn btn-cyan" style="margin-top:12px" onclick="saveGmail()">Speichern</button>
     <div id="gmailMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
+    <h2>&#128202; Google Ads</h2>
+    <p class="intro">Für die automatische Kampagnen-Überwachung. Die 5 Zugangsdaten aus der Einrichtung hier eintragen (leere Felder bleiben unverändert).</p>
+    <label>Developer Token</label>
+    <input type="password" id="adsDev" placeholder="••• (leer = unverändert)">
+    <label>Client-ID</label>
+    <input type="password" id="adsCid" placeholder="••• .apps.googleusercontent.com">
+    <label>Client-Secret</label>
+    <input type="password" id="adsSecret" placeholder="••• (leer = unverändert)">
+    <label>Refresh-Token</label>
+    <input type="password" id="adsRefresh" placeholder="1// ••• (leer = unverändert)">
+    <label>Kundennummer (Werbekonto)</label>
+    <input type="text" id="adsCustomer" placeholder="123-456-7890">
+    <label>Verwalterkonto-Nummer (MCC)</label>
+    <input type="text" id="adsLogin" placeholder="246-895-3721">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveAds()">Speichern</button>
+    <div id="adsMsg" class="msg-ok"></div>
   </div>
   <div class="card">
     <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
@@ -691,7 +750,7 @@ function clock(){
 
 /* ============ NAVIGATION ============ */
 function showSection(s){
-  ['home','settings','chat'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -700,7 +759,12 @@ async function toggleSettings(){
   if(gl('s-settings').style.display==='block'){goHome();}
   else{
     gl('apiIn').value='';gl('gmailPass').value='';
-    try{const c=await api('config_get');serverCfg=c;gl('gmailUser').value=c.gmail_user||'';}catch(e){}
+    ['adsDev','adsCid','adsSecret','adsRefresh'].forEach(id=>gl(id).value='');
+    try{const c=await api('config_get');serverCfg=c;
+      gl('gmailUser').value=c.gmail_user||'';
+      gl('adsCustomer').value=c.ads_customer_id||'';
+      gl('adsLogin').value=c.ads_login_customer_id||'';
+    }catch(e){}
     renderLL();showSection('settings');
   }
 }
@@ -718,6 +782,19 @@ async function saveGmail(){
   if(u)serverCfg.gmail_user=u; if(p)serverCfg.has_gmail_pass=true; gl('gmailPass').value='';
   gl('gmailMsg').textContent='✓ Gmail gespeichert';
   setTimeout(()=>gl('gmailMsg').textContent='',2500);
+}
+async function saveAds(){
+  await api('config_set',{
+    ads_developer_token:gl('adsDev').value.trim(),
+    ads_client_id:gl('adsCid').value.trim(),
+    ads_client_secret:gl('adsSecret').value.trim(),
+    ads_refresh_token:gl('adsRefresh').value.trim(),
+    ads_customer_id:gl('adsCustomer').value.trim(),
+    ads_login_customer_id:gl('adsLogin').value.trim()
+  });
+  ['adsDev','adsCid','adsSecret','adsRefresh'].forEach(id=>gl(id).value='');
+  gl('adsMsg').textContent='✓ Google Ads gespeichert';
+  setTimeout(()=>gl('adsMsg').textContent='',2500);
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
@@ -749,6 +826,47 @@ function openChat(m,prefill){
   setTimeout(()=>gl('chatIn').focus(),300);
 }
 function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow();}
+
+/* ============ GOOGLE ADS ============ */
+let lastAdsReport=null;
+function openAds(){showSection('ads');loadAds();}
+async function loadAds(){
+  lastAdsReport=null; gl('adsKiBtn').disabled=true;
+  gl('adsBody').innerHTML='<div class="prio-empty">Lade Kampagnen-Daten …</div>';
+  try{
+    const d=await api('ads_report');
+    if(!d.ok){
+      gl('adsBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}<br><br>Tipp: Sind alle 5 Ads-Zugangsdaten unter ⚙️ eingetragen?</div>`;
+      return;
+    }
+    lastAdsReport=d.report; gl('adsKiBtn').disabled=false;
+    renderAds(d.report);
+  }catch(e){gl('adsBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
+}
+function renderAds(r){
+  const s=r.summe||{};
+  let html=`<div class="ads-sum">
+    <div class="ads-stat"><div class="n">${eur(s.kosten)}</div><div class="l">Kosten 7 Tage</div></div>
+    <div class="ads-stat"><div class="n">${s.klicks||0}</div><div class="l">Klicks</div></div>
+    <div class="ads-stat"><div class="n">${(s.conv||0)}</div><div class="l">Anfragen</div></div>
+    <div class="ads-stat"><div class="n">${s.cpl!=null?eur(s.cpl):'–'}</div><div class="l">Kosten/Anfrage</div></div>
+  </div>`;
+  if(!r.kampagnen||!r.kampagnen.length){html+='<div class="prio-empty">Keine aktiven Kampagnen-Daten in den letzten 7 Tagen.</div>';}
+  else{
+    html+='<table class="ads-tbl"><tr><th>Kampagne</th><th>Kosten</th><th>Klicks</th><th>Anfr.</th></tr>';
+    r.kampagnen.forEach(k=>{html+=`<tr><td>${esc(k.name)}</td><td>${eur(k.kosten)}</td><td>${k.klicks}</td><td>${k.conv}</td></tr>`;});
+    html+='</table>';
+  }
+  gl('adsBody').innerHTML=html;
+}
+function adsAnalyse(){
+  if(!lastAdsReport)return;
+  const r=lastAdsReport;
+  let txt='Analysiere meine Google-Ads-Zahlen der letzten 7 Tage und gib mir konkrete, umsetzbare Tipps (was läuft gut, was verbrennt Geld, was soll ich ändern):\n\n';
+  txt+=`Gesamt: Kosten ${eur(r.summe.kosten)}, Klicks ${r.summe.klicks}, Anfragen ${r.summe.conv}, Kosten/Anfrage ${r.summe.cpl!=null?eur(r.summe.cpl):'–'}\n\nKampagnen:\n`;
+  r.kampagnen.forEach(k=>{txt+=`- ${k.name} (${k.status}): ${eur(k.kosten)}, ${k.klicks} Klicks, ${k.conv} Anfragen, CTR ${k.ctr}%, CPC ${eur(k.cpc)}\n`;});
+  openChat('berater',txt);
+}
 
 /* ============ RENDERING ============ */
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
