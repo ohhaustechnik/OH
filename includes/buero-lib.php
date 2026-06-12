@@ -1169,3 +1169,44 @@ function oh_lex_open_invoices(?string &$err = null): ?array {
     }
     return $out;
 }
+
+/* ==========================================================================
+ * SELBST-UPDATE: Büro holt sich die neuesten Dateien direkt von GitHub
+ * (damit Updates vom Handy aus per Knopfdruck gehen – kein FTP nötig)
+ * ======================================================================== */
+function oh_self_update(?string &$err = null): array {
+    $cfg = oh_config();
+    $token  = $cfg['gh_read_token'] ?? '';
+    $repo   = $cfg['gh_repo'] ?? 'ohhaustechnik/OH';
+    $branch = $cfg['gh_branch'] ?? 'claude/gallant-brahmagupta-61u7q5';
+    $files = [
+        'buero.php', 'ads-monitor.php', 'buero-cron.php', 'whatsapp-webhook.php',
+        'alexa.php', 'update.php',
+        'includes/buero-lib.php', 'includes/funnel-handler.php', 'includes/contact-handler.php',
+    ];
+    $log = [];
+    foreach ($files as $f) {
+        if ($token) {
+            $url = "https://api.github.com/repos/$repo/contents/$f?ref=" . rawurlencode($branch);
+            $headers = ['Authorization: token ' . $token, 'Accept: application/vnd.github.raw', 'User-Agent: OH-Updater'];
+        } else {
+            $url = "https://raw.githubusercontent.com/$repo/$branch/$f";
+            $headers = ['User-Agent: OH-Updater'];
+        }
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_HTTPHEADER => $headers, CURLOPT_FOLLOWLOCATION => true]);
+        $content = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code === 200 && $content !== false && strlen($content) > 20) {
+            $target = __DIR__ . '/../' . $f;
+            @mkdir(dirname($target), 0775, true);
+            if (@file_put_contents($target, $content) !== false) $log[] = "✓ $f";
+            else $log[] = "✗ $f: keine Schreibrechte";
+        } else {
+            $log[] = "✗ $f: GitHub HTTP $code" . ($token ? '' : ' (privates Repo? Lese-Token nötig)');
+        }
+    }
+    if (function_exists('oh_log_activity')) oh_log_activity('mert', 'System-Update von GitHub geholt');
+    return $log;
+}

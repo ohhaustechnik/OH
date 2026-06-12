@@ -92,6 +92,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $le = null;
         $inv = oh_lex_open_invoices($le);
         echo json_encode($inv !== null ? ['ok' => true, 'invoices' => $inv] : ['ok' => false, 'error' => $le]);
+    } elseif ($a === 'self_update') {
+        $ue = null;
+        $log = oh_self_update($ue);
+        echo json_encode(['ok' => true, 'log' => $log]);
     } elseif ($a === 'website_reco') {
         echo json_encode(['ok' => true, 'reco' => oh_read('website_reco', [])]);
     } elseif ($a === 'website_analyze') {
@@ -155,6 +159,7 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'wa_verify_token' => $in['wa_verify_token'] ?? '',
             'wa_phone_id'     => $in['wa_phone_id'] ?? '',
             'lexware_key'     => $in['lexware_key'] ?? '',
+            'gh_read_token'   => $in['gh_read_token'] ?? '',
         ]);
         echo json_encode(['ok' => true]);
     } elseif ($a === 'scan_now') {
@@ -761,6 +766,16 @@ label{display:block;font-size:12px;font-weight:600;color:var(--txt-dim);margin:1
     <div id="lexMsg" class="msg-ok"></div>
   </div>
   <div class="card">
+    <h2>&#128260; System-Update (vom Handy)</h2>
+    <p class="intro">Holt die neuesten Büro-Dateien direkt von GitHub auf den Server – ohne FTP/Laptop. Bei privatem Repo einmalig einen <b>GitHub-Lese-Token</b> eintragen.</p>
+    <label>GitHub Lese-Token (optional, nur für privates Repo)</label>
+    <input type="password" id="ghToken" placeholder="github_pat_... (leer = unverändert)">
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="saveGh()">Token speichern</button>
+    <div id="ghMsg" class="msg-ok"></div>
+    <button class="btn btn-cyan" style="margin-top:14px" id="updBtn" onclick="doUpdate()">🔄 Jetzt aktualisieren (von GitHub)</button>
+    <div id="updBody" style="font-size:12px;color:var(--txt-dim);margin-top:10px;white-space:pre-wrap"></div>
+  </div>
+  <div class="card">
     <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
     <p class="intro">Das System lernt aus Deinen Korrekturen für genauere Preise.</p>
     <div id="lernListe"></div>
@@ -1231,7 +1246,7 @@ async function toggleSettings(){
   if(gl('s-settings').style.display==='block'){goHome();}
   else{
     gl('apiIn').value='';gl('gmailPass').value='';
-    ['adsDev','adsCid','adsSecret','adsRefresh','waToken','lexKey'].forEach(id=>gl(id).value='');
+    ['adsDev','adsCid','adsSecret','adsRefresh','waToken','lexKey','ghToken'].forEach(id=>gl(id).value='');
     try{const c=await api('config_get');serverCfg=c;
       gl('gmailUser').value=c.gmail_user||'';
       gl('adsCustomer').value=c.ads_customer_id||'';
@@ -1287,6 +1302,19 @@ async function saveLex(){
   gl('lexKey').value='';
   gl('lexMsg').textContent='✓ Lexware gespeichert';
   setTimeout(()=>gl('lexMsg').textContent='',2500);
+}
+async function saveGh(){
+  await api('config_set',{gh_read_token:gl('ghToken').value.trim()});
+  gl('ghToken').value='';
+  gl('ghMsg').textContent='✓ GitHub-Token gespeichert';
+  setTimeout(()=>gl('ghMsg').textContent='',2500);
+}
+async function doUpdate(){
+  const b=gl('updBtn');b.disabled=true;b.textContent='🔄 Hole Dateien von GitHub …';
+  gl('updBody').textContent='';
+  try{const d=await api('self_update');gl('updBody').textContent=(d.log||[]).join('\n')+'\n\n✅ Fertig. Seite einmal neu laden.';}
+  catch(e){gl('updBody').textContent='⚠️ Fehler beim Update.';}
+  b.disabled=false;b.textContent='🔄 Jetzt aktualisieren (von GitHub)';
 }
 function renderLL(){
   const l=getLern(),el=gl('lernListe');
