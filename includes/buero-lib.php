@@ -397,6 +397,7 @@ function oh_ads_report(?string &$err = null): ?array {
           . "metrics.cost_micros, metrics.clicks, metrics.impressions, "
           . "metrics.conversions, metrics.ctr, metrics.average_cpc "
           . "FROM campaign WHERE segments.date DURING LAST_7_DAYS "
+          . "AND campaign.status = 'ENABLED' "
           . "ORDER BY metrics.cost_micros DESC";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
@@ -432,6 +433,7 @@ function oh_ads_report(?string &$err = null): ?array {
 function oh_ads_search_terms(?string &$err = null): ?array {
     $gaql = "SELECT search_term_view.search_term, metrics.cost_micros, metrics.clicks, "
           . "metrics.conversions FROM search_term_view WHERE segments.date DURING LAST_30_DAYS "
+          . "AND campaign.status = 'ENABLED' "
           . "ORDER BY metrics.cost_micros DESC LIMIT 40";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
@@ -451,8 +453,9 @@ function oh_ads_search_terms(?string &$err = null): ?array {
 /** Keywords der letzten 30 Tage mit Leistung. */
 function oh_ads_keywords(?string &$err = null): ?array {
     $gaql = "SELECT ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type, "
-          . "metrics.cost_micros, metrics.clicks, metrics.conversions, metrics.ctr "
+          . "metrics.cost_micros, metrics.clicks, metrics.conversions, metrics.ctr, campaign.name "
           . "FROM keyword_view WHERE segments.date DURING LAST_30_DAYS "
+          . "AND campaign.status = 'ENABLED' "
           . "ORDER BY metrics.cost_micros DESC LIMIT 40";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
@@ -570,7 +573,7 @@ function oh_ads_market(?string &$err = null): ?array {
     $gaql = "SELECT campaign.name, metrics.search_impression_share, "
           . "metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share, "
           . "metrics.search_top_impression_share, metrics.search_absolute_top_impression_share "
-          . "FROM campaign WHERE segments.date DURING LAST_30_DAYS";
+          . "FROM campaign WHERE segments.date DURING LAST_30_DAYS AND campaign.status = 'ENABLED'";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
     $out = [];
