@@ -10,3 +10,7 @@ chat.json
 *.zip
 # System/lokal
 .DS_Store
+# Node / React-Build
+node_modules/
+app-react/node_modules/
+app-react/dist/
