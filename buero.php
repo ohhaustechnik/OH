@@ -2051,7 +2051,7 @@ async function recoLater(id,btn){
   setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
 }
 async function loadAds(){
-  lastAdsReport=null; gl('adsKiBtn').disabled=true;
+  lastAdsReport=null; const _kb=gl('adsKiBtn'); if(_kb)_kb.disabled=true;
   gl('adsBody').innerHTML='<div class="prio-empty">Lade Kampagnen-Daten …</div>';
   try{
     const d=await api('ads_report');
@@ -2059,7 +2059,7 @@ async function loadAds(){
       gl('adsBody').innerHTML=`<div class="fehler">⚠️ ${esc(d.error||'Fehler')}<br><br>Tipp: Sind alle 5 Ads-Zugangsdaten unter ⚙️ eingetragen?</div>`;
       return;
     }
-    lastAdsReport=d.report; gl('adsKiBtn').disabled=false;
+    lastAdsReport=d.report; if(_kb)_kb.disabled=false;
     renderAds(d.report);
   }catch(e){gl('adsBody').innerHTML='<div class="fehler">⚠️ Verbindung fehlgeschlagen.</div>';}
 }
