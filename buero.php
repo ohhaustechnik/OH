@@ -643,6 +643,12 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .ads-tbl td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--txt);}
 .ads-tbl td:nth-child(n+2){text-align:right;white-space:nowrap;}
 .spinner-mini{font-size:12px;color:var(--txt-dim);}
+.backbtn{flex-shrink:0;}
+.chat-reco-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 14px 8px;padding:10px 12px;background:rgba(57,214,255,.08);border:1px solid var(--cyan);border-radius:12px;}
+.chat-reco-bar .crb-txt{font-size:12.5px;color:var(--txt);flex:1;min-width:140px;}
+.chat-reco-bar .crb-txt b{color:#fff;}
+.chat-reco-bar .crb-done{background:var(--cyan-soft);border:1px solid var(--cyan);color:var(--cyan);border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+.chat-reco-bar .crb-done:disabled{opacity:.6;cursor:default;}
 .reco{background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px;}
 .reco.rot{border-left:3px solid var(--red);box-shadow:0 0 16px rgba(255,93,108,.12);}
 .reco.gelb{border-left:3px solid var(--gold);}
@@ -972,6 +978,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 </aside>
 
 <header>
+  <button class="icobtn backbtn" id="backBtn" onclick="goBack()" title="Zurück" style="display:none">&#8592;</button>
   <button class="hamburger" onclick="toggleSidebar()" title="Menü">&#9776;</button>
   <div class="brand" onclick="goHome()" style="cursor:pointer"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
   <div class="hbtns">
@@ -1158,6 +1165,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
       <div class="av" id="chatIco">&#129518;</div>
       <div><div class="nm" id="chatName">Kalkulator</div><div class="st">&#9679; ONLINE · bereit</div></div>
     </div>
+    <div id="chatRecoBar" class="chat-reco-bar" style="display:none"></div>
     <div class="chat-log" id="chatLog"></div>
   </div>
   <div class="quick" id="quickRow"></div>
@@ -1814,13 +1822,23 @@ function clock(){
 
 /* ============ NAVIGATION ============ */
 let curSection='home', navHist=[];
+let chatReco=null; // aktuell im Chat besprochene Empfehlung (id + kind 'ads'/'web')
 function showSection(s,track){
   if(track!==false&&curSection&&curSection!==s){navHist.push(curSection);if(navHist.length>12)navHist.shift();}
   ['home','settings','chat','ads','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
+  const bb=gl('backBtn'); if(bb)bb.style.display=(s==='home')?'none':'flex';
   if(s!=='chat')window.scrollTo({top:0,behavior:'smooth'});
+  refreshSection(s);
+}
+/* Beim Betreten/Zurueckkehren einer Ansicht IMMER frische Server-Daten laden,
+   damit erledigte Empfehlungen nicht aus altem Cache als offen erscheinen. */
+function refreshSection(s){
+  if(s==='ads'){if(typeof loadReco==='function')loadReco();if(typeof loadAds==='function')loadAds();}
+  else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
+  else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
 /* Ein Schritt zurück (Tab/Kontext bleibt erhalten) – statt immer zum Dashboard */
 function goBack(){
@@ -1945,8 +1963,9 @@ function renderLL(){
 function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
 
 /* ============ CHAT ÖFFNEN ============ */
-function openChat(m,prefill){
+function openChat(m,prefill,reco){
   mode=m; const cfg=MODI[m];
+  chatReco=(reco&&reco.id)?reco:null; renderChatReco();
   AGENT_CTX='';
   if(AGENTS[m]){api('agent_context',{agent:m}).then(d=>{AGENT_CTX=d.ctx||'';}).catch(()=>{});}
   gl('chatName').textContent=cfg.name;
@@ -1989,7 +2008,7 @@ function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow
 
 /* ============ GOOGLE ADS ============ */
 let lastAdsReport=null;
-function openAds(){showSection('ads');loadReco();loadAds();}
+function openAds(){showSection('ads');}
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */
 const PRIO={rot:{t:'🔴 SOFORT übernehmen',c:'rot'},gelb:{t:'🟡 Diese Woche',c:'gelb'},gruen:{t:'🟢 Optional',c:'gruen'}};
@@ -2024,13 +2043,36 @@ function renderReco(list){
         <button class="btn btn-cyan reco-ok" onclick="recoApply('${r.id}',this)">✅ Übernehmen</button>
         <button class="btn btn-ghost reco-later" onclick="recoLater('${r.id}',this)">Später</button>
       </div>
-      <button class="task-go" style="width:100%;text-align:center;margin-top:8px" onclick="dilaraChat(this)" data-titel="${esc(r.titel||'')}" data-was="${esc(r.was||'')}">💬 Mit Dilara besprechen</button>
+      <button class="task-go" style="width:100%;text-align:center;margin-top:8px" onclick="dilaraChat(this)" data-id="${esc(r.id||'')}" data-kind="ads" data-titel="${esc(r.titel||'')}" data-was="${esc(r.was||'')}">💬 Mit Dilara besprechen</button>
     </div>`;
   }).join('');
 }
 function dilaraChat(btn){
   const t=btn.getAttribute('data-titel')||'',w=btn.getAttribute('data-was')||'';
-  openChat('dilara','Zu Deiner Empfehlung "'+t+'" ('+w+'): Erkläre mir das genauer – lohnt sich das wirklich, was bringt es konkret und was muss ich tun?');
+  const id=btn.getAttribute('data-id')||'',kind=btn.getAttribute('data-kind')||'ads';
+  openChat('dilara','Zu Deiner Empfehlung "'+t+'" ('+w+'): Erkläre mir das genauer – lohnt sich das wirklich, was bringt es konkret und was muss ich tun?',{id:id,kind:kind,titel:t});
+}
+/* Banner im Chat: zeigt die gerade besprochene Empfehlung + „erledigt"-Knopf.
+   Markieren ueber den Chat nutzt DENSELBEN Endpunkt wie der Listen-Button
+   (eine zentrale Quelle der Wahrheit) – danach laedt die Liste beim Zurueck frisch. */
+function renderChatReco(){
+  const bar=gl('chatRecoBar'); if(!bar)return;
+  if(chatReco&&chatReco.id){
+    bar.style.display='flex';
+    bar.innerHTML='<span class="crb-txt">📌 Empfehlung: <b>'+esc(chatReco.titel||'')+'</b></span>'
+      +'<button class="crb-done" onclick="chatRecoDone(this)">✅ Als erledigt markieren</button>';
+  }else{bar.style.display='none';bar.innerHTML='';}
+}
+async function chatRecoDone(btn){
+  if(!chatReco||!chatReco.id)return;
+  btn.disabled=true; btn.textContent='⏳ …';
+  const action=chatReco.kind==='web'?'website_apply':'ads_apply';
+  const titel=chatReco.titel||'';
+  let d={}; try{d=await api(action,{id:chatReco.id});}catch(e){}
+  const bar=gl('chatRecoBar'); if(bar){bar.innerHTML='<span class="crb-txt">✅ Erledigt – ist jetzt aus Deiner Aufgabenliste raus.</span>';}
+  pushMsg('ai','✅ Erledigt, Chef! Ich hab die Empfehlung „'+titel+'" als übernommen markiert. Beim Zurückgehen ist sie aus der Liste verschwunden.');
+  chatReco=null;
+  if(typeof loadDashboard==='function')loadDashboard();
 }
 async function recoApply(id,btn){
   btn.disabled=true; btn.textContent='⏳ …';
@@ -2080,7 +2122,7 @@ function renderAds(r){
   gl('adsBody').innerHTML=html;
 }
 /* ============ DILARA · WEBSITE ============ */
-function openWeb(){showSection('web');loadWeb();}
+function openWeb(){showSection('web');}
 async function loadWeb(){
   gl('webBody').innerHTML='<div class="prio-empty">Lade …</div>';
   try{const d=await api('website_reco');renderWeb(d.reco||[]);}catch(e){gl('webBody').innerHTML='<div class="prio-empty">Noch keine Analyse. Tipp „Website jetzt analysieren".</div>';}
@@ -2105,7 +2147,7 @@ function renderWeb(list){
         <button class="btn btn-ghost reco-later" onclick="webAct('website_later','${r.id}',this)">Später</button>
         <button class="btn btn-ghost reco-later" onclick="webAct('website_dismiss','${r.id}',this)" style="color:var(--red)">Ablehnen</button>
       </div>
-      <button class="task-go" style="width:100%;text-align:center;margin-top:8px" onclick="dilaraChat(this)" data-titel="${esc(r.titel||'')}" data-was="${esc(r.was||'')}">💬 Mit Dilara besprechen</button></div>`;}).join('');
+      <button class="task-go" style="width:100%;text-align:center;margin-top:8px" onclick="dilaraChat(this)" data-id="${esc(r.id||'')}" data-kind="web" data-titel="${esc(r.titel||'')}" data-was="${esc(r.was||'')}">💬 Mit Dilara besprechen</button></div>`;}).join('');
 }
 async function webApply(id,btn){
   btn.disabled=true;btn.textContent='✓';
