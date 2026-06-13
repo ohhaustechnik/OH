@@ -251,6 +251,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $err = null;
         $rep = oh_ads_report($err);
         echo json_encode($rep !== null ? ['ok' => true, 'report' => $rep] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'prognose') {
+        $err = null;
+        $p = function_exists('oh_prognose') ? oh_prognose($err) : null;
+        echo json_encode($p !== null ? ['ok' => true, 'prognose' => $p] : ['ok' => false, 'error' => $err]);
     } elseif ($a === 'ads_reco') {
         // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
         echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
@@ -658,6 +662,23 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .task-go{display:block;margin-top:8px;background:var(--cyan-soft);border:1px solid var(--cyan);color:var(--cyan);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
 .task.done{opacity:.55;}
 .task.done .tt{text-decoration:line-through;}
+.prog-card{border-color:var(--cyan);box-shadow:var(--glow);}
+.prog-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 12px;}
+.prog-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px 10px;text-align:center;}
+.prog-stat .n{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.3px;}
+.prog-stat .l{font-size:10px;color:var(--txt-dim);letter-spacing:.3px;margin-top:4px;line-height:1.3;}
+.prog-stat.hi{background:var(--cyan-soft);border-color:var(--cyan);}
+.prog-stat.hi .n{color:var(--cyan);}
+.prog-line{font-size:12.5px;color:var(--txt);line-height:1.5;margin-top:8px;}
+.prog-line b{color:#fff;}
+.prog-pot{font-size:13px;color:var(--txt);line-height:1.55;margin-top:12px;padding:11px 13px;background:rgba(52,224,154,.08);border:1px solid var(--green);border-radius:12px;}
+.prog-pot b{color:var(--green);}
+.prog-top{margin-top:10px;}
+.prog-top-h{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-dim);font-weight:700;margin-bottom:6px;}
+.prog-top-i{font-size:12.5px;color:var(--txt);padding:6px 0;border-bottom:1px solid var(--line);}
+.prog-top-i:last-child{border-bottom:none;}
+.prog-top-i span{display:inline-block;min-width:62px;color:var(--green);font-weight:800;}
+.prog-foot{font-size:10.5px;color:var(--txt-dim);margin-top:12px;font-style:italic;line-height:1.4;}
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
 .ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
@@ -1080,6 +1101,11 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 
 <!-- GOOGLE ADS -->
 <div id="s-ads" style="display:none">
+  <div class="card prog-card">
+    <h2>&#128302; Prognose · nächste Woche</h2>
+    <p class="intro">Ehrlich aus Deinen echten Ads-Zahlen + den Vorschlägen, die Du übernimmst. Keine geschönten Zahlen – so siehst Du, was wirklich kommt und welcher Vorschlag am meisten bringt.</p>
+    <div id="progBody"><div class="prio-empty">Lade Prognose …</div></div>
+  </div>
   <div class="card">
     <h2>&#129302; Dein KI-Geschäftsführer</h2>
     <p class="intro">Findet Chancen, mehr hochwertige Anfragen zu gewinnen (Altbau, Sanierung, Smart-Home) und Werbekosten zu senken.</p>
@@ -1889,7 +1915,7 @@ function showSection(s,track){
 /* Beim Betreten/Zurueckkehren einer Ansicht IMMER frische Server-Daten laden,
    damit erledigte Empfehlungen nicht aus altem Cache als offen erscheinen. */
 function refreshSection(s){
-  if(s==='ads'){if(typeof loadReco==='function')loadReco();if(typeof loadAds==='function')loadAds();}
+  if(s==='ads'){if(typeof loadProg==='function')loadProg();if(typeof loadReco==='function')loadReco();if(typeof loadAds==='function')loadAds();}
   else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
   else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
@@ -2063,6 +2089,38 @@ function quick(b){gl('chatIn').value=b.textContent;gl('chatIn').focus();autoGrow
 /* ============ GOOGLE ADS ============ */
 let lastAdsReport=null;
 function openAds(){showSection('ads');}
+
+/* --- Ehrliche Prognose nächste Woche --- */
+async function loadProg(){
+  const el=gl('progBody'); if(!el)return;
+  el.innerHTML='<div class="prio-empty">Lade Prognose …</div>';
+  let d={};try{d=await api('prognose');}catch(e){}
+  if(!d||!d.ok){el.innerHTML='<div class="prio-empty">Prognose erst möglich, wenn die Ads-Zahlen geladen sind (⚙️ Zugangsdaten prüfen).</div>';return;}
+  renderProg(d.prognose||{});
+}
+function renderProg(p){
+  const el=gl('progBody'); if(!el)return;
+  const nf=n=>(Math.round((+n||0)*10)/10).toLocaleString('de-DE');
+  const eu=n=>(Math.round(+n||0)).toLocaleString('de-DE')+' €';
+  let html=`<div class="prog-grid">
+    <div class="prog-stat"><div class="n">${nf(p.anfragen_prognose)}</div><div class="l">Anfragen/Woche<br>(realistisch)</div></div>
+    <div class="prog-stat"><div class="n">${nf(p.auftraege_prognose)}</div><div class="l">→ Aufträge<br>(Quote ${p.quote||0}%)</div></div>
+    <div class="prog-stat hi"><div class="n">${eu(p.umsatz_prognose)}</div><div class="l">erwarteter Umsatz<br>(Ø ${eu(p.avg_auftrag)})</div></div>
+  </div>`;
+  html+=`<div class="prog-line">Basis aus Ads (letzte 7 Tage): <b>${nf(p.baseline_anfragen)}</b> Anfragen · durch übernommene Vorschläge bereits <b>+${nf(p.angenommen_extra)}</b>.</div>`;
+  if((p.offen_extra||0)>0){
+    html+=`<div class="prog-pot">📈 <b>Wenn Du die offenen Vorschläge auch übernimmst:</b> bis zu <b>${nf(p.anfragen_potenzial)}</b> Anfragen → <b>${nf(p.auftraege_potenzial)}</b> Aufträge ≈ <b>${eu(p.umsatz_potenzial)}</b>.</div>`;
+    if(p.top_offen&&p.top_offen.length){
+      html+='<div class="prog-top"><div class="prog-top-h">Diese Vorschläge heben die Zahl am meisten:</div>';
+      p.top_offen.forEach(t=>{html+=`<div class="prog-top-i"><span>＋${nf(t.extra)}/Wo</span> ${esc(t.titel)}</div>`;});
+      html+='</div>';
+    }
+  } else {
+    html+='<div class="prog-line" style="opacity:.8">Übernimm Dilaras Vorschläge unten, dann steigt die Prognose sichtbar.</div>';
+  }
+  html+='<div class="prog-foot">Ehrliche Schätzung – konservativ gerechnet (Erfolgs-Wahrscheinlichkeit eingepreist). Keine geschönten Zahlen.</div>';
+  el.innerHTML=html;
+}
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */
 const PRIO={rot:{t:'🔴 SOFORT übernehmen',c:'rot'},gelb:{t:'🟡 Diese Woche',c:'gelb'},gruen:{t:'🟢 Optional',c:'gruen'}};

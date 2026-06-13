@@ -1074,6 +1074,9 @@ function oh_ads_recommendations(?string &$err = null): ?array {
     $hist = array_values(array_filter(array_unique($hist)));
     if ($hist) $ctx .= "\nBEREITS VORGESCHLAGEN ODER ERLEDIGT (NICHT wiederholen – bring NEUE, frische Ideen aus den aktuellen Daten):\n- " . implode("\n- ", array_slice($hist, 0, 20)) . "\n";
 
+    // Wochenziel mitgeben, damit jede Empfehlung auf die Lücke einzahlt
+    if (function_exists('oh_ziel_text')) $ctx .= "\n" . oh_ziel_text();
+
     $system = "Du bist der digitale Geschäftsführer von OH Haustechnik (Elektriker Nürnberg, Kleinunternehmer). "
         . "ZIEL: möglichst viele HOCHWERTIGE Anfragen für Altbausanierung, Wohnungsmodernisierung, komplette Elektro-Sanierung (3-4 Zimmer), Zähleranlagen, Unterverteilungen und Smart-Home. "
         . "Qualität vor Menge. Werbekosten senken, profitable Aufträge gewinnen.\n"
@@ -1085,6 +1088,7 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         . "WICHTIG zu 'typ': Bevorzuge 'negativ_keyword' (wert = das auszuschließende Wort) und 'keyword' (wert = das neue Suchwort) – diese führt das System auf Klick SOFORT selbst aus. Bei 'budget' MUSS wert eine reine Zahl in €/Tag sein (z.B. \"35\"). "
         . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt. "
         . "WICHTIG: Wiederhole KEINE bereits vorgeschlagenen/erledigten Maßnahmen. Liefere jeden Tag NEUE, frische, andere Empfehlungen aus den aktuellen Zahlen. "
+        . "FOKUS GROSSAUFTRÄGE: Priorisiere Maßnahmen, die HOCHWERTIGE Sanierungs-/Großaufträge bringen (komplette Elektro-Sanierung, Altbau, Wohnungsmodernisierung 3-4 Zimmer, Zähleranlage, Unterverteilung, Smart-Home). Lieber 1 Großauftrag als 5 Kleinkram-Anfragen. Schlage gezielt starke Großauftrag-Keywords vor und lenke Budget weg von Kleinkram-Suchbegriffen hin zu denen, die zu Sanierung führen. Schätze bei jedem Vorschlag in 'anfragen' möglichst konkret, wie viele zusätzliche HOCHWERTIGE Anfragen pro Woche realistisch sind (ehrlich, nicht übertrieben). "
         . "STELLE NIEMALS FRAGEN. Liefere immer fertige, konkrete Vorschläge mit erwarteter Verbesserung (z.B. '+18% mehr Anfragen'). Der Chef soll nur noch Übernehmen oder Ablehnen drücken.";
 
     $resp = oh_ki($system, $ctx, 1800);
@@ -2027,6 +2031,78 @@ function oh_ziel_text(): string {
         . ($z['auftraege_woche'] ? " ≈ " . $z['auftraege_woche'] . " Aufträge/Woche (Ø-Auftrag " . number_format($z['avg_auftrag'], 0, ',', '.') . "€)" : '')
         . ($z['anfragen_woche'] ? ", dafür ~" . $z['anfragen_woche'] . " Anfragen/Woche (Abschlussquote " . $z['quote'] . "%)" : '')
         . " Jede Empfehlung muss auf diese Lücke einzahlen.";
+}
+
+/* ==========================================================================
+ * EHRLICHE PROGNOSE (nächste Woche): rechnet aus den ECHTEN Ads-Zahlen plus
+ * den von Dir übernommenen Vorschlägen aus, wie viele zusätzliche Anfragen/
+ * Aufträge realistisch kommen. Bewusst KONSERVATIV (Wahrscheinlichkeit als
+ * Dämpfer), damit die Zahl ehrlich bleibt und nicht schöngerechnet ist.
+ * Quelle der Wahrheit: oh_ads_report (Anfragen=Conversions der letzten 7 Tage),
+ * ads_reco (anfragen-Schätzung je Vorschlag), oh_ziel_status (Quote/Ø-Auftrag).
+ * ======================================================================== */
+function oh_prognose_extra(array $r, float $baseline): float {
+    // Erwartete Zusatz-Anfragen/Woche aus einem Vorschlag herauslesen (konservativ).
+    $txt = mb_strtolower(($r['anfragen'] ?? '') . ' ' . ($r['titel'] ?? '') . ' ' . ($r['was'] ?? ''));
+    $wahr = mb_strtolower($r['wahrscheinlichkeit'] ?? 'mittel');
+    $conf = strpos($wahr, 'hoch') !== false ? 1.0 : (strpos($wahr, 'niedrig') !== false ? 0.3 : 0.6);
+    $val = 0.0;
+    // Prozent-Angabe (z.B. "+18%") -> auf Basis-Anfragen anwenden
+    if (preg_match('/(\d{1,3})\s*%/', $txt, $m)) {
+        $val = $baseline * ((float)$m[1] / 100.0);
+    } elseif (preg_match('/(\d+)\s*[-–bis]+\s*(\d+)/u', $txt, $m)) { // Bereich "2-4"
+        $val = ((float)$m[1] + (float)$m[2]) / 2.0;
+    } elseif (preg_match('/(\d+(?:[.,]\d+)?)/', $txt, $m)) {          // einzelne Zahl
+        $val = (float)str_replace(',', '.', $m[1]);
+    }
+    $val = max(0.0, min($val, 8.0));   // Deckel gegen übertriebene Schätzungen
+    return $val * $conf;
+}
+
+function oh_prognose(?string &$err = null): ?array {
+    $rep = oh_ads_report($err);
+    if ($rep === null) return null;
+    $s = $rep['summe'] ?? [];
+    $baseline = (float)($s['conv'] ?? 0);      // Anfragen der letzten 7 Tage ≈ pro Woche
+    $z = oh_ziel_status();
+    $quote = max(0.0, min(1.0, ($z['quote'] ?? 0) / 100.0));
+    if ($quote <= 0) $quote = 0.15;            // vorsichtige Annahme, wenn noch keine Historie
+    $avg = (float)($z['avg_auftrag'] ?? 0);
+    if ($avg <= 0) $avg = 2000.0;
+
+    $recos = oh_read('ads_reco', []);
+    $angenommen = 0.0; $offen = 0.0; $topOffen = [];
+    foreach ($recos as $r) {
+        $st = $r['status'] ?? 'offen';
+        $extra = oh_prognose_extra($r, $baseline);
+        if ($st === 'uebernommen') { $angenommen += $extra; }
+        elseif ($st === 'offen') {
+            $offen += $extra;
+            if ($extra > 0) $topOffen[] = ['titel' => $r['titel'] ?? '', 'extra' => round($extra, 1), 'id' => $r['id'] ?? ''];
+        }
+    }
+    usort($topOffen, function($a, $b){ return $b['extra'] <=> $a['extra']; });
+
+    $anfrPrognose  = $baseline + $angenommen;            // realistisch fixiert durch übernommene Vorschläge
+    $anfrPotenzial = $baseline + $angenommen + $offen;    // wenn Du die offenen auch übernimmst
+    $auftrPrognose  = $anfrPrognose * $quote;
+    $auftrPotenzial = $anfrPotenzial * $quote;
+
+    return [
+        'baseline_anfragen'   => round($baseline, 1),
+        'angenommen_extra'    => round($angenommen, 1),
+        'offen_extra'         => round($offen, 1),
+        'anfragen_prognose'   => round($anfrPrognose, 1),
+        'anfragen_potenzial'  => round($anfrPotenzial, 1),
+        'auftraege_prognose'  => round($auftrPrognose, 1),
+        'auftraege_potenzial' => round($auftrPotenzial, 1),
+        'umsatz_prognose'     => round($auftrPrognose * $avg),
+        'umsatz_potenzial'    => round($auftrPotenzial * $avg),
+        'quote'               => round($quote * 100),
+        'avg_auftrag'         => round($avg),
+        'top_offen'           => array_slice($topOffen, 0, 4),
+        'ziel_auftraege_woche'=> $z['auftraege_woche'] ?? null,
+    ];
 }
 
 /** Tageslimit für Autopilot-Aktionen (Schutz vor Amok). true = darf noch. */
