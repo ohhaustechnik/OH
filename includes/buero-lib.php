@@ -2030,6 +2030,34 @@ function oh_agent_mem_read(string $agent): array {
     return (isset($all[$agent]) && is_array($all[$agent])) ? $all[$agent] : [];
 }
 
+/* --------------------------------------------------------------------------
+ * GESPRAECHSGEDAECHTNIS pro Agent: speichert den Chat-Verlauf (Chef <-> Agent)
+ * dauerhaft, damit der Agent beim naechsten Start dort weitermacht, wo
+ * aufgehoert wurde (offene Punkte, Status, naechste Schritte stehen im Verlauf).
+ * Datei: daten/chat_<agent>.json  (gekappt auf die letzten 40 Nachrichten).
+ * ------------------------------------------------------------------------ */
+function oh_agent_chat_save(string $agent, array $messages): void {
+    $agent = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($agent)));
+    if ($agent === '') return;
+    $clean = [];
+    foreach ($messages as $m) {
+        $r = $m['role'] ?? '';
+        $c = $m['content'] ?? '';
+        if (($r === 'user' || $r === 'assistant') && is_string($c) && trim($c) !== '') {
+            $clean[] = ['role' => $r, 'content' => mb_substr($c, 0, 6000)];
+        }
+    }
+    $clean = array_slice($clean, -40); // nur die letzten 40 Nachrichten behalten
+    oh_write('chat_' . $agent, ['messages' => $clean, 'updated' => time()]);
+}
+
+function oh_agent_chat_load(string $agent): array {
+    $agent = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($agent)));
+    if ($agent === '') return [];
+    $d = oh_read('chat_' . $agent, []);
+    return (isset($d['messages']) && is_array($d['messages'])) ? $d['messages'] : [];
+}
+
 /** Hängt einen Eintrag ans Gedächtnis eines Agenten an (mit Dedupe, max. 40). */
 function oh_agent_mem_add(string $agent, string $text, string $typ = 'fund'): void {
     $agent = trim($agent);
@@ -2277,6 +2305,62 @@ function oh_website_analyze(?string &$err = null): ?array {
     oh_write('website_reco', $reco);
     if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website analysiert: ' . count($reco) . ' Optimierungs-Vorschlag/Vorschläge erstellt');
     return $reco;
+}
+
+/* --------------------------------------------------------------------------
+ * SCHRITT 5/6 – Sicher editierbare Website-Elemente (Überschrift / CTA).
+ *  - oh_website_get_editable(): liest die aktuellen Texte aus index.php (Live-Quelle).
+ *  - oh_website_queue_change(): merkt eine angenommene Text-Änderung vor – OHNE
+ *    Ausführung (Schritt 5). Erst Schritt 6 schreibt sie wirklich (Backup + Rückgängig).
+ * ------------------------------------------------------------------------ */
+function oh_website_root_file(string $name = 'index.php'): string {
+    return dirname(__DIR__) . '/' . ltrim($name, '/');
+}
+
+function oh_website_get_editable(): array {
+    $html = @file_get_contents(oh_website_root_file('index.php'));
+    $out = [];
+    if ($html === false) return $out;
+    if (preg_match('/<h1\b[^>]*>(.*?)<\/h1>/is', $html, $m)) {
+        $roh = trim($m[1]);
+        $text = trim(preg_replace('/\s+/', ' ', strip_tags(str_replace(['<br>', '<br/>', '<br />'], ' ', $roh))));
+        $out[] = ['id' => 'headline', 'element' => 'Hauptüberschrift (H1)', 'datei' => 'index.php', 'alt_html' => $roh, 'alt_text' => $text];
+    }
+    if (preg_match_all('/(?:open-funnel|data-open-funnel)[^>]*>\s*([^<]{5,90}?)\s*</is', $html, $mm)) {
+        $seen = [];
+        foreach ($mm[1] as $i => $t) {
+            $t = trim(preg_replace('/\s+/', ' ', html_entity_decode($t)));
+            if ($t === '' || isset($seen[$t])) continue;
+            $seen[$t] = true;
+            $out[] = ['id' => 'cta' . $i, 'element' => 'Button / Handlungsaufforderung', 'datei' => 'index.php', 'alt_html' => $t, 'alt_text' => $t];
+        }
+    }
+    return $out;
+}
+
+function oh_website_pending(): array {
+    $d = oh_read('website_pending', []);
+    return is_array($d) ? $d : [];
+}
+
+/** Merkt eine angenommene Text-Änderung vor – OHNE Ausführung (Schritt 5). */
+function oh_website_queue_change(string $element, string $alt, string $neu, string $datei = 'index.php'): ?array {
+    $alt = trim($alt); $neu = trim($neu);
+    if ($alt === '' || $neu === '' || $alt === $neu) return null;
+    $eintrag = [
+        'id' => 'WQ' . date('ymdHis'),
+        'element' => mb_substr($element, 0, 120),
+        'datei' => preg_replace('/[^a-z0-9_.\-]/i', '', $datei) ?: 'index.php',
+        'alt' => mb_substr($alt, 0, 2000),
+        'neu' => mb_substr($neu, 0, 2000),
+        'status' => 'angenommen', // angenommen | ausgefuehrt | rueckgaengig
+        'erstellt' => time(),
+    ];
+    $q = oh_website_pending();
+    $q[] = $eintrag;
+    oh_write('website_pending', $q);
+    if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website-Änderung VORGEMERKT (noch nicht ausgeführt): ' . $element);
+    return $eintrag;
 }
 
 /* ==========================================================================

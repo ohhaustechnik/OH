@@ -119,12 +119,35 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         echo json_encode($r !== null ? ['ok' => true, 'agenten' => $r] : ['ok' => false, 'error' => $aerr]);
     } elseif ($a === 'agent_context') {
         echo json_encode(['ctx' => oh_agent_context($in['agent'] ?? '')]);
+    } elseif ($a === 'chat_load') {
+        // Gespraechsgedaechtnis: gespeicherten Chat-Verlauf eines Agenten laden
+        $ag = preg_replace('/[^a-z0-9_]/', '', strtolower($in['agent'] ?? ''));
+        echo json_encode(['messages' => ($ag && function_exists('oh_agent_chat_load')) ? oh_agent_chat_load($ag) : []]);
+    } elseif ($a === 'chat_save') {
+        // Gespraechsgedaechtnis: Chat-Verlauf eines Agenten speichern
+        $ag = preg_replace('/[^a-z0-9_]/', '', strtolower($in['agent'] ?? ''));
+        $msgs = $in['messages'] ?? [];
+        if ($ag && is_array($msgs) && function_exists('oh_agent_chat_save')) oh_agent_chat_save($ag, $msgs);
+        echo json_encode(['ok' => true]);
     } elseif ($a === 'website_reco') {
         echo json_encode(['ok' => true, 'reco' => oh_read('website_reco', [])]);
     } elseif ($a === 'website_analyze') {
         $werr = null;
         $r = oh_website_analyze($werr);
         echo json_encode($r !== null ? ['ok' => true, 'reco' => $r] : ['ok' => false, 'error' => $werr]);
+    } elseif ($a === 'website_editable') {
+        // Schritt 5: aktuelle editierbare Elemente (Überschrift/CTA) + vorgemerkte Änderungen
+        echo json_encode([
+            'ok' => true,
+            'elemente' => function_exists('oh_website_get_editable') ? oh_website_get_editable() : [],
+            'pending'  => function_exists('oh_website_pending') ? oh_website_pending() : [],
+        ]);
+    } elseif ($a === 'website_queue') {
+        // Schritt 5: Text-Änderung VORMERKEN (keine Ausführung)
+        $r = function_exists('oh_website_queue_change')
+            ? oh_website_queue_change((string)($in['element'] ?? 'Text'), (string)($in['alt'] ?? ''), (string)($in['neu'] ?? ''), (string)($in['datei'] ?? 'index.php'))
+            : null;
+        echo json_encode($r ? ['ok' => true, 'eintrag' => $r] : ['ok' => false, 'error' => 'Ungültige Änderung (alt/neu fehlt oder identisch).']);
     } elseif ($a === 'website_apply' || $a === 'website_later' || $a === 'website_dismiss') {
         $id = $in['id'] ?? '';
         $reco = oh_read('website_reco', []);
@@ -1944,6 +1967,15 @@ function openChat(m,prefill){
     }[m] || ('Bereit, Chef! Ich bin '+cfg.name+'. Sag mir, was Du brauchst.');
     if(greet)pushMsg('ai',greet);
   }
+  // Gespraechsgedaechtnis: gespeicherten Verlauf vom Server laden + anzeigen (nur echte Agenten)
+  if(typeof AGENTS!=='undefined' && AGENTS[m]){
+    api('chat_load',{agent:m}).then(d=>{
+      if(d && Array.isArray(d.messages) && d.messages.length){
+        history[m]=d.messages.map(x=>({role:x.role, content:x.content, _render:(x.role==='assistant'?x.content:undefined)}));
+        renderLog();
+      }
+    }).catch(()=>{});
+  }
   showSection('chat');
   if(prefill){gl('chatIn').value=prefill;autoGrow();}
   setTimeout(()=>gl('chatIn').focus(),300);
@@ -2160,6 +2192,10 @@ async function send(){
       renderLog();
     }else{
       pushMsg('ai',txt);
+    }
+    // Gespraechsgedaechtnis: Verlauf speichern (nur echte Agenten)
+    if(typeof AGENTS!=='undefined' && AGENTS[mode]){
+      api('chat_save',{agent:mode, messages:history[mode].map(x=>({role:x.role, content:x.content}))}).catch(()=>{});
     }
   }catch(e){
     tp.remove();
