@@ -515,6 +515,24 @@ function oh_change_undo(string $id, ?string &$err = null): bool {
             unset($r);
             if ($ok) oh_write('website_reco', $reco);
             break;
+        case 'website_text': // echte Website-Text-Änderung aus Backup wiederherstellen
+            $info  = is_array($hit['neu'] ?? null) ? $hit['neu'] : [];
+            $bak   = preg_replace('/[^a-z0-9_.\-]/i', '', $info['backup'] ?? '');
+            $datei = preg_replace('/[^a-z0-9_.\-]/i', '', $info['datei'] ?? 'index.php') ?: 'index.php';
+            $bakPath = dirname(__DIR__) . '/' . $bak;
+            if ($bak && is_file($bakPath)) {
+                $content = @file_get_contents($bakPath);
+                $ok = ($content !== false && @file_put_contents(dirname(__DIR__) . '/' . $datei, $content) !== false);
+                if (!$ok) $err = 'Wiederherstellen aus Backup fehlgeschlagen.';
+                // Pending-Eintrag auf rueckgaengig setzen
+                if ($ok && ($hit['ref'] ?? '') !== '') {
+                    $pend = function_exists('oh_website_pending') ? oh_website_pending() : [];
+                    foreach ($pend as &$pp) { if (($pp['id'] ?? '') === $hit['ref']) $pp['status'] = 'rueckgaengig'; }
+                    unset($pp);
+                    oh_write('website_pending', $pend);
+                }
+            } else { $err = 'Backup-Datei fehlt – manuelle Wiederherstellung nötig.'; }
+            break;
         case 'ads_reco': // dokumentierte Ads-Empfehlung zurück auf offen
             $reco = oh_read('ads_reco', []);
             foreach ($reco as &$r) { if (($r['id'] ?? '') === $hit['ref']) { $r['status'] = 'offen'; $ok = true; } }
@@ -2361,6 +2379,96 @@ function oh_website_queue_change(string $element, string $alt, string $neu, stri
     oh_write('website_pending', $q);
     if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website-Änderung VORGEMERKT (noch nicht ausgeführt): ' . $element);
     return $eintrag;
+}
+
+/** SCHRITT 6: führt eine vorgemerkte Änderung WIRKLICH auf der Seite aus –
+ *  mit Backup (datiert), Verifikation und Rückgängig-Eintrag im Archiv.
+ *  Bei jedem Zweifel: sicherer Abbruch, Datei bleibt unverändert. */
+function oh_website_execute_change(string $id, ?string &$err = null): ?array {
+    $q = oh_website_pending();
+    $idx = -1; $hit = null;
+    foreach ($q as $i => $x) { if (($x['id'] ?? '') === $id) { $hit = $x; $idx = $i; break; } }
+    if (!$hit) { $err = 'Vorgemerkte Änderung nicht gefunden.'; return null; }
+    if (($hit['status'] ?? '') !== 'angenommen') { $err = 'Nur angenommene Änderungen können ausgeführt werden.'; return null; }
+
+    $dateiName = preg_replace('/[^a-z0-9_.\-]/i', '', $hit['datei'] ?? 'index.php') ?: 'index.php';
+    $datei = dirname(__DIR__) . '/' . $dateiName;
+    $html = @file_get_contents($datei);
+    if ($html === false) { $err = 'Datei nicht lesbar: ' . $dateiName; return null; }
+
+    // 1) BACKUP zuerst (datiert) – ohne Backup keine Ausführung
+    $bakName = $dateiName . '.' . date('Y-m-d_His') . '.bak';
+    if (@file_put_contents(dirname(__DIR__) . '/' . $bakName, $html) === false) { $err = 'Backup fehlgeschlagen – Abbruch, nichts geändert.'; return null; }
+
+    $vorher = $html;
+    $neu = trim($hit['neu']);
+    $istHeadline = (stripos($hit['element'], 'H1') !== false || stripos($hit['element'], 'Überschrift') !== false);
+
+    if ($istHeadline) {
+        $cnt = 0;
+        $html = preg_replace_callback('/(<h1\b[^>]*>)(.*?)(<\/h1>)/is', function ($m) use ($neu, &$cnt) {
+            $cnt++;
+            return $m[1] . "\n                " . htmlspecialchars($neu, ENT_QUOTES, 'UTF-8') . "\n            " . $m[3];
+        }, $html, 1);
+        if ($cnt === 0) { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Keine H1 gefunden – nichts geändert.'; return null; }
+    } else {
+        $alt = $hit['alt'];
+        $n = ($alt !== '') ? substr_count($html, $alt) : 0;
+        if ($n === 0) { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Alter Text nicht gefunden – nichts geändert.'; return null; }
+        if ($n > 1)  { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Alter Text kommt mehrfach vor – aus Sicherheit nicht ausgeführt.'; return null; }
+        $html = str_replace($alt, $neu, $html);
+    }
+
+    // 2) Sicherheits-Checks vor dem Schreiben
+    if ($html === $vorher) { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Keine Änderung entstanden.'; return null; }
+    if (substr_count($html, '<h1') < substr_count($vorher, '<h1')) { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Sicherheitsabbruch: H1-Struktur beschädigt.'; return null; }
+    if (substr_count($html, '<?php') !== substr_count($vorher, '<?php')) { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Sicherheitsabbruch: PHP-Struktur verändert.'; return null; }
+
+    // 3) Schreiben
+    if (@file_put_contents($datei, $html) === false) { $err = 'Schreiben fehlgeschlagen.'; return null; }
+
+    // 4) Archiv-Eintrag mit Rückgängig (Backup-Pfad)
+    $changeId = function_exists('oh_change_log')
+        ? oh_change_log('website_text', 'Website geändert: ' . $hit['element'], mb_substr($hit['alt'], 0, 200), ['backup' => $bakName, 'datei' => $dateiName, 'neu' => $neu], $id, true)
+        : '';
+
+    $q[$idx]['status'] = 'ausgefuehrt';
+    $q[$idx]['backup'] = $bakName;
+    $q[$idx]['change_id'] = $changeId;
+    $q[$idx]['ausgefuehrt'] = time();
+    oh_write('website_pending', $q);
+    if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website-Änderung AUSGEFÜHRT (live): ' . $hit['element']);
+    return ['ok' => true, 'backup' => $bakName, 'change_id' => $changeId];
+}
+
+/* --------------------------------------------------------------------------
+ * SCHRITT 7 – GRENZEN: was die Agenten AUTOMATISCH dürfen und was NUR mit
+ * Freigabe des Chefs. Einzige Wahrheitsquelle; vom Code geprüft.
+ * ------------------------------------------------------------------------ */
+function oh_grenzen(): array {
+    return [
+        'automatisch' => [
+            'Analysen & Lesen: Ads-Report, Marktdaten, Website-Analyse, Lexware-Abgleich',
+            'Vorschläge/Empfehlungen erstellen (Dilara, Mert, Kaan)',
+            'Agenten-Gedächtnis, -Denken, -Chat (kein Außenkontakt)',
+            'E-Mail/WhatsApp klassifizieren (Spam wird ignoriert, nie beantwortet)',
+            'Klare Geld-VERBRENNER als negative Keywords ausschließen (Autopilot: max 3/Tag, nur „rot", NIE Ortsnamen) – spart Geld, gibt keins aus',
+            'Follow-up- & Bewertungs-Mail an BESTEHENDE Leads (haben schon angefragt)',
+        ],
+        'nur_mit_freigabe' => [
+            'Geld ausgeben: Budget ändern/erhöhen, neue Keywords einbuchen',
+            'Live-Website ändern (Überschrift/CTA setzen) – der „Übernehmen → live"-Klick IST die Freigabe',
+            'E-Mails an NEUE Firmen/Kunden (B2B-Akquise) – §7 UWG',
+            'Kundendaten löschen',
+            'Massen-Aktionen an echte Kunden',
+        ],
+    ];
+}
+
+/** True, wenn eine Aktion eine Chef-Freigabe braucht (Schluessel siehe oh_grenzen). */
+function oh_braucht_freigabe(string $aktion): bool {
+    $frei = ['budget', 'keyword', 'website_execute', 'akquise', 'kunde_loeschen', 'massen_mail'];
+    return in_array(strtolower(trim($aktion)), $frei, true);
 }
 
 /* ==========================================================================

@@ -148,6 +148,11 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             ? oh_website_queue_change((string)($in['element'] ?? 'Text'), (string)($in['alt'] ?? ''), (string)($in['neu'] ?? ''), (string)($in['datei'] ?? 'index.php'))
             : null;
         echo json_encode($r ? ['ok' => true, 'eintrag' => $r] : ['ok' => false, 'error' => 'Ungültige Änderung (alt/neu fehlt oder identisch).']);
+    } elseif ($a === 'website_execute') {
+        // Schritt 6: vorgemerkte Änderung WIRKLICH ausführen (mit Backup + Rückgängig)
+        $eerr = null;
+        $r = function_exists('oh_website_execute_change') ? oh_website_execute_change((string)($in['id'] ?? ''), $eerr) : null;
+        echo json_encode($r ? ['ok' => true] + $r : ['ok' => false, 'error' => $eerr ?: 'Ausführung fehlgeschlagen.']);
     } elseif ($a === 'website_apply' || $a === 'website_later' || $a === 'website_dismiss') {
         $id = $in['id'] ?? '';
         $reco = oh_read('website_reco', []);
