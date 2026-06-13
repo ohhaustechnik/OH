@@ -2076,7 +2076,7 @@ function oh_agent_chat_load(string $agent): array {
     return (isset($d['messages']) && is_array($d['messages'])) ? $d['messages'] : [];
 }
 
-/** Hängt einen Eintrag ans Gedächtnis eines Agenten an (mit Dedupe, max. 40). */
+/** Hängt einen Eintrag ans Gedächtnis eines Agenten an (mit Dedupe, Auto-Thema, max. 250). */
 function oh_agent_mem_add(string $agent, string $text, string $typ = 'fund'): void {
     $agent = trim($agent);
     $text  = trim($text);
@@ -2087,9 +2087,88 @@ function oh_agent_mem_add(string $agent, string $text, string $typ = 'fund'): vo
     foreach (array_slice($all[$agent], -8) as $e) {
         if (($e['text'] ?? '') === $text) return;
     }
-    $all[$agent][] = ['ts' => time(), 'typ' => $typ, 'text' => $text];
-    if (count($all[$agent]) > 40) $all[$agent] = array_slice($all[$agent], -40);
+    $all[$agent][] = ['ts' => time(), 'typ' => $typ, 'thema' => oh_mem_thema($text), 'text' => $text];
+    // Längeres Archiv: bis zu 250 Einträge pro Agent (durchsuchbar, themen-sortiert)
+    if (count($all[$agent]) > 250) $all[$agent] = array_slice($all[$agent], -250);
     oh_write('agent_memory', $all);
+}
+
+/* --------------------------------------------------------------------------
+ * THEMEN-GEDÄCHTNIS: jeder Eintrag wird automatisch einem Thema zugeordnet,
+ * damit das Archiv durchsuchbar und nach Themen sortierbar ist.
+ * ------------------------------------------------------------------------ */
+function oh_mem_thema(string $text): string {
+    $t = mb_strtolower($text);
+    $map = [
+        'ads'       => ['ads', 'klick', 'keyword', 'kampagne', 'cpc', 'anzeige', 'budget', 'impress', 'marktanteil', 'suchbegriff'],
+        'website'   => ['website', 'webseite', 'seite', 'headline', 'überschrift', 'conversion', 'formular', 'startseite', 'web'],
+        'kalk'      => ['preis', 'kalkul', 'angebot', 'manntag', 'material', 'stundensatz', 'euro pro', '€ pro'],
+        'kunde'     => ['anfrage', 'lead', 'kunde', 'hot', 'warm', 'gewonnen', 'verloren', 'interess'],
+        'geld'      => ['rechnung', 'lexware', 'umsatz', 'zahlung', 'überfällig', 'mahn', 'offene posten', 'bezahlt'],
+        'personal'  => ['personal', 'mitarbeiter', 'mann nötig', 'einstell', 'stelle', 'bewerb', 'verstärkung'],
+        'baustelle' => ['baustelle', 'projekt', 'termin', 'montage', 'abgeschlossen'],
+    ];
+    foreach ($map as $thema => $words) {
+        foreach ($words as $w) { if (mb_strpos($t, $w) !== false) return $thema; }
+    }
+    return 'sonstiges';
+}
+
+function oh_mem_thema_label(string $key): string {
+    $labels = [
+        'ads' => '📈 Google Ads', 'website' => '🌐 Website', 'kalk' => '🧮 Preise/Angebote',
+        'kunde' => '👤 Kunden/Anfragen', 'geld' => '💰 Rechnungen/Geld', 'personal' => '👥 Personal',
+        'baustelle' => '🏗️ Projekte', 'sonstiges' => '📌 Sonstiges',
+    ];
+    return $labels[$key] ?? '📌 Sonstiges';
+}
+
+/** Durchsucht das Gedächtnis eines Agenten nach Stichworten (Score = Treffer + Aktualität). */
+function oh_agent_mem_search(string $agent, string $query, int $limit = 12): array {
+    $mem = oh_agent_mem_read($agent);
+    if (!$mem) return [];
+    $tokens = array_values(array_filter(preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($query)), function($w){ return mb_strlen($w) >= 3; }));
+    if (!$tokens) return [];
+    $now = time();
+    $scored = [];
+    foreach ($mem as $e) {
+        $hay = mb_strtolower(($e['text'] ?? '') . ' ' . ($e['thema'] ?? ''));
+        $score = 0;
+        foreach ($tokens as $tok) { if (mb_strpos($hay, $tok) !== false) $score++; }
+        if ($score > 0) {
+            $tageAlt = max(0, ($now - ($e['ts'] ?? $now)) / 86400);
+            $scored[] = ['e' => $e, 'score' => $score + max(0, 1 - $tageAlt / 60)]; // leichter Aktualitäts-Bonus
+        }
+    }
+    usort($scored, function($a, $b){ return $b['score'] <=> $a['score']; });
+    $out = [];
+    foreach (array_slice($scored, 0, $limit) as $s) {
+        $e = $s['e'];
+        $e['thema'] = $e['thema'] ?? oh_mem_thema($e['text'] ?? '');
+        $out[] = $e;
+    }
+    return $out;
+}
+
+/** Liefert das Gedächtnis eines Agenten nach Themen gruppiert (neueste zuerst). */
+function oh_agent_mem_grouped(string $agent, int $proThema = 8): array {
+    $mem = oh_agent_mem_read($agent);
+    if (!$mem) return [];
+    $groups = [];
+    foreach ($mem as $e) {
+        $th = $e['thema'] ?? oh_mem_thema($e['text'] ?? '');
+        if (!isset($groups[$th])) $groups[$th] = ['thema' => $th, 'label' => oh_mem_thema_label($th), 'letzte_ts' => 0, 'eintraege' => []];
+        $groups[$th]['eintraege'][] = ['ts' => $e['ts'] ?? 0, 'typ' => $e['typ'] ?? 'fund', 'text' => $e['text'] ?? ''];
+        $groups[$th]['letzte_ts'] = max($groups[$th]['letzte_ts'], $e['ts'] ?? 0);
+    }
+    foreach ($groups as &$g) {
+        usort($g['eintraege'], function($a, $b){ return ($b['ts'] ?? 0) <=> ($a['ts'] ?? 0); });
+        $g['gesamt'] = count($g['eintraege']);
+        $g['eintraege'] = array_slice($g['eintraege'], 0, $proThema);
+    }
+    unset($g);
+    usort($groups, function($a, $b){ return ($b['letzte_ts'] ?? 0) <=> ($a['letzte_ts'] ?? 0); });
+    return array_values($groups);
 }
 
 /* ==========================================================================
@@ -2265,6 +2344,15 @@ function oh_agent_mem_summary(string $agent, int $n = 8): string {
     foreach ($recent as $e) {
         $tag = ($e['typ'] ?? 'fund') === 'nachricht' ? '✉ ' : (($e['typ'] ?? '') === 'prio' ? '★ ' : '· ');
         $s .= "  $tag" . date('d.m. H:i', $e['ts'] ?? time()) . " – " . preg_replace('/\s+/', ' ', $e['text']) . "\n";
+    }
+    // Themen-Überblick über das GANZE Archiv – so bleibt auch älteres Wissen präsent
+    if (count($mem) > 12) {
+        $cnt = [];
+        foreach ($mem as $e) { $th = $e['thema'] ?? oh_mem_thema($e['text'] ?? ''); $cnt[$th] = ($cnt[$th] ?? 0) + 1; }
+        arsort($cnt);
+        $line = [];
+        foreach (array_slice($cnt, 0, 6, true) as $th => $c) $line[] = oh_mem_thema_label($th) . " ($c)";
+        if ($line) $s .= "  Dein Wissensarchiv (" . count($mem) . " Notizen) – Themen: " . implode(' · ', $line) . "\n";
     }
     return $s;
 }

@@ -129,6 +129,17 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $msgs = $in['messages'] ?? [];
         if ($ag && is_array($msgs) && function_exists('oh_agent_chat_save')) oh_agent_chat_save($ag, $msgs);
         echo json_encode(['ok' => true]);
+    } elseif ($a === 'agent_memory') {
+        // Durchsuchbares, themen-sortiertes Wissensarchiv eines Agenten
+        $ag = preg_replace('/[^a-z0-9_]/', '', strtolower($in['agent'] ?? ''));
+        $q  = trim((string)($in['q'] ?? ''));
+        if ($ag === '' || !function_exists('oh_agent_mem_read')) { echo json_encode(['ok' => false]); exit; }
+        $gesamt = count(oh_agent_mem_read($ag));
+        if ($q !== '' && function_exists('oh_agent_mem_search')) {
+            echo json_encode(['ok' => true, 'modus' => 'suche', 'gesamt' => $gesamt, 'treffer' => oh_agent_mem_search($ag, $q, 25)]);
+        } else {
+            echo json_encode(['ok' => true, 'modus' => 'themen', 'gesamt' => $gesamt, 'themen' => function_exists('oh_agent_mem_grouped') ? oh_agent_mem_grouped($ag) : []]);
+        }
     } elseif ($a === 'website_reco') {
         echo json_encode(['ok' => true, 'reco' => oh_read('website_reco', [])]);
     } elseif ($a === 'website_analyze') {
@@ -662,6 +673,23 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .chat-reco-bar .crb-txt b{color:#fff;}
 .chat-reco-bar .crb-done{background:var(--cyan-soft);border:1px solid var(--cyan);color:var(--cyan);border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
 .chat-reco-bar .crb-done:disabled{opacity:.6;cursor:default;}
+.mem-btn{flex-shrink:0;background:var(--glass);border:1px solid var(--line);color:var(--cyan);font-size:18px;width:40px;height:40px;border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.mem-btn:hover{background:var(--cyan-soft);}
+.mem-overlay{position:fixed;inset:0;z-index:60;background:rgba(3,6,12,.72);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0;}
+.mem-box{width:100%;max-width:640px;max-height:82vh;background:var(--glass-2);border:1px solid var(--line);border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.5);animation:fadeUp .25s ease both;}
+@media(min-width:680px){.mem-overlay{align-items:center;}.mem-box{border-radius:18px;}}
+.mem-head{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--line);font-size:15px;font-weight:800;color:#fff;}
+.mem-x{background:none;border:none;color:var(--txt-dim);font-size:26px;line-height:1;cursor:pointer;padding:0 4px;}
+.mem-search{margin:12px 16px 6px;padding:11px 13px;background:var(--card);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:14px;font-family:inherit;}
+.mem-search:focus{outline:none;border-color:var(--cyan);}
+.mem-body{overflow-y:auto;padding:6px 16px 18px;}
+.mem-thema{margin-top:14px;}
+.mem-thema-h{font-size:12px;font-weight:800;color:var(--cyan);letter-spacing:.3px;margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+.mem-thema-h .cnt{font-size:10px;color:#031018;background:var(--cyan);border-radius:7px;padding:1px 7px;font-weight:700;}
+.mem-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--txt);line-height:1.45;}
+.mem-item:last-child{border-bottom:none;}
+.mem-item .mz{font-size:10.5px;color:var(--txt-dim);white-space:nowrap;flex-shrink:0;margin-top:1px;}
+.mem-empty{font-size:13px;color:var(--txt-dim);padding:18px 2px;text-align:center;}
 .reco{background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px;}
 .reco.rot{border-left:3px solid var(--red);box-shadow:0 0 16px rgba(255,93,108,.12);}
 .reco.gelb{border-left:3px solid var(--gold);}
@@ -1176,10 +1204,21 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
   <div class="chat-wrap">
     <div class="chat-head">
       <div class="av" id="chatIco">&#129518;</div>
-      <div><div class="nm" id="chatName">Kalkulator</div><div class="st">&#9679; ONLINE · bereit</div></div>
+      <div style="flex:1"><div class="nm" id="chatName">Kalkulator</div><div class="st">&#9679; ONLINE · bereit</div></div>
+      <button class="mem-btn" id="memBtn" onclick="openMem()" title="Wissensarchiv durchsuchen" style="display:none">&#129504;</button>
     </div>
     <div id="chatRecoBar" class="chat-reco-bar" style="display:none"></div>
     <div class="chat-log" id="chatLog"></div>
+  </div>
+  <div id="memOverlay" class="mem-overlay" style="display:none">
+    <div class="mem-box">
+      <div class="mem-head">
+        <span id="memTitle">🧠 Wissensarchiv</span>
+        <button class="mem-x" onclick="closeMem()" title="Schließen">&times;</button>
+      </div>
+      <input type="text" id="memSearch" class="mem-search" placeholder="Im Gedächtnis suchen… (z.B. Preis, Kunde, Ads)" oninput="memSearchDeb()">
+      <div id="memBody" class="mem-body"></div>
+    </div>
   </div>
   <div class="quick" id="quickRow"></div>
   <div class="composer">
@@ -1842,6 +1881,7 @@ function showSection(s,track){
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
+  if(s!=='chat'){const mo=gl('memOverlay'); if(mo)mo.style.display='none';}
   const bb=gl('backBtn'); if(bb)bb.style.display=(s==='home')?'none':'flex';
   if(s!=='chat')window.scrollTo({top:0,behavior:'smooth'});
   refreshSection(s);
@@ -1979,6 +2019,7 @@ function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
 function openChat(m,prefill,reco){
   mode=m; const cfg=MODI[m];
   chatReco=(reco&&reco.id)?reco:null; renderChatReco();
+  const _mb=gl('memBtn'); if(_mb)_mb.style.display=(typeof AGENTS!=='undefined'&&AGENTS[m])?'flex':'none';
   AGENT_CTX='';
   if(AGENTS[m]){api('agent_context',{agent:m}).then(d=>{AGENT_CTX=d.ctx||'';}).catch(()=>{});}
   gl('chatName').textContent=cfg.name;
@@ -2086,6 +2127,35 @@ async function chatRecoDone(btn){
   pushMsg('ai',(d.executed?'✅ ':'📝 ')+(d.msg||('Erledigt, Chef! Ich hab die Empfehlung „'+titel+'" als übernommen markiert.')));
   chatReco=null;
   if(typeof loadDashboard==='function')loadDashboard();
+}
+
+/* ===== WISSENSARCHIV (durchsuchbar, themen-sortiert) ===== */
+let memTimer=null;
+function openMem(){
+  if(typeof AGENTS==='undefined'||!AGENTS[mode])return;
+  gl('memTitle').innerHTML='🧠 '+esc(MODI[mode].name)+' · Wissensarchiv';
+  gl('memSearch').value='';
+  gl('memOverlay').style.display='flex';
+  loadMem('');
+  setTimeout(()=>{const s=gl('memSearch');if(s)s.focus();},200);
+}
+function closeMem(){const o=gl('memOverlay');if(o)o.style.display='none';}
+function memSearchDeb(){clearTimeout(memTimer);memTimer=setTimeout(()=>loadMem(gl('memSearch').value.trim()),250);}
+async function loadMem(q){
+  gl('memBody').innerHTML='<div class="mem-empty">Lade …</div>';
+  let d={};try{d=await api('agent_memory',{agent:mode,q});}catch(e){}
+  if(!d||!d.ok){gl('memBody').innerHTML='<div class="mem-empty">Noch kein Gedächtnis vorhanden.</div>';return;}
+  const mz=ts=>{try{return new Date(ts*1000).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return'';}};
+  const item=e=>`<div class="mem-item"><span class="mz">${mz(e.ts)}</span><span>${esc(e.text)}</span></div>`;
+  if(d.modus==='suche'){
+    const t=d.treffer||[];
+    if(!t.length){gl('memBody').innerHTML='<div class="mem-empty">Nichts gefunden für „'+esc(q)+'".</div>';return;}
+    gl('memBody').innerHTML='<div class="mem-thema"><div class="mem-thema-h">🔎 Treffer <span class="cnt">'+t.length+'</span></div>'+t.map(item).join('')+'</div>';
+  }else{
+    const th=d.themen||[];
+    if(!th.length){gl('memBody').innerHTML='<div class="mem-empty">Noch kein Gedächtnis vorhanden – sobald '+esc(MODI[mode].name)+' arbeitet, sammelt sich hier Wissen.</div>';return;}
+    gl('memBody').innerHTML=th.map(g=>`<div class="mem-thema"><div class="mem-thema-h">${esc(g.label)} <span class="cnt">${g.gesamt}</span></div>`+(g.eintraege||[]).map(item).join('')+'</div>').join('');
+  }
 }
 async function recoApply(id,btn){
   btn.disabled=true; btn.textContent='⏳ …';
