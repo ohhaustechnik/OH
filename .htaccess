@@ -1,0 +1,10 @@
+# Sensible Dateien vor oeffentlichem Download schuetzen (Backups, Datenbanken, Keys, Logs)
+<FilesMatch "\.(zip|bak|sql|env|log|tar|gz)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>

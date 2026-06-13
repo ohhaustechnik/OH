@@ -65,6 +65,10 @@ $email       = clean($_POST['email']       ?? '');
 $telefon     = clean($_POST['telefon']     ?? '');
 $datenschutz = !empty($_POST['datenschutz']) && $_POST['datenschutz'] === '1';
 
+// Marketing-Quelle (google-ads bei Anzeigen-Klick, sonst website/utm-*)
+$quelle = clean($_POST['quelle'] ?? '');
+if ($quelle === '' || mb_strlen($quelle) > 40) $quelle = 'website';
+
 // ---------------------------------------------------------------
 // Validierung
 // ---------------------------------------------------------------
@@ -165,7 +169,7 @@ if (!empty($strasse)) $standort .= ', ' . $strasse;
 @require_once __DIR__ . '/buero-lib.php';
 if (function_exists('oh_add_lead')) {
     oh_add_lead([
-        'source'        => 'funnel',
+        'source'        => $quelle,
         'name'          => trim($vorname . ' ' . $nachname),
         'email'         => $email,
         'telefon'       => $telefon,

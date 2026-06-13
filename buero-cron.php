@@ -14,6 +14,8 @@
  */
 
 require_once __DIR__ . '/includes/buero-lib.php';
+if (is_file(__DIR__ . '/includes/vorlagen.php')) require_once __DIR__ . '/includes/vorlagen.php';
+if (is_file(__DIR__ . '/auswertung.php')) require_once __DIR__ . '/auswertung.php';
 
 // Einfacher Schutz bei URL-Aufruf
 $CRON_KEY = oh_config()['cron_key'] ?? 'oh-cron';
@@ -85,6 +87,108 @@ foreach ($leads as $l) {
         }
     }
 }
+
+/* --------------------------------------------------------------------------
+ * TEAM-AUTONOMIE: Bei jedem Lauf (z.B. stündlich) denkt das Team selbst –
+ * Geschäftsführer Mert setzt die Tagesprioritäten, danach stimmt sich das
+ * vernetzte Agenten-Team ab (jeder prüft seinen Bereich, gibt Wichtiges an
+ * Kollegen weiter). Beides schreibt ins Gedächtnis der Agenten.
+ * Benötigt einen hinterlegten Anthropic-Schlüssel – fehlt er, wird es nur
+ * sauber protokolliert (kein Abbruch des Cron-Laufs).
+ * ------------------------------------------------------------------------ */
+// Dilara: Live-Marktanalyse (echte Klickpreise, Marktanteile, Suchbegriffe aus Google)
+if (function_exists('oh_dilara_markt_live') && !empty(oh_config()['ads_refresh_token'])) {
+    $derr = null;
+    if (oh_dilara_markt_live($derr)) $log[] = 'Dilara: Live-Marktcheck ok';
+    elseif ($derr) $log[] = 'Dilara-Markt FEHLER: ' . $derr;
+}
+
+// Lexware: Rechnungen & Umsatz abgleichen (nur wenn Schlüssel hinterlegt)
+if (function_exists('oh_lex_refresh') && !empty(oh_config()['lexware_api_key'])) {
+    $lerr = null;
+    $lx = oh_lex_refresh($lerr);
+    if ($lx) $log[] = 'Lexware: ' . $lx['offen_anzahl'] . ' offene Rechnungen, Umsatz ' . $lx['bezahlt_jahr_summe'] . '€';
+    elseif ($lerr) $log[] = 'Lexware FEHLER: ' . $lerr;
+}
+
+// Aylin (Autopilot): freundliche Zahlungserinnerungen bei überfälligen Rechnungen
+if (function_exists('oh_aylin_erinnerungen') && !empty(oh_config()['lexware_api_key'])) {
+    $merr2 = null;
+    $n = oh_aylin_erinnerungen($merr2);
+    if ($n) $log[] = "Aylin: $n Zahlungserinnerung(en) automatisch gesendet";
+}
+
+// Dilara (Autopilot): tägliche Ads-Analyse + sichere Optimierungen direkt ausführen
+if (function_exists('oh_dilara_auto_optimieren')) {
+    $derr2 = null;
+    $r2 = oh_dilara_auto_optimieren($derr2);
+    if (!empty($r2['analyse'])) $log[] = 'Dilara: Ads-Analyse erneuert' . (!empty($r2['ausgefuehrt']) ? ' + ' . $r2['ausgefuehrt'] . ' Geld-Verbrenner automatisch ausgeschlossen' : '');
+    elseif ($derr2) $log[] = 'Dilara-Ads FEHLER: ' . $derr2;
+}
+
+// Kaan: Postfach-Vollanalyse höchstens 1x pro Tag (KI-Kosten begrenzen)
+if (function_exists('oh_kaan_email_analyse')) {
+    $kw = oh_read('kaan_wissen', []);
+    if ((time() - ($kw['ts'] ?? 0)) > 20 * 3600) {
+        $kerr = null;
+        $ka = oh_kaan_email_analyse($kerr);
+        if ($ka) $log[] = 'Kaan: Postfach-Vollanalyse (' . ($ka['mails'] ?? 0) . ' Mails)';
+        elseif ($kerr) $log[] = 'Kaan-Analyse FEHLER: ' . $kerr;
+    }
+}
+
+// Nachrichten-Triage: eingehende E-Mails & WhatsApp einstufen und in die Freigaben legen
+if (function_exists('oh_msg_triage')) {
+    $terr = null;
+    $tr = oh_msg_triage($terr);
+    if (!empty($tr['neu'])) $log[] = 'Triage: ' . $tr['neu'] . ' neue Nachricht(en) eingestuft';
+    elseif ($terr) $log[] = 'Triage FEHLER: ' . $terr;
+}
+
+if (function_exists('oh_mert_briefing')) {
+    $merr = null;
+    if (oh_mert_briefing($merr)) $log[] = 'Mert: Tagesplan aktualisiert';
+    elseif ($merr) $log[] = 'Mert FEHLER: ' . $merr;
+}
+// STUFE 2: Einzeldenken – jeder Agent denkt eigenständig mit eigenem KI-Aufruf
+// (Rotation: max 3 pro Lauf, dringende zuerst, sonst jeder ~alle 3 Stunden)
+if (function_exists('oh_denker_rotation')) {
+    $denker = oh_denker_rotation(3);
+    $dok = [];
+    foreach ($denker as $dAg) { $de = null; if (oh_agent_denken($dAg, $de) !== null) $dok[] = $dAg; }
+    if ($dok) $log[] = 'Einzeldenken: ' . implode(', ', $dok);
+}
+
+// Mahnsystem: überfällige Aufträge automatisch anmahnen (Druck, ohne Chef)
+if (function_exists('oh_mahnsystem')) {
+    $mahn = oh_mahnsystem();
+    if ($mahn) $log[] = "Mahnsystem: $mahn Mahnung(en) verschickt";
+}
+
+if (function_exists('oh_agenten_runde')) {
+    $aerr = null;
+    $runde = oh_agenten_runde($aerr);
+    if ($runde) $log[] = 'Agenten-Runde ok (' . count($runde['nachrichten'] ?? []) . ' Nachrichten)';
+    elseif ($aerr) $log[] = 'Agenten-Runde FEHLER: ' . $aerr;
+}
+
+// ---------------------------------------------------------------------------
+// GHOST: Kontroll-Agent prueft das System 1x taeglich (ab 05 Uhr, vor dem
+// Morgen-Bericht). Die einmal-pro-Tag-Sperre steckt in ghost_run() selbst.
+// ---------------------------------------------------------------------------
+if ((int)date('H') >= 5 && is_file(__DIR__ . '/ghost.php')) {
+    define('OH_GHOST_INCLUDE', 1);
+    require __DIR__ . '/ghost.php';
+    if (function_exists('ghost_run')) {
+        $g = ghost_run(false);
+        if (($g['status'] ?? '') === 'ok') {
+            $log[] = 'Ghost: Tagespruefung (' . ($g['modell'] ?? '?') . ($g['fallback'] ? ' [Fallback]' : '') . ', ' . ($g['kosten'] ?? 0) . '€)';
+        }
+    }
+}
+
+// Wochen-Auswertung taeglich frisch berechnen (Anfragen/100 Besucher, Anfrage->Auftrag-Quote)
+if (function_exists('oh_lead_auswertung')) { oh_write('auswertung', oh_lead_auswertung(7)); }
 
 $summary = '[' . date('Y-m-d H:i') . '] Cron-Lauf: ' . (count($log) ? implode('; ', $log) : 'nichts zu tun');
 @file_put_contents(OH_DATA_DIR . '/cron.log', $summary . "\n", FILE_APPEND);

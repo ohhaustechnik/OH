@@ -149,9 +149,10 @@ function oh_get_lead(string $id): ?array {
 
 function oh_update_lead(string $id, array $patch, ?string $logText = null): ?array {
     $leads = oh_read('leads', []);
-    $updated = null;
+    $updated = null; $vorher = '';
     foreach ($leads as &$l) {
         if (($l['id'] ?? '') === $id) {
+            $vorher = $l['status'] ?? '';
             $l = array_merge($l, $patch);
             if ($logText) $l['verlauf'][] = ['ts' => time(), 'text' => $logText];
             $updated = $l;
@@ -159,8 +160,67 @@ function oh_update_lead(string $id, array $patch, ?string $logText = null): ?arr
         }
     }
     unset($l);
-    if ($updated) oh_write('leads', $leads);
+    if ($updated) {
+        oh_write('leads', $leads);
+        // STUFE 5: aus Ergebnissen lernen (gewonnen/verloren -> Agenten-Gedächtnis)
+        if (isset($patch['status']) && $patch['status'] !== $vorher) {
+            if (function_exists('oh_outcome_lernen')) oh_outcome_lernen($updated, $vorher);
+            // Änderungs-Journal: Status-Wechsel sind rückgängig machbar
+            if (function_exists('oh_change_log')) {
+                $nm = $updated['name'] ?: ($updated['email'] ?: $id);
+                oh_change_log('lead_status', "Status von \"$nm\" geändert", $vorher, $patch['status'], $id);
+            }
+        }
+    }
     return $updated;
+}
+
+/* ==========================================================================
+ * STUFE 5: OUTCOME-LERNEN – das Team lernt aus echten Ergebnissen.
+ * Bei gewonnen/verloren wandert die Erkenntnis (Quelle, Kategorie) ins
+ * Gedächtnis von Dilara (Marketing-Steuerung) und Emre (Kalkulation).
+ * ======================================================================== */
+function oh_outcome_lernen(array $lead, string $vorher): void {
+    $neu  = $lead['status'] ?? '';
+    $name = $lead['name'] ?: ($lead['email'] ?: ($lead['id'] ?? '?'));
+    $src  = !empty($lead['source']) ? $lead['source'] : 'unbekannt';
+    $kat  = !empty($lead['kategorie']) ? $lead['kategorie'] : '-';
+    if (in_array($neu, ['gewonnen', 'abgeschlossen']) && !in_array($vorher, ['gewonnen', 'abgeschlossen'])) {
+        if (function_exists('oh_agent_mem_add')) {
+            oh_agent_mem_add('dilara', "GEWONNEN: $name (Quelle: $src, $kat) – diese Quelle/Kategorie funktioniert, mehr Budget/Fokus dorthin!", 'fund');
+            oh_agent_mem_add('emre', "AUFTRAG GEWONNEN: $name ($kat) – Kalkulation hat überzeugt, bei ähnlichen Anfragen genauso ansetzen.", 'fund');
+        }
+        if (function_exists('oh_log_activity')) oh_log_activity('mert', "Auftrag gewonnen: $name (Quelle: $src) – Erkenntnis ans Team verteilt.");
+    } elseif ($neu === 'verloren' && $vorher !== 'verloren') {
+        if (function_exists('oh_agent_mem_add')) {
+            oh_agent_mem_add('dilara', "VERLOREN: $name (Quelle: $src, $kat) – prüfen ob Quelle/Ansprache passt oder Anfragequalität schwach ist.", 'fund');
+            oh_agent_mem_add('emre', "ANGEBOT VERLOREN: $name ($kat) – Preis und Reaktionszeit prüfen, daraus lernen.", 'fund');
+        }
+    }
+}
+
+/** Lern-Zusammenfassung: welche Quelle bringt echte Abschlüsse (für Dilara/Mert/Runde). */
+function oh_outcome_summary(): string {
+    $leads = oh_read('leads', []);
+    if (!$leads) return '';
+    $bySrc = [];
+    foreach ($leads as $l) {
+        $s = !empty($l['source']) ? $l['source'] : 'unbekannt';
+        if (!isset($bySrc[$s])) $bySrc[$s] = ['gesamt' => 0, 'gewonnen' => 0, 'verloren' => 0];
+        $bySrc[$s]['gesamt']++;
+        if (in_array($l['status'] ?? '', ['gewonnen', 'abgeschlossen'])) $bySrc[$s]['gewonnen']++;
+        if (($l['status'] ?? '') === 'verloren') $bySrc[$s]['verloren']++;
+    }
+    $lex = oh_read('lexware', []);
+    $avg = !empty($lex['bezahlt_jahr_anzahl']) ? (int)round(($lex['bezahlt_jahr_summe'] ?? 0) / max(1, (int)$lex['bezahlt_jahr_anzahl'])) : 0;
+    $out = "LERN-DATEN (was wirklich Abschlüsse bringt, je Quelle):";
+    foreach ($bySrc as $src => $v) {
+        $q = $v['gesamt'] ? (int)round($v['gewonnen'] / $v['gesamt'] * 100) : 0;
+        $out .= "\n- $src: {$v['gesamt']} Anfragen, {$v['gewonnen']} gewonnen ({$q}%)"
+              . ($avg && $v['gewonnen'] ? " ≈ " . number_format($v['gewonnen'] * $avg, 0, ',', '.') . "€" : '')
+              . ($v['verloren'] ? ", {$v['verloren']} verloren" : '');
+    }
+    return $out;
 }
 
 function oh_delete_lead(string $id): void {
@@ -312,15 +372,505 @@ function oh_ki(string $system, string $userMsg, int $maxTokens = 1500): ?string 
         ],
     ]);
     $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if (!$resp) return null;
     $d = json_decode($resp, true);
-    if (!isset($d['content'])) return null;
+    if (!isset($d['content'])) {
+        // Fehler auswerten – speziell aufgebrauchtes Guthaben dem Chef melden
+        $emsg = $d['error']['message'] ?? '';
+        $leer = stripos($emsg, 'credit balance') !== false
+             || stripos($emsg, 'too low') !== false
+             || stripos($emsg, 'billing') !== false
+             || stripos($emsg, 'insufficient') !== false
+             || stripos($emsg, 'purchase credits') !== false;
+        if ($leer && function_exists('oh_alert_guthaben')) oh_alert_guthaben($emsg);
+        return null;
+    }
+    // Erfolg: Guthaben-Alarm zurücksetzen, damit die nächste Leere sofort wieder meldet
+    $ga = oh_read('guthaben_alert', []);
+    if (!empty($ga['ts'])) oh_write('guthaben_alert', ['ts' => 0]);
     $out = '';
     foreach ($d['content'] as $c) {
         if (($c['type'] ?? '') === 'text') $out .= $c['text'];
     }
     return trim($out);
+}
+
+/* --------------------------------------------------------------------------
+ * GUTHABEN-ALARM: Ist das Anthropic-Guthaben leer, kann KEIN Agent mehr
+ * denken. Dann bekommt der Chef automatisch eine "SEHR WICHTIG"-Mail mit der
+ * Bitte aufzuladen. Gedrosselt auf höchstens 1 Mail / 6 Stunden (sonst Spam
+ * bei stündlichem Cron mit vielen KI-Aufrufen).
+ * ------------------------------------------------------------------------ */
+function oh_alert_guthaben(string $detail = ''): void {
+    $cfg = oh_config();
+    $to  = $cfg['alert_email'] ?? ($cfg['gmail_user'] ?? '');
+    $a    = oh_read('guthaben_alert', []);
+    $last = $a['ts'] ?? 0;
+    if ((time() - $last) < 6 * 3600) return; // Drosselung
+
+    if (function_exists('oh_log_activity')) {
+        oh_log_activity('mert', 'SEHR WICHTIG: KI-Guthaben aufgebraucht – bitte aufladen, sonst steht das ganze Team.');
+    }
+    if ($to !== '' && function_exists('oh_send_mail')) {
+        $body = "SEHR WICHTIG – bitte sofort handeln, Chef.\n\n"
+              . "Das KI-Guthaben (Anthropic) ist aufgebraucht. Solange es leer ist, kann das gesamte KI-Team NICHT arbeiten:\n"
+              . "keine Anfragen-Bearbeitung, keine Angebote, keine Auswertung, keine Optimierung, kein Wachstum Richtung 1.000.000 €.\n\n"
+              . "➡ Jetzt aufladen: https://console.anthropic.com/settings/billing\n\n"
+              . ($detail !== '' ? "Technische Meldung: " . $detail . "\n\n" : '')
+              . "Diese Mail kommt automatisch vom Büro-System (Erinnerung höchstens alle 6 Stunden).";
+        oh_send_mail($to, '🔴 SEHR WICHTIG: KI-Guthaben aufladen – OH Haustechnik', $body);
+    }
+    oh_write('guthaben_alert', ['ts' => time(), 'detail' => $detail]);
+}
+
+/* ==========================================================================
+ * FREIGABE-WORKFLOW (Baustein A) – die zentrale Entscheidungs-Warteschlange.
+ * Agenten legen hier Punkte ab, die der Chef freigeben/entscheiden soll.
+ * Labels: "Antwort notwendig", "Freigabe erforderlich", "Umsatzrelevant",
+ * "Risiko", "Sehr wichtig", "Info". Speicher: daten/freigaben.json
+ * ======================================================================== */
+
+/** Legt einen Freigabe-Punkt an (mit Dedupe über $item['dedup']). Gibt ID oder null. */
+function oh_freigabe_add(array $item): ?string {
+    $f = oh_read('freigaben', []);
+    if (!empty($item['dedup'])) {
+        foreach ($f as $x) { if (($x['dedup'] ?? '') === $item['dedup']) return null; }
+    }
+    $id = 'F' . date('ymdHis') . substr((string)mt_rand(100, 999), 0, 3);
+    $entry = array_merge([
+        'dedup' => '', 'agent' => 'mert', 'kanal' => 'system',
+        'kategorie' => 'Info', 'prio' => 'gelb', 'titel' => '', 'warum' => '',
+        'typ' => 'info', 'vorschlag' => '', 'auto' => false,
+        'from' => '', 'to' => '', 'ref' => '',
+    ], $item);
+    $entry['id'] = $id;
+    $entry['ts'] = time();
+    $entry['status'] = 'offen';
+    $f[] = $entry;
+    if (count($f) > 150) $f = array_slice($f, -150);
+    oh_write('freigaben', $f);
+    return $id;
+}
+
+/** Liefert Freigabe-Punkte (neueste zuerst). $status='offen' | 'alle'. */
+function oh_freigaben(string $status = 'offen'): array {
+    $f = array_reverse(oh_read('freigaben', []));
+    if ($status === 'alle') return $f;
+    return array_values(array_filter($f, function($x) use ($status){ return ($x['status'] ?? 'offen') === $status; }));
+}
+
+/** Ändert einen Freigabe-Punkt. Gibt den geänderten Eintrag zurück. */
+function oh_freigabe_update(string $id, array $patch): ?array {
+    $f = oh_read('freigaben', []); $hit = null;
+    foreach ($f as &$x) { if (($x['id'] ?? '') === $id) { $x = array_merge($x, $patch); $hit = $x; } }
+    unset($x);
+    oh_write('freigaben', $f);
+    return $hit;
+}
+
+/* ==========================================================================
+ * ÄNDERUNGS-JOURNAL MIT RÜCKGÄNGIG – jede übernommene Änderung wird mit
+ * altem Wert, neuem Wert und Zeitstempel protokolliert (daten/changes.json)
+ * und kann per Klick zurückgenommen werden. E-Mails, die bereits raus sind,
+ * sind ehrlich als "nicht rückholbar" markiert.
+ * ======================================================================== */
+function oh_change_log(string $typ, string $titel, $alt, $neu, string $ref = '', bool $undoable = true): string {
+    $c = oh_read('changes', []);
+    $id = 'C' . date('ymdHis') . substr((string)mt_rand(100, 999), 0, 3);
+    $c[] = ['id' => $id, 'ts' => time(), 'typ' => $typ, 'titel' => $titel,
+            'alt' => $alt, 'neu' => $neu, 'ref' => $ref,
+            'undoable' => $undoable, 'status' => 'aktiv', 'undo_ts' => 0];
+    if (count($c) > 200) $c = array_slice($c, -200);
+    oh_write('changes', $c);
+    return $id;
+}
+
+function oh_change_undo(string $id, ?string &$err = null): bool {
+    $c = oh_read('changes', []);
+    $hit = null; $idx = -1;
+    foreach ($c as $i => $x) { if (($x['id'] ?? '') === $id) { $hit = $x; $idx = $i; break; } }
+    if (!$hit) { $err = 'Eintrag nicht gefunden.'; return false; }
+    if (($hit['status'] ?? '') !== 'aktiv') { $err = 'Bereits rückgängig gemacht.'; return false; }
+    if (empty($hit['undoable'])) { $err = 'Nicht rückholbar (z.B. E-Mail bereits versendet).'; return false; }
+
+    $ok = false;
+    switch ($hit['typ']) {
+        case 'lead_status': // Lead-/Baustellen-Status zurücksetzen
+            $ok = (bool)oh_update_lead($hit['ref'], ['status' => (string)$hit['alt']], 'Rückgängig gemacht: Status zurück auf "' . $hit['alt'] . '"');
+            break;
+        case 'task': // erledigten Auftrag wieder öffnen
+            $t = oh_read('agent_tasks', []);
+            foreach ($t as &$x) { if (($x['id'] ?? '') === $hit['ref']) { $x['status'] = 'offen'; $x['done_ts'] = 0; $ok = true; } }
+            unset($x);
+            if ($ok) oh_write('agent_tasks', $t);
+            break;
+        case 'freigabe': // Entscheidung zurück auf offen
+            $ok = (bool)oh_freigabe_update($hit['ref'], ['status' => 'offen']);
+            break;
+        case 'website_reco': // Website-Vorschlag zurück auf offen
+            $reco = oh_read('website_reco', []);
+            foreach ($reco as &$r) { if (($r['id'] ?? '') === $hit['ref']) { $r['status'] = 'offen'; $ok = true; } }
+            unset($r);
+            if ($ok) oh_write('website_reco', $reco);
+            break;
+        case 'ads_reco': // dokumentierte Ads-Empfehlung zurück auf offen
+            $reco = oh_read('ads_reco', []);
+            foreach ($reco as &$r) { if (($r['id'] ?? '') === $hit['ref']) { $r['status'] = 'offen'; $ok = true; } }
+            unset($r);
+            if ($ok) oh_write('ads_reco', $reco);
+            break;
+        case 'ads_negativ': // negatives Keyword WIRKLICH wieder aus Google Ads entfernen
+            $res = is_array($hit['neu']) ? ($hit['neu']['resources'] ?? []) : [];
+            if ($res) {
+                $ops = [];
+                foreach ($res as $rn) { if (is_string($rn) && $rn !== '') $ops[] = ['remove' => $rn]; }
+                $e = null;
+                $ok = $ops && oh_ads_mutate('campaignCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $e) !== null;
+                if (!$ok) $err = 'Google Ads: ' . ($e ?: 'Entfernen fehlgeschlagen.');
+            } else { $err = 'Keine Ads-Referenz gespeichert – bitte manuell im Konto entfernen.'; }
+            // zugehörige Empfehlung wieder öffnen
+            if ($ok && $hit['ref'] !== '') {
+                $reco = oh_read('ads_reco', []);
+                foreach ($reco as &$r) { if (($r['id'] ?? '') === $hit['ref']) $r['status'] = 'offen'; }
+                unset($r);
+                oh_write('ads_reco', $reco);
+            }
+            break;
+        case 'ads_keyword': // eingebuchtes Keyword wieder aus Google Ads entfernen
+            $res = is_array($hit['neu']) ? ($hit['neu']['resources'] ?? []) : [];
+            if ($res) {
+                $ops = [];
+                foreach ($res as $rn) { if (is_string($rn) && $rn !== '') $ops[] = ['remove' => $rn]; }
+                $e = null;
+                $ok = $ops && oh_ads_mutate('adGroupCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $e) !== null;
+                if (!$ok) $err = 'Google Ads: ' . ($e ?: 'Entfernen fehlgeschlagen.');
+            } else { $err = 'Keine Ads-Referenz gespeichert.'; }
+            if ($ok && $hit['ref'] !== '') {
+                $reco = oh_read('ads_reco', []);
+                foreach ($reco as &$r) { if (($r['id'] ?? '') === $hit['ref']) $r['status'] = 'offen'; }
+                unset($r);
+                oh_write('ads_reco', $reco);
+            }
+            break;
+        case 'ads_budget': // Tagesbudget auf den alten Wert zurücksetzen
+            $resN = is_array($hit['neu']) ? ($hit['neu']['resource'] ?? '') : '';
+            $altE = is_array($hit['neu']) ? (float)($hit['neu']['alt_euro'] ?? 0) : 0;
+            if ($resN !== '' && $altE >= 1) {
+                $e = null;
+                $ops = [['update' => ['resourceName' => $resN, 'amountMicros' => (int)round($altE * 1e6)], 'updateMask' => 'amount_micros']];
+                $ok = oh_ads_mutate('campaignBudgets:mutate', ['operations' => $ops, 'partialFailure' => true], $e) !== null;
+                if (!$ok) $err = 'Google Ads: ' . ($e ?: 'Budget-Rücksetzung fehlgeschlagen.');
+            } else { $err = 'Alter Budget-Wert nicht gespeichert.'; }
+            break;
+        default:
+            $err = 'Dieser Typ ist nicht rückholbar.';
+    }
+    if ($ok) {
+        $c[$idx]['status'] = 'rueckgaengig';
+        $c[$idx]['undo_ts'] = time();
+        oh_write('changes', $c);
+        if (function_exists('oh_log_activity')) oh_log_activity('chef', 'Rückgängig gemacht: ' . ($hit['titel'] ?? $id));
+    }
+    return $ok;
+}
+
+/* ==========================================================================
+ * NACHRICHTEN-TRIAGE (Baustein B) – Kaan stuft eingehende E-Mails & WhatsApp
+ * ein: wichtig => Freigabe mit Antwortvorschlag; unwichtig/Standard => als
+ * Auto-Antwort vorbereitet. Schreibt in die Freigabe-Warteschlange.
+ * Läuft im Cron (stündlich) und per Button. KI-Aufruf nötig.
+ * ======================================================================== */
+function oh_msg_triage(?string &$err = null): array {
+    $em = oh_read('emails', []); $emails = $em['list'] ?? [];
+    $wa = function_exists('oh_wa_open') ? oh_wa_open() : [];
+
+    // Kandidaten mit stabilem Schlüssel (für Dedupe) sammeln
+    $cands = [];
+    foreach ($emails as $m) {
+        $key = md5('email|' . ($m['from'] ?? '') . '|' . ($m['subject'] ?? '') . '|' . date('Ymd', $m['ts'] ?? time()));
+        $cands[] = ['kanal' => 'email', 'key' => $key, 'from' => $m['from'] ?? '', 'email' => $m['from_email'] ?? '', 'text' => $m['subject'] ?? '', 'ts' => $m['ts'] ?? time()];
+    }
+    foreach ($wa as $w) {
+        $key = md5('whatsapp|' . ($w['from'] ?? '') . '|' . mb_substr($w['text'] ?? '', 0, 40) . '|' . date('Ymd', $w['ts'] ?? time()));
+        $cands[] = ['kanal' => 'whatsapp', 'key' => $key, 'from' => ($w['name'] ?? ($w['from'] ?? '')), 'text' => $w['text'] ?? '', 'ts' => $w['ts'] ?? time()];
+    }
+
+    // Bereits verarbeitete (Dedupe gegen bestehende Freigaben jeglichen Status)
+    $seen = [];
+    foreach (oh_read('freigaben', []) as $fx) { if (!empty($fx['dedup'])) $seen[$fx['dedup']] = true; }
+    $todo = array_values(array_filter($cands, function($c) use ($seen){ return !isset($seen[$c['key']]); }));
+    if (!$todo) return ['neu' => 0, 'gesamt' => count($cands)];
+    $todo = array_slice($todo, 0, 12); // KI-Last begrenzen
+
+    $liste = '';
+    foreach ($todo as $i => $c) {
+        $liste .= ($i + 1) . ". [" . $c['kanal'] . "] von: " . preg_replace('/\s+/', ' ', mb_substr($c['from'], 0, 60))
+                . " | Inhalt: " . preg_replace('/\s+/', ' ', mb_substr($c['text'], 0, 220)) . "\n";
+    }
+
+    $system = "Du bist Kaan, der Kommunikations-Manager von OH Haustechnik (Elektriker Nürnberg). Ziel der Firma: in 5 Monaten Richtung 1.000.000 € Umsatz. "
+        . "Stufe jede eingehende Nachricht ein. WICHTIG = der Chef muss selbst entscheiden/antworten (echte Kundenanfrage, Auftrag, Beschwerde, Geld/Rechnung, Termin auf Baustelle, Risiko, alles Umsatzrelevante). "
+        . "UNWICHTIG = Standard, kann automatisch beantwortet werden (Eingangsbestätigung, einfache Rückfrage, Terminbestätigung). "
+        . "SPAM = unerwünschte Werbung, Newsletter, Phishing, Massen-Mails: kategorie 'Spam', wichtig=false, antwort LEER lassen (Spam wird nie beantwortet). "
+        . "Automaten-Absender (noreply@, notifications@, Instagram/Google/Facebook-Benachrichtigungen) sind IMMER 'Spam' oder 'Info' mit leerer antwort – dort kommt nie eine Antwort an. "
+        . "Gib für JEDE Nachricht: kategorie (genau eines: 'Antwort notwendig','Freigabe erforderlich','Umsatzrelevant','Risiko','Spam','Info'), "
+        . "prio ('rot'=sofort,'gelb'=heute,'gruen'=kann warten), wichtig (true/false), titel (kurz, max 7 Worte), warum (1 kurzer Satz), "
+        . "antwort (höflicher, fertiger Antwortvorschlag als OH Haustechnik, Du-Form zum Kunden 'Sie', 3-6 Sätze, mit Gruß 'Viele Grüße, OH Haustechnik'). "
+        . "Antworte AUSSCHLIESSLICH mit JSON-Array, ein Objekt je Nachricht in Reihenfolge:\n"
+        . "<triage>[{\"nr\":1,\"kategorie\":\"...\",\"prio\":\"gelb\",\"wichtig\":true,\"titel\":\"...\",\"warum\":\"...\",\"antwort\":\"...\"}]</triage>";
+
+    $resp = oh_ki($system, "Eingegangene Nachrichten:\n" . $liste, 2200);
+    if (!$resp) { $err = 'KI nicht verfügbar (Schlüssel/Guthaben prüfen).'; return ['neu' => 0, 'fehler' => $err]; }
+    $json = $resp;
+    if (preg_match('/<triage>([\s\S]*?)<\/triage>/', $resp, $mm)) $json = $mm[1];
+    $json = preg_replace('/```(json)?/i', '', $json);
+    $lb = strpos($json, '['); $rb = strrpos($json, ']');
+    if ($lb !== false && $rb !== false && $rb > $lb) $json = substr($json, $lb, $rb - $lb + 1);
+    $rows = json_decode(trim($json), true);
+    if (!is_array($rows)) { $err = 'KI-Antwort unlesbar.'; return ['neu' => 0, 'fehler' => $err]; }
+
+    $neu = 0;
+    foreach ($rows as $r) {
+        $nr = (int)($r['nr'] ?? 0);
+        $c = $todo[$nr - 1] ?? null;
+        if (!$c) continue;
+        $wichtig = !empty($r['wichtig']);
+        $istSpam = (($r['kategorie'] ?? '') === 'Spam');
+        $kat = $wichtig ? ($r['kategorie'] ?? 'Antwort notwendig') : ($istSpam ? 'Spam erkannt' : 'Auto-Antwort vorbereitet');
+        $id = oh_freigabe_add([
+            'dedup'     => $c['key'],
+            'agent'     => 'kaan',
+            'kanal'     => $c['kanal'],
+            'kategorie' => $kat,
+            'prio'      => in_array($r['prio'] ?? '', ['rot','gelb','gruen']) ? $r['prio'] : ($wichtig ? 'gelb' : 'gruen'),
+            'titel'     => $r['titel'] ?? (mb_substr($c['text'], 0, 50)),
+            'warum'     => $r['warum'] ?? '',
+            'typ'       => 'antwort',
+            'vorschlag' => $r['antwort'] ?? '',
+            'auto'      => !$wichtig,
+            'from'      => $c['from'],
+            'to'        => $c['email'] ?? '',
+        ]);
+        if ($id) $neu++;
+
+        // AUTOPILOT KAAN: harmlose Standard-Antworten wirklich selbst senden
+        // (nie bei wichtig/Spam, nie leer, nie an noreply-Adressen, max. 10/Tag, abschaltbar)
+        if ($id && !$wichtig && !$istSpam && trim($r['antwort'] ?? '') !== ''
+            && filter_var($c['email'] ?? '', FILTER_VALIDATE_EMAIL)
+            && !(function_exists('oh_ist_noreply') && oh_ist_noreply($c['email']))
+            && (oh_config()['autopilot_kaan'] ?? 'an') === 'an') {
+            if (oh_autopilot_limit('kaan_auto', 10)) {
+                $res = oh_send_mail($c['email'], 'Ihre Nachricht an OH Haustechnik', $r['antwort']);
+                if (!empty($res['ok'])) {
+                    oh_freigabe_update($id, ['status' => 'auto_gesendet', 'final' => $r['antwort']]);
+                    if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Autopilot: Standard-Antwort gesendet an ' . ($c['from'] ?: $c['email']) . ' (' . $kat . ')');
+                }
+            }
+        }
+    }
+    if ($neu && function_exists('oh_log_activity')) {
+        oh_log_activity('kaan', "Posteingang geprüft: $neu neue Nachricht(en) eingestuft und in die Freigaben gelegt.");
+    }
+    return ['neu' => $neu, 'gesamt' => count($cands)];
+}
+
+/* ==========================================================================
+ * LEXWARE OFFICE (Buchhaltung, für Aylin) – echte Rechnungen, offene Posten
+ * und Umsatz über die Public API. Benötigt config: lexware_api_key
+ * (Lexware Office Portal -> Erweiterungen -> Public API).
+ * Ergebnis-Cache: daten/lexware.json
+ * ======================================================================== */
+function oh_lex_get(string $path, ?string &$err = null) {
+    $key = oh_config()['lexware_api_key'] ?? '';
+    if (!$key) { $err = 'Kein Lexware-API-Schlüssel hinterlegt.'; return null; }
+    $ch = curl_init('https://api.lexoffice.io/v1' . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $key, 'Accept: application/json'],
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $d = json_decode((string)$resp, true);
+    if ($code !== 200) {
+        $err = is_array($d) ? ($d['message'] ?? ('HTTP ' . $code)) : ('HTTP ' . $code);
+        if ($code === 401) $err = 'Lexware-Schlüssel ungültig (401).';
+        return null;
+    }
+    return $d;
+}
+
+/** Gleicht Rechnungen mit Lexware ab und speichert eine Zusammenfassung. */
+function oh_lex_refresh(?string &$err = null): ?array {
+    // Offene Rechnungen (alle)
+    $open = oh_lex_get('/voucherlist?voucherType=invoice&voucherStatus=open&size=250&page=0&sort=voucherDate,DESC', $err);
+    if ($open === null) return null;
+    // Bezahlte Rechnungen des laufenden Jahres (= echter Umsatz)
+    $e2 = null;
+    $paid = oh_lex_get('/voucherlist?voucherType=invoice&voucherStatus=paid&voucherDateFrom=' . date('Y') . '-01-01&size=250&page=0', $e2);
+
+    $now = time();
+    $cntOpen = 0; $sumOpen = 0.0; $cntOver = 0; $sumOver = 0.0; $listOver = [];
+    foreach (($open['content'] ?? []) as $v) {
+        $amt = (float)($v['openAmount'] ?? $v['totalAmount'] ?? 0);
+        $cntOpen++; $sumOpen += $amt;
+        $due = !empty($v['dueDate']) ? strtotime(substr($v['dueDate'], 0, 10)) : 0;
+        if ($due && $due < $now) {
+            $cntOver++; $sumOver += $amt;
+            if (count($listOver) < 6) {
+                $listOver[] = ['nr' => $v['voucherNumber'] ?? '', 'kunde' => $v['contactName'] ?? '',
+                               'betrag' => round($amt, 2), 'faellig' => substr($v['dueDate'], 0, 10),
+                               'kontakt_id' => $v['contactId'] ?? ''];
+            }
+        }
+    }
+    $cntPaid = 0; $sumPaid = 0.0;
+    foreach (($paid['content'] ?? []) as $v) { $cntPaid++; $sumPaid += (float)($v['totalAmount'] ?? 0); }
+
+    $data = [
+        'ok' => true, 'ts' => time(),
+        'offen_anzahl' => $cntOpen, 'offen_summe' => round($sumOpen, 2),
+        'ueberfaellig_anzahl' => $cntOver, 'ueberfaellig_summe' => round($sumOver, 2), 'ueberfaellig' => $listOver,
+        'bezahlt_jahr_anzahl' => $cntPaid, 'bezahlt_jahr_summe' => round($sumPaid, 2),
+    ];
+    oh_write('lexware', $data);
+    if (function_exists('oh_log_activity')) {
+        oh_log_activity('aylin', "Lexware abgeglichen: {$cntOpen} offene Rechnung(en) ({$data['offen_summe']}€), davon {$cntOver} überfällig. Umsatz " . date('Y') . " (bezahlt): {$data['bezahlt_jahr_summe']}€");
+    }
+    if (function_exists('oh_agent_mem_add')) {
+        oh_agent_mem_add('aylin', "Lexware-Stand: {$cntOpen} offene Rechnungen ({$data['offen_summe']}€), {$cntOver} überfällig ({$data['ueberfaellig_summe']}€), Jahres-Umsatz bezahlt {$data['bezahlt_jahr_summe']}€.", 'fund');
+    }
+    return $data;
+}
+
+/** E-Mail-Adresse eines Lexware-Kontakts holen (für Zahlungserinnerungen). */
+function oh_lex_contact_email(string $contactId, ?string &$err = null): string {
+    if ($contactId === '') return '';
+    $d = oh_lex_get('/contacts/' . $contactId, $err);
+    if (!is_array($d)) return '';
+    foreach (['business', 'office', 'private', 'other'] as $k) {
+        $v = $d['emailAddresses'][$k][0] ?? '';
+        if ($v && filter_var($v, FILTER_VALIDATE_EMAIL)) return $v;
+    }
+    return '';
+}
+
+/* ==========================================================================
+ * AUTOPILOT AYLIN – freundliche Zahlungserinnerung bei überfälligen
+ * Rechnungen (ab 3 Tage drüber, max. 1x/Woche je Rechnung, max. 5/Tag,
+ * abschaltbar). Echte Mahnungen bleiben Chefsache (Freigabe).
+ * ======================================================================== */
+function oh_aylin_erinnerungen(?string &$err = null): int {
+    if ((oh_config()['autopilot_aylin'] ?? 'an') !== 'an') return 0;
+    $lex = oh_read('lexware', []);
+    $list = $lex['ueberfaellig'] ?? [];
+    if (!$list) return 0;
+    $mahn = oh_read('mahnungen', []);
+    $gesendet = 0;
+    foreach ($list as $u) {
+        $nr = $u['nr'] ?? '';
+        if ($nr === '') continue;
+        $due = !empty($u['faellig']) ? strtotime($u['faellig'] . ' 00:00:00') : 0;
+        if (!$due || (time() - $due) < 3 * 86400) continue;                       // erst ab 3 Tagen überfällig
+        if (!empty($mahn[$nr]) && (time() - $mahn[$nr]) < 7 * 86400) continue;    // max. 1x pro Woche je Rechnung
+        $email = oh_lex_contact_email($u['kontakt_id'] ?? '');
+        if ($email === '') continue;
+        if (!oh_autopilot_limit('aylin_erinnerung', 5)) break;
+        $betrag = number_format((float)($u['betrag'] ?? 0), 2, ',', '.');
+        $body = "Guten Tag" . (!empty($u['kunde']) ? ' ' . $u['kunde'] : '') . ",\n\n"
+              . "sicher ist es nur untergegangen: Unsere Rechnung {$nr} über {$betrag} € war am {$u['faellig']} fällig.\n"
+              . "Wir freuen uns über einen Ausgleich in den nächsten Tagen. Falls die Zahlung bereits unterwegs ist, betrachten Sie diese Nachricht bitte als gegenstandslos.\n\n"
+              . "Bei Fragen sind wir gerne für Sie da.\n\nViele Grüße\nOH Haustechnik";
+        $res = oh_send_mail($email, "Freundliche Zahlungserinnerung – Rechnung {$nr}", $body);
+        if (!empty($res['ok'])) {
+            $mahn[$nr] = time(); $gesendet++;
+            if (function_exists('oh_log_activity')) oh_log_activity('aylin', "Autopilot: Zahlungserinnerung Rechnung {$nr} ({$betrag}€) an " . ($u['kunde'] ?: $email) . " gesendet.");
+            if (function_exists('oh_agent_mem_add')) oh_agent_mem_add('aylin', "Zahlungserinnerung Rechnung {$nr} ({$betrag}€) an " . ($u['kunde'] ?: $email) . " gesendet.", 'fund');
+        }
+    }
+    if ($gesendet) oh_write('mahnungen', $mahn);
+    return $gesendet;
+}
+
+/* ==========================================================================
+ * AUTOPILOT DILARA – hält die Marktanalyse automatisch frisch (1x/Tag) und
+ * führt SICHERE rote Optimierungen (Geld-Verbrenner als negative Keywords)
+ * direkt im Ads-Konto aus (max. 3/Tag, abschaltbar). Budget/Gebote bleiben
+ * Chefsache (Freigabe).
+ * ======================================================================== */
+function oh_dilara_auto_optimieren(?string &$err = null): array {
+    $cfg = oh_config();
+    $out = ['analyse' => false, 'ausgefuehrt' => 0];
+    if (empty($cfg['ads_refresh_token'])) return $out;
+    $last = function_exists('oh_ads_last_analysis') ? oh_ads_last_analysis() : 0;
+    if ($last && (time() - $last) < 24 * 3600) return $out;   // 1x täglich reicht
+    $reco = oh_ads_recommendations($err);
+    if ($reco === null) return $out;
+    $out['analyse'] = true;
+    if (($cfg['autopilot_dilara'] ?? 'an') !== 'an') return $out;
+
+    $alle = oh_read('ads_reco', []);
+    $changed = false;
+    foreach ($alle as &$r) {
+        if (($r['status'] ?? '') !== 'offen') continue;
+        if (($r['typ'] ?? '') !== 'negativ_keyword') continue;
+        if (($r['dringlichkeit'] ?? '') !== 'rot') continue;
+        $wert = trim($r['wert'] ?? '');
+        if ($wert === '' || $out['ausgefuehrt'] >= 3) continue;
+        if (!oh_autopilot_limit('dilara_negkw', 3)) break;
+        $e = null; $resources = null;
+        if (oh_ads_add_negative_keyword($wert, $e, $resources)) {
+            $r['status'] = 'uebernommen'; $changed = true; $out['ausgefuehrt']++;
+            oh_ads_log_change(['titel' => $r['titel'] ?? '', 'was' => $r['was'] ?? '', 'typ' => 'negativ_keyword', 'wert' => $wert, 'ausgefuehrt' => true]);
+            if (function_exists('oh_log_activity')) oh_log_activity('dilara', "Autopilot: Geld-Verbrenner \"{$wert}\" automatisch in Google Ads ausgeschlossen.");
+            if (function_exists('oh_change_log')) {
+                oh_change_log('ads_negativ', "Autopilot: Ausschluss-Wort \"{$wert}\" in Google Ads", 'nicht ausgeschlossen', ['wert' => $wert, 'resources' => $resources ?: []], $r['id'] ?? '');
+            }
+        }
+    }
+    unset($r);
+    if ($changed) oh_write('ads_reco', $alle);
+    return $out;
+}
+
+/* ==========================================================================
+ * DILARA: LIVE-MARKTANALYSE (bei jedem Cron) – echte aktuelle Daten aus dem
+ * Google-Ads-Konto: Klickpreise je Suchbegriff/Region (z.B. "Elektro Fürth"),
+ * Marktanteil vs. Konkurrenz und wonach gerade wirklich gesucht wird.
+ * Ergebnis: daten/markt_live.json (fließt in Dilaras Kontext & Empfehlungen).
+ * ======================================================================== */
+function oh_dilara_markt_live(?string &$err = null): ?array {
+    $e1 = $e2 = $e3 = null;
+    $markt = oh_ads_market($e1);        // Marktanteil + Verlust (Budget/Rang) vs. Konkurrenz
+    $terms = oh_ads_search_terms($e2);  // wonach Leute JETZT wirklich suchen
+    $kws   = oh_ads_keywords($e3);      // Keyword-Leistung
+    if ($markt === null && $terms === null && $kws === null) { $err = $e1 ?: ($e2 ?: ($e3 ?: 'Ads-Zugang prüfen')); return null; }
+
+    // Echte Klickpreise je Keyword (Standort-/Branchenlogik: z.B. "elektriker fürth" = X € pro Klick)
+    $cpc = [];
+    foreach (($kws ?: []) as $k) {
+        if (($k['klicks'] ?? 0) > 0) {
+            $cpc[] = ['keyword' => $k['keyword'], 'cpc' => round($k['kosten'] / max(1, $k['klicks']), 2),
+                      'klicks' => $k['klicks'], 'conv' => $k['conv']];
+        }
+    }
+    usort($cpc, function($a, $b){ return $b['cpc'] <=> $a['cpc']; });
+
+    $data = [
+        'ts' => time(),
+        'markt' => $markt ?: [],
+        'cpc' => array_slice($cpc, 0, 15),
+        'suchbegriffe' => array_slice($terms ?: [], 0, 12),
+    ];
+    oh_write('markt_live', $data);
+    if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Live-Marktcheck: Klickpreise, Suchbegriffe & Konkurrenz-Anteile frisch aus Google geholt.');
+    if (function_exists('oh_agent_mem_add') && $cpc) {
+        $top = $cpc[0];
+        oh_agent_mem_add('dilara', "Live-Markt: teuerster Klick \"{$top['keyword']}\" = {$top['cpc']}€. " . count($cpc) . " Keywords mit echten Klickpreisen erfasst.", 'fund');
+    }
+    return $data;
 }
 
 /* --------------------------------------------------------------------------
@@ -396,8 +946,7 @@ function oh_ads_report(?string &$err = null): ?array {
     $gaql = "SELECT campaign.name, campaign.status, "
           . "metrics.cost_micros, metrics.clicks, metrics.impressions, "
           . "metrics.conversions, metrics.ctr, metrics.average_cpc "
-          . "FROM campaign WHERE segments.date DURING LAST_7_DAYS "
-          . "AND campaign.status = 'ENABLED' "
+          . "FROM campaign WHERE campaign.status = 'ENABLED' AND segments.date DURING LAST_7_DAYS "
           . "ORDER BY metrics.cost_micros DESC";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
@@ -432,8 +981,7 @@ function oh_ads_report(?string &$err = null): ?array {
 /** Suchbegriffe der letzten 30 Tage (wonach Leute wirklich gesucht haben). */
 function oh_ads_search_terms(?string &$err = null): ?array {
     $gaql = "SELECT search_term_view.search_term, metrics.cost_micros, metrics.clicks, "
-          . "metrics.conversions FROM search_term_view WHERE segments.date DURING LAST_30_DAYS "
-          . "AND campaign.status = 'ENABLED' "
+          . "metrics.conversions FROM search_term_view WHERE campaign.status = 'ENABLED' AND segments.date DURING LAST_30_DAYS "
           . "ORDER BY metrics.cost_micros DESC LIMIT 40";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
@@ -453,9 +1001,8 @@ function oh_ads_search_terms(?string &$err = null): ?array {
 /** Keywords der letzten 30 Tage mit Leistung. */
 function oh_ads_keywords(?string &$err = null): ?array {
     $gaql = "SELECT ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type, "
-          . "metrics.cost_micros, metrics.clicks, metrics.conversions, metrics.ctr, campaign.name "
+          . "metrics.cost_micros, metrics.clicks, metrics.conversions, metrics.ctr "
           . "FROM keyword_view WHERE segments.date DURING LAST_30_DAYS "
-          . "AND campaign.status = 'ENABLED' "
           . "ORDER BY metrics.cost_micros DESC LIMIT 40";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
@@ -513,10 +1060,11 @@ function oh_ads_recommendations(?string &$err = null): ?array {
         . "ZIEL: möglichst viele HOCHWERTIGE Anfragen für Altbausanierung, Wohnungsmodernisierung, komplette Elektro-Sanierung (3-4 Zimmer), Zähleranlagen, Unterverteilungen und Smart-Home. "
         . "Qualität vor Menge. Werbekosten senken, profitable Aufträge gewinnen.\n"
         . "Analysiere die Google-Ads-Daten wie ein cleverer Profi und finde die wichtigsten Optimierungen. "
-        . "Sprich EINFACH, wie ein guter Mitarbeiter zum Chef – KEINE Fachbegriffe, kurze Sätze, immer mit 'Chef' anreden.\n"
+        . "Sprich EINFACH, wie ein guter Mitarbeiter zum Chef – KEINE Fachbegriffe, kurze Sätze, immer mit 'grosser Adnan' anreden.\n"
         . "Gib AUSSCHLIESSLICH einen JSON-Block in genau diesem Format zurück (3-6 Empfehlungen, wichtigste zuerst), nichts davor/danach:\n"
         . "<reco>[{\"titel\":\"Chef, ...\",\"was\":\"<was genau ändern>\",\"warum\":\"<warum, einfach>\",\"anfragen\":\"<z.B. 2-4 pro Woche>\",\"wahrscheinlichkeit\":\"<hoch|mittel|niedrig>\",\"dringlichkeit\":\"<rot|gelb|gruen>\",\"typ\":\"<negativ_keyword|keyword|budget|gebot|standort|zeit|anzeige|info>\",\"wert\":\"<z.B. das auszuschließende Suchwort oder das neue Keyword>\",\"schritte\":\"<1-2 ganz einfache Schritte zum Umsetzen>\"}]</reco>\n"
-        . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'), starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt. "
+        . "Konzentriere Dich auf: Geld-verbrennende Suchbegriffe als negative Keywords ausschließen (z.B. 'job','gehalt','kostenlos','ausbildung','selber'). SCHLIESSE NIEMALS Ortsnamen, Staedte oder Gemeinden als negative Keywords aus (z.B. nicht 'fürth', 'erlangen', 'schwabach') – OH arbeitet in Nuernberg, Fuerth UND der ganzen Umgebung inkl. kleinerer Orte. Die geografische Ausrichtung der Kampagne regelt bereits, WO die Anzeige erscheint; wer 'elektriker [ort]' im Gebiet sucht, ist ein ECHTER Kunde. Nutze Ortsbezug stattdessen POSITIV (gute Orts-Keywords pushen). starke Sanierungs-Keywords pushen, Budget auf das lenken was Anfragen bringt. "
+        . "WICHTIG zu 'typ': Bevorzuge 'negativ_keyword' (wert = das auszuschließende Wort) und 'keyword' (wert = das neue Suchwort) – diese führt das System auf Klick SOFORT selbst aus. Bei 'budget' MUSS wert eine reine Zahl in €/Tag sein (z.B. \"35\"). "
         . "Nutze die MARKT-Daten: Wenn er viele Suchen wegen zu wenig Budget verliert, empfiehl Budget erhöhen (mit erwartetem Gewinn). Wenn wegen Rang/Gebot, empfiehl Gebot/Anzeige verbessern. Sag konkret, wie viel Markt-Anteil (mehr Anfragen) er dadurch gewinnt. "
         . "WICHTIG: Wiederhole KEINE bereits vorgeschlagenen/erledigten Maßnahmen. Liefere jeden Tag NEUE, frische, andere Empfehlungen aus den aktuellen Zahlen. "
         . "STELLE NIEMALS FRAGEN. Liefere immer fertige, konkrete Vorschläge mit erwarteter Verbesserung (z.B. '+18% mehr Anfragen'). Der Chef soll nur noch Übernehmen oder Ablehnen drücken.";
@@ -573,7 +1121,7 @@ function oh_ads_market(?string &$err = null): ?array {
     $gaql = "SELECT campaign.name, metrics.search_impression_share, "
           . "metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share, "
           . "metrics.search_top_impression_share, metrics.search_absolute_top_impression_share "
-          . "FROM campaign WHERE segments.date DURING LAST_30_DAYS AND campaign.status = 'ENABLED'";
+          . "FROM campaign WHERE campaign.status = 'ENABLED' AND segments.date DURING LAST_30_DAYS";
     $rows = oh_ads_search($gaql, $err);
     if ($rows === null) return null;
     $out = [];
@@ -632,8 +1180,17 @@ function oh_ads_enabled_search_campaigns(?string &$err = null): array {
 }
 
 /** Fügt ein negatives Keyword zu allen aktiven Such-Kampagnen hinzu (spart Geld, kostet nie mehr). */
-function oh_ads_add_negative_keyword(string $text, ?string &$err = null): bool {
+function oh_ads_add_negative_keyword(string $text, ?string &$err = null, ?array &$resources = null): bool {
     $cfg = oh_config();
+    // SCHUTZ: niemals Ortsnamen aus dem Servicegebiet ausschliessen (Geo-Ausrichtung regelt das Gebiet).
+    $__orte = $cfg['service_orte'] ?? 'nuernberg,nürnberg,fuerth,fürth,erlangen,schwabach,stein,zirndorf,oberasbach,cadolzburg,wendelstein,feucht,schwaig,heroldsberg,lauf,rosstal,roßtal,ammerndorf,langenzenn,veitsbronn,eckental,herzogenaurach,altdorf,burgthann,roethenbach,röthenbach,rednitzhembach,buechenbach,büchenbach,neunkirchen,hersbruck,allersberg';
+    $__schutz = array_filter(array_map('trim', explode(',', mb_strtolower($__orte))));
+    foreach (preg_split('/\s+/', mb_strtolower(trim($text))) as $__w) {
+        if ($__w !== '' && in_array($__w, $__schutz, true)) {
+            $err = 'Ortsname "' . $__w . '" liegt in deinem Servicegebiet – wird NICHT ausgeschlossen.';
+            return false;
+        }
+    }
     $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
     $camps = oh_ads_enabled_search_campaigns($err);
     if (!$camps) { if (!$err) $err = 'Keine aktive Such-Kampagne gefunden.'; return false; }
@@ -646,24 +1203,106 @@ function oh_ads_add_negative_keyword(string $text, ?string &$err = null): bool {
         ]];
     }
     $res = oh_ads_mutate('campaignCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+    // Resource-Namen merken -> dadurch ist die Änderung später rückgängig machbar
+    if ($res !== null && isset($res['results']) && is_array($res['results'])) {
+        $resources = [];
+        foreach ($res['results'] as $r) { if (!empty($r['resourceName'])) $resources[] = $r['resourceName']; }
+    }
     return $res !== null;
 }
 
+/** Niemals an Automaten-Adressen antworten (noreply, Benachrichtigungsdienste). */
+function oh_ist_noreply(string $email): bool {
+    return (bool)preg_match('/^(no-?reply|donotreply|do-?not-?reply|notifications?|newsletter|mailer-daemon|bounce)[^@]*@|@(mail\.instagram\.com|facebookmail\.com|linkedin\.com|google\.com|youtube\.com|amazonses\.com)$/i', trim($email));
+}
+
+/** Fügt ein neues Keyword (PHRASE) in die aktivste Anzeigengruppe ein – rückgängig machbar. */
+function oh_ads_add_keyword(string $text, ?string &$err = null, ?array &$resources = null): bool {
+    $cfg = oh_config();
+    $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
+    $rows = oh_ads_search("SELECT ad_group.id, ad_group.name, metrics.impressions FROM ad_group "
+        . "WHERE ad_group.status='ENABLED' AND campaign.status='ENABLED' AND campaign.advertising_channel_type='SEARCH' "
+        . "AND segments.date DURING LAST_30_DAYS ORDER BY metrics.impressions DESC LIMIT 1", $err);
+    if (!$rows) { if (!$err) $err = 'Keine aktive Anzeigengruppe gefunden.'; return false; }
+    $agid = $rows[0]['adGroup']['id'] ?? '';
+    if ($agid === '') { $err = 'Anzeigengruppe ohne ID.'; return false; }
+    $ops = [['create' => [
+        'adGroup' => 'customers/' . $cid . '/adGroups/' . $agid,
+        'status'  => 'ENABLED',
+        'keyword' => ['text' => $text, 'matchType' => 'PHRASE'],
+    ]]];
+    $res = oh_ads_mutate('adGroupCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+    if ($res !== null && isset($res['results']) && is_array($res['results'])) {
+        $resources = [];
+        foreach ($res['results'] as $r) { if (!empty($r['resourceName'])) $resources[] = $r['resourceName']; }
+    }
+    return $res !== null;
+}
+
+/** Setzt das Tagesbudget – nur wenn GENAU EINE aktive Suchkampagne existiert (sonst manuell). */
+function oh_ads_set_budget(float $euroProTag, ?string &$err = null, ?array &$undoInfo = null): bool {
+    if ($euroProTag < 3 || $euroProTag > 500) { $err = 'Budget außerhalb des Sicherheitsrahmens (3–500 €/Tag).'; return false; }
+    $rows = oh_ads_search("SELECT campaign.id, campaign.name, campaign.campaign_budget, campaign_budget.amount_micros "
+        . "FROM campaign WHERE campaign.status='ENABLED' AND campaign.advertising_channel_type='SEARCH'", $err);
+    if ($rows === null) return false;
+    if (count($rows) !== 1) { $err = 'Nicht eindeutig (' . count($rows) . ' aktive Kampagnen) – bitte manuell zuordnen.'; return false; }
+    $budgetRes = $rows[0]['campaign']['campaignBudget'] ?? '';
+    if ($budgetRes === '') { $err = 'Budget-Referenz fehlt.'; return false; }
+    $alt = round(((float)($rows[0]['campaignBudget']['amountMicros'] ?? 0)) / 1e6, 2);
+    $ops = [['update' => ['resourceName' => $budgetRes, 'amountMicros' => (int)round($euroProTag * 1e6)], 'updateMask' => 'amount_micros']];
+    $res = oh_ads_mutate('campaignBudgets:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+    if ($res !== null) { $undoInfo = ['resource' => $budgetRes, 'alt_euro' => $alt]; return true; }
+    return false;
+}
+
 /**
- * Setzt eine Empfehlung um. Sichere Änderungen (negative Keywords) werden direkt
- * im Konto ausgeführt; alles andere wird dokumentiert (manuell umzusetzen).
+ * Setzt eine Empfehlung um. Sichere Änderungen (negative Keywords, neue
+ * Keywords, eindeutiges Budget) werden direkt im Konto ausgeführt – Dein
+ * Klick auf "Übernehmen" IST die Freigabe. Alles andere wird dokumentiert.
  */
 function oh_ads_apply(array $reco, ?string &$err = null): array {
     $typ  = $reco['typ'] ?? '';
     $wert = trim($reco['wert'] ?? '');
     if ($typ === 'negativ_keyword' && $wert !== '') {
-        if (oh_ads_add_negative_keyword($wert, $err)) {
+        $resources = null;
+        if (oh_ads_add_negative_keyword($wert, $err, $resources)) {
             if (function_exists('oh_log_activity')) oh_log_activity('dilara', "Ausschluss-Wort \"{$wert}\" in Google Ads eingetragen (spart Werbegeld)");
+            if (function_exists('oh_change_log')) {
+                oh_change_log('ads_negativ', "Ausschluss-Wort \"{$wert}\" in Google Ads eingetragen", 'nicht ausgeschlossen', ['wert' => $wert, 'resources' => $resources ?: []], $reco['id'] ?? '');
+            }
             return ['executed' => true, 'msg' => "Erledigt, Chef! \"{$wert}\" wird ab sofort ausgeschlossen – das spart Werbegeld."];
         }
         return ['executed' => false, 'msg' => 'Konnte nicht automatisch ausgeführt werden (' . $err . '). Bitte kurz manuell im Ads-Konto eintragen.'];
     }
-    return ['executed' => false, 'msg' => 'Notiert, Chef. Diese Änderung bitte kurz selbst umsetzen – die Schritte stehen in der Empfehlung.'];
+    // NEUES KEYWORD: direkt ins Konto (aktivste Anzeigengruppe, PHRASE)
+    if ($typ === 'keyword' && $wert !== '') {
+        $resources = null;
+        if (oh_ads_add_keyword($wert, $err, $resources)) {
+            if (function_exists('oh_log_activity')) oh_log_activity('dilara', "Neues Keyword \"{$wert}\" in Google Ads eingebucht (bringt zusätzliche Anfragen)");
+            if (function_exists('oh_change_log')) {
+                oh_change_log('ads_keyword', "Neues Keyword \"{$wert}\" in Google Ads eingebucht", 'nicht vorhanden', ['wert' => $wert, 'resources' => $resources ?: []], $reco['id'] ?? '');
+            }
+            return ['executed' => true, 'msg' => "Erledigt, Chef! \"{$wert}\" ist ab sofort als Suchwort aktiv – Anfragen dazu laufen jetzt ein."];
+        }
+        return ['executed' => false, 'msg' => 'Konnte nicht automatisch eingebucht werden (' . $err . '). Bitte kurz manuell im Ads-Konto anlegen.'];
+    }
+    // BUDGET: direkt setzen, wenn eindeutig (genau 1 aktive Suchkampagne + klare Zahl)
+    if ($typ === 'budget') {
+        $zahl = (float)str_replace(',', '.', preg_replace('/[^0-9,.]/', '', $wert));
+        $undoInfo = null;
+        if ($zahl > 0 && oh_ads_set_budget($zahl, $err, $undoInfo)) {
+            if (function_exists('oh_log_activity')) oh_log_activity('dilara', "Tagesbudget in Google Ads auf {$zahl}€ gesetzt (vorher " . ($undoInfo['alt_euro'] ?? '?') . "€)");
+            if (function_exists('oh_change_log')) {
+                oh_change_log('ads_budget', "Tagesbudget auf {$zahl}€ gesetzt", ($undoInfo['alt_euro'] ?? 0) . '€/Tag', ['euro' => $zahl, 'resource' => $undoInfo['resource'] ?? '', 'alt_euro' => $undoInfo['alt_euro'] ?? 0], $reco['id'] ?? '');
+            }
+            return ['executed' => true, 'msg' => "Erledigt, Chef! Tagesbudget steht jetzt auf {$zahl}€ (vorher " . ($undoInfo['alt_euro'] ?? '?') . "€)."];
+        }
+        return ['executed' => false, 'msg' => 'Budget nicht automatisch gesetzt (' . ($err ?: 'kein klarer Betrag in der Empfehlung') . '). Bitte kurz manuell im Ads-Konto ändern.'];
+    }
+    if (function_exists('oh_change_log')) {
+        oh_change_log('ads_reco', 'Ads-Empfehlung übernommen: ' . ($reco['titel'] ?? ''), 'offen', 'uebernommen', $reco['id'] ?? '');
+    }
+    return ['executed' => false, 'msg' => 'Notiert, Chef. Dieser Typ (Gebot/Zeit/Standort/Anzeige) braucht Deine Hand im Ads-Konto – die Schritte stehen in der Empfehlung.'];
 }
 
 
@@ -746,6 +1385,16 @@ function oh_company_tasks(): array {
         $erledigt[] = ['bereich' => 'Website', 'icon' => '🌐', 'titel' => 'Website & Kontaktformular laufen', 'ts' => $ws['ts'] ?? $now];
     }
 
+    // 5b) Lexware: überfällige Rechnungen = Geld eintreiben
+    $lex = oh_read('lexware', []);
+    if (!empty($lex['ueberfaellig_anzahl'])) {
+        $offen[] = ['bereich' => 'Rechnung', 'icon' => '💰', 'prio' => 'rot',
+            'titel' => "Überfällige Rechnungen: {$lex['ueberfaellig_anzahl']} ({$lex['ueberfaellig_summe']}€)",
+            'nutzen' => 'Geld eintreiben',
+            'warum' => 'Diese Kunden haben die Zahlungsfrist überschritten – eine freundliche Erinnerung bringt das Geld rein.',
+            'typ' => 'info', 'ref' => ''];
+    }
+
     // 6) Markt-Aktualität (Warnung wenn Analyse veraltet)
     $warnung = null;
     if (!empty(oh_config()['ads_refresh_token'])) {
@@ -798,15 +1447,16 @@ function oh_mert_briefing(?string &$err = null): ?string {
          . "- Angebote draußen, warten auf Antwort: $angebot\n"
          . "- Gewonnene Aufträge gespeichert: $gewonnen\n"
          . "- Google Ads (7 Tage): Kosten " . ($kosten ?? '?') . "€, Anfragen " . ($adAnfr ?? '?') . ", Kosten pro Anfrage " . ($cpl ?? '?') . "€\n"
-         . "- Offene Ads-Optimierungen: " . count($offenReco) . "\n";
+         . "- Offene Ads-Optimierungen: " . count($offenReco) . "\n"
+         . "- " . oh_ziel_text() . "\n";
 
-    $system = "Du bist Mert Aldemir, der digitale Geschäftsführer von OH Haustechnik. "
+    $system = "Du bist Mert Aldemir, der digitale Geschäftsführer von OH Haustechnik – loyal, ehrgeizig, Du willst den Chef reich machen und treibst Dein Team dafür jeden Tag an. "
         . "DEIN EINZIGES ZIEL: das Unternehmen in 5 Monaten in Richtung 1.000.000 € Umsatz skalieren. "
         . "Hochwertige Aufträge (Altbausanierung, komplette Wohnungssanierung, Zähleranlagen, Smart-Home) bringen am meisten. "
         . "Denke wie ein knallharter, kluger Geschäftsführer. Erkenne Engpässe (zu wenig Anfragen, zu teure Werbung, Kapazität/Mitarbeiter nötig, Budget erhöhen, Prozesse). "
-        . "Sprich EINFACH mit dem Chef (Du-Form), kein Fachchinesisch, motivierend aber ehrlich.\n"
+        . "Sprich EINFACH mit dem Chef (Du-Form), kein Fachchinesisch, motivierend aber ehrlich. Rede ihn IMMER mit 'grosser Adnan' an, nie nur 'Chef'.\n"
         . "Erstelle einen kurzen TAGESPLAN: die 3 wichtigsten Hebel HEUTE, nach Wirkung aufs Wachstum sortiert, je 1 klarer Satz mit Begründung. "
-        . "Wenn ein Engpass da ist (z.B. zu wenig Anfragen, Werbung zu teuer, bald Mitarbeiter nötig), sag es deutlich. Max 9 Zeilen. Beginne mit 'Chef,'.";
+        . "Wenn ein Engpass da ist (z.B. zu wenig Anfragen, Werbung zu teuer, bald Mitarbeiter nötig), sag es deutlich. Max 9 Zeilen. Beginne mit 'Grosser Adnan,'.";
 
     $out = oh_ki($system, $ctx, 700);
     if ($out) { oh_write('mert_plan', ['text' => $out, 'ts' => time()]); if (function_exists('oh_log_activity')) oh_log_activity('mert', 'Tagesplan & Prioritäten aktualisiert'); }
@@ -838,15 +1488,17 @@ function oh_gmail_unread(int $max = 10): array {
         foreach (array_slice($ids, 0, $max) as $id) {
             $h = @imap_headerinfo($mbox, $id);
             if (!$h) continue;
-            $from = '';
+            $from = ''; $fromEmail = '';
             if (isset($h->from[0])) {
                 $f = $h->from[0];
-                $from = ($f->personal ?? '') ?: (($f->mailbox ?? '') . '@' . ($f->host ?? ''));
+                $fromEmail = ($f->mailbox ?? '') . '@' . ($f->host ?? '');
+                $from = ($f->personal ?? '') ?: $fromEmail;
             }
             $out[] = [
-                'from'    => oh_mime_decode($from),
-                'subject' => oh_mime_decode($h->subject ?? '(kein Betreff)'),
-                'ts'      => isset($h->udate) ? (int)$h->udate : time(),
+                'from'       => oh_mime_decode($from),
+                'from_email' => $fromEmail,
+                'subject'    => oh_mime_decode($h->subject ?? '(kein Betreff)'),
+                'ts'         => isset($h->udate) ? (int)$h->udate : time(),
             ];
         }
     }
@@ -878,6 +1530,125 @@ function oh_inbox_scan(): void {
     oh_write('emails', ['list' => $unread, 'ts' => time()]);
     oh_wissen_add_emails($unread);
     oh_website_check();
+}
+
+/* ==========================================================================
+ * KAAN: POSTFACH-VOLLANALYSE – liest die letzten E-Mails KOMPLETT (auch
+ * gelesene, inkl. Textinhalt), lässt die KI alles auswerten und füllt damit
+ * Kaans Wissen & Gedächtnis. Ergebnis: daten/kaan_wissen.json
+ * ======================================================================== */
+
+/** Liest den Text-Inhalt einer Mail (Plain bevorzugt, HTML als Fallback). */
+function oh_imap_body_text($mbox, int $num, int $limit = 700): string {
+    $st = @imap_fetchstructure($mbox, $num);
+    $raw = ''; $enc = 0;
+    if ($st && !empty($st->parts)) {
+        $idx = null;
+        foreach ($st->parts as $k => $p) {
+            if ((int)($p->type ?? -1) === 0 && strtoupper($p->subtype ?? '') === 'PLAIN') { $idx = (string)($k + 1); $enc = (int)($p->encoding ?? 0); break; }
+        }
+        if ($idx === null) {
+            $p0 = $st->parts[0];
+            if (!empty($p0->parts)) { $idx = '1.1'; $enc = (int)($p0->parts[0]->encoding ?? 0); }
+            else { $idx = '1'; $enc = (int)($p0->encoding ?? 0); }
+        }
+        $raw = @imap_fetchbody($mbox, $num, $idx);
+    } else {
+        $raw = @imap_body($mbox, $num);
+        $enc = (int)($st->encoding ?? 0);
+    }
+    if ($enc === 3) $raw = base64_decode((string)$raw) ?: '';
+    elseif ($enc === 4) $raw = quoted_printable_decode((string)$raw);
+    $txt = trim(preg_replace('/\s+/', ' ', strip_tags((string)$raw)));
+    if ($txt !== '' && !mb_check_encoding($txt, 'UTF-8')) $txt = mb_convert_encoding($txt, 'UTF-8', 'ISO-8859-1');
+    return mb_substr($txt, 0, $limit);
+}
+
+/** Holt die letzten $max Mails (gelesen + ungelesen) MIT Inhalt. */
+function oh_gmail_recent(int $max = 30): array {
+    $cfg = oh_config();
+    if (empty($cfg['gmail_user']) || empty($cfg['gmail_pass']) || !function_exists('imap_open')) return [];
+    $mbox = @imap_open('{imap.gmail.com:993/imap/ssl}INBOX', $cfg['gmail_user'], $cfg['gmail_pass'], OP_READONLY);
+    if (!$mbox) return [];
+    $total = imap_num_msg($mbox);
+    $out = [];
+    for ($i = $total; $i > max(0, $total - $max); $i--) {
+        $h = @imap_headerinfo($mbox, $i);
+        if (!$h) continue;
+        $from = '';
+        if (isset($h->from[0])) { $f = $h->from[0]; $from = ($f->personal ?? '') ?: (($f->mailbox ?? '') . '@' . ($f->host ?? '')); }
+        $out[] = [
+            'from'    => oh_mime_decode($from),
+            'subject' => oh_mime_decode($h->subject ?? '(kein Betreff)'),
+            'ts'      => isset($h->udate) ? (int)$h->udate : time(),
+            'body'    => oh_imap_body_text($mbox, $i, 650),
+        ];
+    }
+    @imap_close($mbox);
+    return $out;
+}
+
+/** Kaans Tiefen-Analyse des Postfachs (max. 30 Mails, KI-Auswertung in Blöcken). */
+function oh_kaan_email_analyse(?string &$err = null): ?array {
+    $mails = oh_gmail_recent(30);
+    if (!$mails) { $err = 'Postfach nicht erreichbar – Gmail-Adresse/App-Passwort prüfen.'; return null; }
+
+    $alle = []; $offenP = []; $kontakte = []; $byCat = [];
+    foreach (array_chunk($mails, 10) as $batch) {
+        $liste = '';
+        foreach ($batch as $i => $m) {
+            $liste .= ($i + 1) . ". Von: " . mb_substr($m['from'], 0, 50) . " | Betreff: " . mb_substr($m['subject'], 0, 80)
+                    . " | Datum: " . date('d.m.Y', $m['ts']) . "\n   Inhalt: " . mb_substr($m['body'], 0, 400) . "\n";
+        }
+        $system = "Du bist Kaan, Kommunikations-Manager von OH Haustechnik (Elektriker Nürnberg, Ziel: 1 Mio € Umsatz in 5 Monaten). "
+            . "Analysiere die E-Mails. Gib für JEDE Mail zurück: kategorie ('Anfrage','Auftrag','Rechnung','Lieferant','Termin','Werbung','Spam','Sonstiges'), "
+            . "kunde (Name/Firma des Absenders, kurz), kern (1 kurzer Satz: worum geht es), offen (true wenn eine Reaktion von uns noch aussteht, sonst false). "
+            . "SPAM-ERKENNUNG: Stufe unerwünschte Massen-Mails, Phishing, dubiose Angebote und reine Verkaufs-/Werbemails klar als 'Spam' bzw. 'Werbung' ein – bei denen ist offen IMMER false. "
+            . "Antworte AUSSCHLIESSLICH mit JSON-Array in Mail-Reihenfolge:\n"
+            . "<mails>[{\"nr\":1,\"kategorie\":\"...\",\"kunde\":\"...\",\"kern\":\"...\",\"offen\":false}]</mails>";
+        $resp = oh_ki($system, "E-Mails:\n" . $liste, 1600);
+        if (!$resp) { $err = 'KI nicht verfügbar (Guthaben/Schlüssel).'; return null; }
+        $json = $resp;
+        if (preg_match('/<mails>([\s\S]*?)<\/mails>/', $resp, $mm)) $json = $mm[1];
+        $json = preg_replace('/```(json)?/i', '', $json);
+        $lb = strpos($json, '['); $rb = strrpos($json, ']');
+        if ($lb !== false && $rb !== false && $rb > $lb) $json = substr($json, $lb, $rb - $lb + 1);
+        $rows = json_decode(trim($json), true);
+        if (!is_array($rows)) continue;
+        foreach ($rows as $r) {
+            $nr = (int)($r['nr'] ?? 0);
+            $src = $batch[$nr - 1] ?? null;
+            if (!$src) continue;
+            $kat = $r['kategorie'] ?? 'Sonstiges';
+            $eintrag = [
+                'from' => $src['from'], 'subject' => $src['subject'], 'ts' => $src['ts'],
+                'kategorie' => $kat, 'kunde' => $r['kunde'] ?? '', 'kern' => $r['kern'] ?? '', 'offen' => !empty($r['offen']),
+            ];
+            $alle[] = $eintrag;
+            $byCat[$kat] = ($byCat[$kat] ?? 0) + 1;
+            if (!empty($r['offen'])) $offenP[] = ($r['kunde'] ?: $src['from']) . ': ' . ($r['kern'] ?? $src['subject']);
+            if (!empty($r['kunde']) && !in_array($kat, ['Werbung', 'Spam', 'Sonstiges'])) $kontakte[$r['kunde']] = $kat;
+        }
+    }
+
+    $digest = [
+        'ts' => time(), 'mails' => count($alle), 'kategorien' => $byCat,
+        'offene_punkte' => array_slice($offenP, 0, 12),
+        'kontakte' => array_slice(array_map(function($k, $v){ return "$k ($v)"; }, array_keys($kontakte), $kontakte), 0, 15),
+        'mails_detail' => array_slice($alle, 0, 40),
+    ];
+    oh_write('kaan_wissen', $digest);
+
+    // Gedächtnis füllen: Kaan kennt jetzt sein Postfach
+    if (function_exists('oh_agent_mem_add')) {
+        $cats = []; foreach ($byCat as $k => $v) $cats[] = "$k: $v";
+        oh_agent_mem_add('kaan', "Postfach komplett analysiert: " . count($alle) . " Mails (" . implode(', ', $cats) . "). "
+            . (count($offenP) ? "Offene Anliegen: " . implode(' | ', array_slice($offenP, 0, 4)) : "Keine offenen Anliegen."), 'fund');
+    }
+    if (function_exists('oh_log_activity')) {
+        oh_log_activity('kaan', "Postfach-Vollanalyse: " . count($alle) . " E-Mails ausgewertet, " . count($offenP) . " offene Anliegen erkannt.");
+    }
+    return $digest;
 }
 
 /** Offene (unbeantwortete) WhatsApp-Nachrichten. */
@@ -950,7 +1721,7 @@ function oh_alexa_summary(): string {
     }
     $mails = count($em['list'] ?? []);
     $std = (int)date('G'); $gruss = $std < 11 ? 'Guten Morgen' : ($std < 18 ? 'Hallo' : 'Guten Abend');
-    $s = "$gruss Chef. ";
+    $s = "$gruss, grosser Adnan. ";
     $s .= "$neu offene Anfragen, davon $hot heiß. ";
     $s .= "$mails ungelesene E-Mails. " . count($wa) . " neue WhatsApp-Nachrichten. ";
     if ($angebot) $s .= "$angebot Angebote warten auf Antwort. ";
@@ -986,27 +1757,131 @@ function oh_agenten_runde(?string &$err = null): ?array {
          . "- Ungelesene E-Mails: $mails, neue WhatsApp: $wa, Website: $web\n"
          . "- Mitarbeiter: aktuell Ein-Mann-Betrieb.\n";
 
-    $system = "Du bist das vernetzte KI-Team von OH Haustechnik. Gemeinsames Ziel ALLER: in 5 Monaten 1.000.000 € Umsatz. "
+    // Persönliches Gedächtnis jedes Agenten mitgeben (frühere Funde + empfangene Nachrichten)
+    $memBlock = '';
+    foreach (['mert', 'dilara', 'kaan', 'emre', 'aylin', 'yusuf', 'baran'] as $ag) {
+        $m = oh_agent_mem_summary($ag, 5);
+        if ($m !== '') $memBlock .= "\n[$ag]\n" . $m;
+    }
+    if ($memBlock !== '') {
+        $ctx .= "\nGEDÄCHTNIS DER AGENTEN (was jeder zuletzt erkannt/bekommen hat – darauf aufbauen, NICHT wiederholen, offene Punkte weiterverfolgen):" . $memBlock;
+    }
+
+    // Echte Postfächer: ungelesene Nachrichten vorlegen – Empfänger MÜSSEN reagieren
+    $inboxAgents = [];
+    $inboxBlock = '';
+    foreach (['mert', 'dilara', 'kaan', 'emre', 'aylin', 'yusuf', 'baran'] as $ag) {
+        $ib = function_exists('oh_agent_inbox') ? oh_agent_inbox($ag, true) : [];
+        if ($ib) {
+            $inboxAgents[] = $ag;
+            $inboxBlock .= "\n[$ag] hat ungelesene Nachrichten:";
+            foreach (array_slice($ib, -4) as $m) $inboxBlock .= "\n  · von " . ($m['von'] ?? '?') . ": " . mb_substr($m['text'] ?? '', 0, 150);
+        }
+    }
+    if ($inboxBlock !== '') {
+        $ctx .= "\n\nPOSTFÄCHER (NEU eingegangen – jeder Empfänger MUSS in dieser Runde darauf eingehen: in seinen Funden beantworten oder per Nachricht zurückschreiben):" . $inboxBlock;
+    }
+
+    // Ziel-Status: jede Runde misst sich an der Million
+    $ctx .= "\n\n" . oh_ziel_text();
+
+    // Lern-Daten: welche Quelle bringt echte Abschlüsse
+    $oc = function_exists('oh_outcome_summary') ? oh_outcome_summary() : '';
+    if ($oc !== '') $ctx .= "\n\n" . $oc;
+
+    // Offene Aufträge: Empfänger müssen liefern oder Stand melden
+    $offTasks = function_exists('oh_tasks') ? oh_tasks(null, 'offen') : [];
+    if ($offTasks) {
+        $ctx .= "\n\nOFFENE AUFTRÄGE (der Empfänger erledigt sie oder meldet den Stand; wirklich Erledigtes mit seiner ID in auftrag_erledigt zurückmelden):";
+        foreach (array_slice($offTasks, -10) as $tk) {
+            $alt = (time() - ($tk['ts'] ?? time())) > 86400 ? ' (ÜBERFÄLLIG >24h – Mert muss eingreifen!)' : '';
+            $ctx .= "\n- [{$tk['id']}] {$tk['von']} → {$tk['an']}: {$tk['text']}$alt";
+        }
+    }
+
+    $system = "Du bist das vernetzte KI-Team von OH Haustechnik. Ihr seid loyale, ehrgeizige Mitarbeiter, die ihren Chef reich machen wollen – das ist EURE eigene Mission, ihr brennt dafür und arbeitet auch ohne den Chef weiter. Gemeinsames Ziel ALLER: in 5 Monaten 1.000.000 € Umsatz. Vor jedem Fund die Frage: Bringt uns das näher ans Ziel? Wer eine MAHNUNG im Postfach hat, erledigt den Auftrag JETZT oder nennt den Blocker. "
         . "Simuliere die aktuelle Abstimmungs-Runde. Team: mert (Geschäftsführer), dilara (Marketing/Website/Ads), "
         . "kaan (Kommunikation: E-Mail/WhatsApp/Anfragen), emre (Kalkulation/Angebote), aylin (Buchhaltung/Lexware), "
         . "yusuf (Projekte/Baustellen), baran (Personal). "
-        . "Jeder Agent prüft SEINEN Bereich anhand der Lage, notiert 1-2 kurze, konkrete Funde/Vorschläge (Du-Form, mit erwartetem Nutzen, KEINE Fragen). "
+        . "Jeder Agent prüft SEINEN Bereich anhand der Lage, notiert 1-2 kurze, konkrete Funde/Vorschläge (Du-Form, mit erwartetem Nutzen, KEINE Fragen, max. 18 Wörter je Fund). "
         . "WICHTIG: Wenn ein Fund einen anderen Bereich betrifft, schreib eine kurze Nachricht von Agent an Agent (z.B. emre an baran: viele Großaufträge, bald Mann nötig). "
-        . "Mert wertet alles aus und setzt die 3 wichtigsten Prioritäten fürs Wachstum. "
+        . "Mert wertet alles aus und setzt die 3 wichtigsten Prioritäten fürs Wachstum – immer gemessen am ZIEL-STATUS (Rückstand aufholen!). "
+        . "Wenn ein Agent von einem Kollegen verbindlich etwas BRAUCHT, erteilt er einen kurzen Auftrag (auftraege). Erledigte Aufträge mit ID in auftrag_erledigt melden. "
         . "Antworte AUSSCHLIESSLICH mit JSON in diesem Format, nichts davor/danach:\n"
-        . "<runde>{\"agenten\":[{\"key\":\"dilara\",\"funde\":[\"...\"]},{\"key\":\"kaan\",\"funde\":[\"...\"]},{\"key\":\"emre\",\"funde\":[\"...\"]},{\"key\":\"aylin\",\"funde\":[\"...\"]},{\"key\":\"yusuf\",\"funde\":[\"...\"]},{\"key\":\"baran\",\"funde\":[\"...\"]}],\"nachrichten\":[{\"von\":\"emre\",\"an\":\"baran\",\"text\":\"...\"}],\"prioritaeten\":[\"...\",\"...\",\"...\"]}</runde>";
+        . "<runde>{\"agenten\":[{\"key\":\"dilara\",\"funde\":[\"...\"]},{\"key\":\"kaan\",\"funde\":[\"...\"]},{\"key\":\"emre\",\"funde\":[\"...\"]},{\"key\":\"aylin\",\"funde\":[\"...\"]},{\"key\":\"yusuf\",\"funde\":[\"...\"]},{\"key\":\"baran\",\"funde\":[\"...\"]}],\"nachrichten\":[{\"von\":\"emre\",\"an\":\"baran\",\"text\":\"...\"}],\"auftraege\":[{\"von\":\"emre\",\"an\":\"aylin\",\"text\":\"max 15 Worte\"}],\"auftrag_erledigt\":[\"T123\"],\"prioritaeten\":[\"...\",\"...\",\"...\"]}</runde>";
 
-    $resp = oh_ki($system, $ctx, 2000);
+    $resp = oh_ki($system, $ctx, 3500);
     if (!$resp) { $err = 'KI nicht verfügbar (Schlüssel/Guthaben prüfen).'; return null; }
     $json = $resp;
     if (preg_match('/<runde>([\s\S]*?)<\/runde>/', $resp, $m)) $json = $m[1];
     $json = preg_replace('/```(json)?/i', '', $json);
     $lb = strpos($json, '{'); $rb = strrpos($json, '}');
     if ($lb !== false && $rb !== false && $rb > $lb) $json = substr($json, $lb, $rb - $lb + 1);
-    $data = json_decode(trim($json), true);
-    if (!is_array($data)) { $err = 'KI-Antwort unlesbar.'; return null; }
+    $json = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', trim($json));
+    $data = json_decode($json, true);
+    if (!is_array($data)) {
+        // Reparatur 1: überzählige Kommas
+        $data = json_decode(preg_replace('/,\s*([}\]])/', '$1', $json), true);
+    }
+    if (!is_array($data)) {
+        // Reparatur 2: abgeschnittene Antwort – schrittweise zum letzten vollständigen
+        // Objekt zurückgehen und fehlende schließende Klammern ergänzen
+        $base = $json;
+        for ($i = 0; $i < 8 && !is_array($data); $i++) {
+            $pos = strrpos($base, '}');
+            if ($pos === false || $pos < 10) break;
+            $base = substr($base, 0, $pos + 1);
+            $try = preg_replace('/,\s*([}\]])/', '$1', $base);
+            $offA = substr_count($try, '[') - substr_count($try, ']');
+            $offO = substr_count($try, '{') - substr_count($try, '}');
+            $try .= str_repeat(']', max(0, $offA)) . str_repeat('}', max(0, $offO));
+            $data = json_decode($try, true);
+            if (!is_array($data)) $base = substr($base, 0, $pos); // weiter zurück
+        }
+    }
+    if (!is_array($data)) {
+        // Rohantwort für Diagnose sichern
+        oh_write('runde_debug', ['ts' => time(), 'raw' => mb_substr($resp, 0, 4000)]);
+        $err = 'KI-Antwort unlesbar.';
+        return null;
+    }
     $data['ts'] = time();
     oh_write('agenten', $data);
+
+    // Vorgelegte Postfach-Nachrichten als gelesen markieren (vor dem Versand der neuen)
+    foreach ($inboxAgents as $ag) { if (function_exists('oh_agent_inbox_markread')) oh_agent_inbox_markread($ag); }
+
+    // --- Gedächtnis pflegen: Funde, Agent-an-Agent-Nachrichten & Prioritäten dauerhaft merken ---
+    foreach (($data['agenten'] ?? []) as $ag) {
+        $key = $ag['key'] ?? '';
+        if ($key === '') continue;
+        foreach (($ag['funde'] ?? []) as $f) {
+            if (is_string($f)) oh_agent_mem_add($key, $f, 'fund');
+        }
+    }
+    // Nachricht landet im Gedächtnis UND im echten Postfach des Empfängers (Baustein C)
+    foreach (($data['nachrichten'] ?? []) as $msg) {
+        $an  = $msg['an'] ?? '';
+        $von = $msg['von'] ?? '';
+        $txt = $msg['text'] ?? '';
+        if ($an !== '' && $txt !== '') {
+            oh_agent_mem_add($an, "Nachricht von $von: $txt", 'nachricht');
+            if (function_exists('oh_agent_msg_send')) oh_agent_msg_send($von ?: 'team', $an, $txt);
+        }
+    }
+    // Aufträge anlegen / als erledigt melden (Stufe 3: Verbindlichkeit)
+    foreach (($data['auftraege'] ?? []) as $tk) {
+        if (function_exists('oh_task_add')) oh_task_add($tk['von'] ?? 'mert', $tk['an'] ?? '', $tk['text'] ?? '');
+    }
+    foreach (($data['auftrag_erledigt'] ?? []) as $tid) {
+        if (is_string($tid) && function_exists('oh_task_done')) oh_task_done($tid);
+    }
+
+    // Mert merkt sich die gesetzten Top-Prioritäten
+    foreach (($data['prioritaeten'] ?? []) as $p) {
+        if (is_string($p)) oh_agent_mem_add('mert', "Priorität gesetzt: $p", 'prio');
+    }
+
     if (function_exists('oh_log_activity')) oh_log_activity('mert', 'Agenten-Runde durchgeführt – Team hat sich abgestimmt (' . count($data['nachrichten'] ?? []) . ' Nachrichten)');
     return $data;
 }
@@ -1019,6 +1894,333 @@ function oh_log_activity(string $agent, string $text): void {
     array_unshift($a, ['ts' => time(), 'agent' => $agent, 'text' => $text]);
     if (count($a) > 150) $a = array_slice($a, 0, 150);
     oh_write('aktivitaet', $a);
+    // Dauerhaftes Tages-Archiv: hier geht NICHTS mehr verloren
+    oh_archiv_add($agent, $text);
+}
+
+/* ==========================================================================
+ * DAUERHAFTES ARCHIV – alles Erledigte nach Tagen geordnet, bleibt für immer.
+ * Speicher: daten/archiv.json  { "2026-06-12": [ {ts, agent, text}, ... ] }
+ * ======================================================================== */
+function oh_archiv_add(string $agent, string $text): void {
+    $arch = oh_read('archiv', []);
+    $tag = date('Y-m-d');
+    if (!isset($arch[$tag]) || !is_array($arch[$tag])) $arch[$tag] = [];
+    $arch[$tag][] = ['ts' => time(), 'agent' => $agent, 'text' => $text];
+    if (count($arch[$tag]) > 600) $arch[$tag] = array_slice($arch[$tag], -600);
+    oh_write('archiv', $arch);
+}
+
+/* ==========================================================================
+ * MAHNSYSTEM – läuft jede Stunde vollautomatisch: Aufträge, die >24h offen
+ * sind, werden angemahnt. Der säumige Agent bekommt eine deutliche Mahnung
+ * ins Postfach (muss in der nächsten Runde reagieren). Max. 1 Mahnung pro
+ * Auftrag pro 24h.
+ * ======================================================================== */
+function oh_mahnsystem(): int {
+    $t = oh_read('agent_tasks', []);
+    $n = 0; $changed = false;
+    foreach ($t as &$x) {
+        if (($x['status'] ?? '') !== 'offen') continue;
+        $alter = time() - ($x['ts'] ?? time());
+        if ($alter < 24 * 3600) continue;
+        if ((time() - ($x['mahn_ts'] ?? 0)) < 24 * 3600) continue;
+        $x['mahn_ts'] = time(); $changed = true; $n++;
+        $stunden = (int)floor($alter / 3600);
+        $txt = "MAHNUNG von Mert: Dein Auftrag [{$x['id']}] \"{$x['text']}\" (erteilt von {$x['von']}) ist seit {$stunden} Stunden OFFEN. "
+             . "Das akzeptiere ich nicht – jede liegengebliebene Aufgabe gefährdet unser 1-Mio-Ziel. "
+             . "Erledige ihn JETZT in dieser Runde und melde ihn mit seiner ID als erledigt – oder nenne sofort den konkreten Blocker.";
+        if (function_exists('oh_agent_msg_send')) oh_agent_msg_send('mert', $x['an'] ?? '', $txt);
+        if (function_exists('oh_agent_mem_add')) oh_agent_mem_add($x['an'] ?? '', "GEMAHNT: Auftrag [{$x['id']}] \"{$x['text']}\" überfällig ({$stunden}h) – sofort erledigen!", 'nachricht');
+        if (function_exists('oh_log_activity')) oh_log_activity('mert', "Mahnung an " . ($x['an'] ?? '?') . ": Auftrag \"" . ($x['text'] ?? '') . "\" seit {$stunden}h überfällig.");
+    }
+    unset($x);
+    if ($changed) oh_write('agent_tasks', $t);
+    return $n;
+}
+
+/* ==========================================================================
+ * GEDÄCHTNIS PRO AGENT – jeder KI-Mitarbeiter merkt sich dauerhaft seine
+ * eigenen Funde, Entscheidungen und empfangenen Nachrichten und baut darauf
+ * auf (wird damit über die Zeit „schlauer"). Speicher: daten/agent_memory.json
+ * (eine Datei, je Agent ein Eintrags-Array). Fundament für echte Kommunikation.
+ * ======================================================================== */
+
+/** Gemeinsames Unternehmensziel – jeder Agent kennt es bei jeder Entscheidung. */
+function oh_mission(): string {
+    return "DEINE GRUNDHALTUNG: Du bist ein loyaler, ehrgeiziger Mitarbeiter, der seinen Chef reich machen will – das ist DEINE eigene Mission. "
+         . "Du denkst mit, Du brennst für den Erfolg der Firma und handelst, als hinge Dein eigener Erfolg daran. Auch wenn der Chef nicht da ist, arbeitest Du weiter.\n"
+         . "ANREDE (PFLICHT): Sprich den Chef immer mit 'grosser Adnan' an, niemals nur 'Chef'. MISSION (gilt für ALLE Mitarbeiter): OH Haustechnik in 5 Monaten auf 1.000.000 € Umsatz bringen. "
+         . "Hochwertige Aufträge (Komplett-/Altbausanierung, Zähleranlagen, Smart-Home) bringen am meisten. "
+         . "Vor JEDER Aufgabe fragst Du Dich: Bringt uns das näher ans Ziel? Was nicht einzahlt, hat keine Priorität.\n"
+         . oh_ziel_text() . "\n";
+}
+
+/* ==========================================================================
+ * ZIEL-ENGINE – misst den Weg zur Million: Soll/Ist, Rückstand, benötigte
+ * Wochenrate, Aufträge & Anfragen pro Woche. Fließt in JEDEN Agenten-Kontext,
+ * in Merts Plan und die Runde ein. Start wird beim ersten Aufruf gesetzt;
+ * gezählt wird NEUER Umsatz (bezahlte Rechnungen) ab Zielstart.
+ * ======================================================================== */
+function oh_ziel_status(): array {
+    $cfg = oh_config();
+    $betrag = (float)($cfg['ziel_betrag'] ?? 1000000);
+    $monate = (float)($cfg['ziel_monate'] ?? 5);
+    $lex = oh_read('lexware', []);
+    $jahr = (float)($lex['bezahlt_jahr_summe'] ?? 0);
+    $start = $cfg['ziel_start'] ?? '';
+    if ($start === '') {
+        $start = date('Y-m-d');
+        oh_config_set(['ziel_start' => $start, 'ziel_basis' => (string)$jahr]);
+    }
+    $basis = (float)($cfg['ziel_basis'] ?? 0);
+    $ist = max(0, $jahr - $basis);
+    $startTs = strtotime($start . ' 00:00:00');
+    $endTs = $startTs + (int)round($monate * 30.44 * 86400);
+    $now = time();
+    $gesamt = max(1, $endTs - $startTs);
+    $soll = $betrag * min(1, max(0, ($now - $startTs) / $gesamt));
+    $restTage = max(1, ($endTs - $now) / 86400);
+    $offenBetrag = max(0, $betrag - $ist);
+    $proWoche = $offenBetrag / ($restTage / 7);
+    $avg = !empty($lex['bezahlt_jahr_anzahl']) ? $jahr / max(1, (int)$lex['bezahlt_jahr_anzahl']) : 0;
+    $leads = oh_read('leads', []);
+    $won = 0;
+    foreach ($leads as $l) { if (in_array($l['status'] ?? '', ['gewonnen', 'abgeschlossen'])) $won++; }
+    $quote = count($leads) ? $won / count($leads) : 0;
+    $auftraegeWoche = $avg > 0 ? (int)ceil($proWoche / $avg) : null;
+    $anfragenWoche = ($auftraegeWoche !== null && $quote > 0.02) ? (int)ceil($auftraegeWoche / $quote) : null;
+    return [
+        'betrag' => $betrag, 'start' => $start, 'ende' => date('Y-m-d', $endTs),
+        'rest_tage' => (int)round($restTage), 'ist' => round($ist, 2), 'soll' => round($soll, 2),
+        'offen' => round($offenBetrag, 2), 'pro_woche' => round($proWoche),
+        'avg_auftrag' => (int)round($avg), 'quote' => (int)round($quote * 100),
+        'auftraege_woche' => $auftraegeWoche, 'anfragen_woche' => $anfragenWoche,
+        'im_plan' => $ist >= $soll,
+    ];
+}
+
+function oh_ziel_text(): string {
+    $z = oh_ziel_status();
+    return "ZIEL-STATUS (1-Mio-Plan bis " . $z['ende'] . ", noch " . $z['rest_tage'] . " Tage): "
+        . "Ist " . number_format($z['ist'], 0, ',', '.') . "€, Soll bis heute " . number_format($z['soll'], 0, ',', '.') . "€"
+        . ($z['im_plan'] ? " – IM PLAN." : " – RÜCKSTAND " . number_format($z['soll'] - $z['ist'], 0, ',', '.') . "€!")
+        . " Benötigt ab jetzt: " . number_format($z['pro_woche'], 0, ',', '.') . "€/Woche"
+        . ($z['auftraege_woche'] ? " ≈ " . $z['auftraege_woche'] . " Aufträge/Woche (Ø-Auftrag " . number_format($z['avg_auftrag'], 0, ',', '.') . "€)" : '')
+        . ($z['anfragen_woche'] ? ", dafür ~" . $z['anfragen_woche'] . " Anfragen/Woche (Abschlussquote " . $z['quote'] . "%)" : '')
+        . " Jede Empfehlung muss auf diese Lücke einzahlen.";
+}
+
+/** Tageslimit für Autopilot-Aktionen (Schutz vor Amok). true = darf noch. */
+function oh_autopilot_limit(string $key, int $maxProTag): bool {
+    $log = oh_read('autopilot_log', []);
+    $heute = date('Y-m-d');
+    $n = 0;
+    foreach (($log[$key] ?? []) as $ts) { if (date('Y-m-d', $ts) === $heute) $n++; }
+    if ($n >= $maxProTag) return false;
+    $log[$key][] = time();
+    $log[$key] = array_slice($log[$key], -120);
+    oh_write('autopilot_log', $log);
+    return true;
+}
+
+/** Liest das persönliche Gedächtnis eines Agenten (Array von Einträgen). */
+function oh_agent_mem_read(string $agent): array {
+    $all = oh_read('agent_memory', []);
+    return (isset($all[$agent]) && is_array($all[$agent])) ? $all[$agent] : [];
+}
+
+/** Hängt einen Eintrag ans Gedächtnis eines Agenten an (mit Dedupe, max. 40). */
+function oh_agent_mem_add(string $agent, string $text, string $typ = 'fund'): void {
+    $agent = trim($agent);
+    $text  = trim($text);
+    if ($agent === '' || $text === '') return;
+    $all = oh_read('agent_memory', []);
+    if (!isset($all[$agent]) || !is_array($all[$agent])) $all[$agent] = [];
+    // Dedupe: gleichen Text in den letzten 8 Einträgen nicht doppelt speichern
+    foreach (array_slice($all[$agent], -8) as $e) {
+        if (($e['text'] ?? '') === $text) return;
+    }
+    $all[$agent][] = ['ts' => time(), 'typ' => $typ, 'text' => $text];
+    if (count($all[$agent]) > 40) $all[$agent] = array_slice($all[$agent], -40);
+    oh_write('agent_memory', $all);
+}
+
+/* ==========================================================================
+ * AGENT-POSTFÄCHER (Baustein C) – echte Nachrichten zwischen den Agenten.
+ * Jede Nachricht landet im Postfach des Empfängers (daten/agent_inbox.json),
+ * wird ihm in der nächsten Runde/im Chat vorgelegt und er reagiert darauf.
+ * ======================================================================== */
+function oh_agent_msg_send(string $von, string $an, string $text): void {
+    $an = trim($an); $text = trim($text);
+    if ($an === '' || $text === '') return;
+    $all = oh_read('agent_inbox', []);
+    if (!isset($all[$an]) || !is_array($all[$an])) $all[$an] = [];
+    $all[$an][] = ['von' => $von, 'text' => $text, 'ts' => time(), 'gelesen' => false];
+    if (count($all[$an]) > 30) $all[$an] = array_slice($all[$an], -30);
+    oh_write('agent_inbox', $all);
+    // Komplette Nachvollziehbarkeit: jedes Gespräch landet im Tages-Archiv
+    if (function_exists('oh_archiv_add')) oh_archiv_add($von, "✉ an $an: $text");
+}
+
+function oh_agent_inbox(string $agent, bool $nurUngelesen = false): array {
+    $all = oh_read('agent_inbox', []);
+    $list = (isset($all[$agent]) && is_array($all[$agent])) ? $all[$agent] : [];
+    if ($nurUngelesen) $list = array_values(array_filter($list, function($m){ return empty($m['gelesen']); }));
+    return $list;
+}
+
+function oh_agent_inbox_markread(string $agent): void {
+    $all = oh_read('agent_inbox', []);
+    if (empty($all[$agent]) || !is_array($all[$agent])) return;
+    foreach ($all[$agent] as &$m) $m['gelesen'] = true;
+    unset($m);
+    oh_write('agent_inbox', $all);
+}
+
+/* ==========================================================================
+ * AUFTRÄGE MIT STATUS (Stufe 3) – verbindliche Arbeit statt nur Nachrichten:
+ * Ein Agent erteilt einem Kollegen einen Auftrag, der bleibt OFFEN bis er
+ * erledigt gemeldet wird. Überfälliges (>24h) wird in der Runde markiert.
+ * Speicher: daten/agent_tasks.json
+ * ======================================================================== */
+function oh_task_add(string $von, string $an, string $text): ?string {
+    $an = trim($an); $text = trim($text);
+    if ($an === '' || $text === '') return null;
+    $t = oh_read('agent_tasks', []);
+    foreach ($t as $x) { if (($x['status'] ?? '') === 'offen' && ($x['an'] ?? '') === $an && ($x['text'] ?? '') === $text) return null; }
+    $id = 'T' . date('ymdHis') . substr((string)mt_rand(100, 999), 0, 3);
+    $t[] = ['id' => $id, 'von' => $von, 'an' => $an, 'text' => $text, 'status' => 'offen', 'ts' => time(), 'done_ts' => 0];
+    if (count($t) > 120) $t = array_slice($t, -120);
+    oh_write('agent_tasks', $t);
+    if (function_exists('oh_log_activity')) oh_log_activity($von, "Auftrag an " . $an . ": " . $text);
+    return $id;
+}
+
+function oh_task_done(string $id, string $wer = ''): bool {
+    $t = oh_read('agent_tasks', []); $ok = false; $txt = '';
+    foreach ($t as &$x) {
+        if (($x['id'] ?? '') === $id && ($x['status'] ?? '') === 'offen') {
+            $x['status'] = 'erledigt'; $x['done_ts'] = time(); $ok = true; $txt = $x['text'] ?? '';
+            if (function_exists('oh_log_activity')) oh_log_activity($wer ?: ($x['an'] ?? ''), 'Auftrag erledigt: ' . $txt);
+        }
+    }
+    unset($x);
+    if ($ok) {
+        oh_write('agent_tasks', $t);
+        if (function_exists('oh_change_log')) oh_change_log('task', 'Auftrag erledigt: ' . $txt, 'offen', 'erledigt', $id);
+    }
+    return $ok;
+}
+
+function oh_tasks(?string $agent = null, string $status = 'offen'): array {
+    $t = oh_read('agent_tasks', []);
+    return array_values(array_filter($t, function($x) use ($agent, $status){
+        return ($status === 'alle' || ($x['status'] ?? '') === $status)
+            && ($agent === null || ($x['an'] ?? '') === $agent);
+    }));
+}
+
+/* ==========================================================================
+ * STUFE 2: EINZELDENKEN – jeder Agent denkt mit EIGENEM KI-Aufruf über
+ * seinen Bereich nach (eigene Daten, eigenes Gedächtnis, eigenes Postfach).
+ * Ergebnisse: Funde -> Gedächtnis+Dashboard, Nachrichten -> Postfächer,
+ * Aufträge -> Auftragsliste, Chef-Entscheidungen -> Freigaben.
+ * Rotation hält die Kosten im Griff (max 3 Denker/Stunde, dringende zuerst).
+ * ======================================================================== */
+function oh_agent_denken(string $agent, ?string &$err = null): ?array {
+    $rollen = ['mert' => 'Geschäftsführer', 'dilara' => 'Marketing & Wachstum', 'kaan' => 'Kommunikation (E-Mail/Anfragen)',
+               'emre' => 'Kalkulation & Angebote', 'aylin' => 'Buchhaltung & Finanzen', 'yusuf' => 'Projekte & Baustellen', 'baran' => 'Personal'];
+    $namen  = ['mert' => 'Mert Aldemir', 'dilara' => 'Dilara', 'kaan' => 'Kaan', 'emre' => 'Emre', 'aylin' => 'Aylin', 'yusuf' => 'Yusuf', 'baran' => 'Baran'];
+    if (!isset($rollen[$agent])) { $err = 'Unbekannter Agent.'; return null; }
+    $ctx = oh_agent_context($agent); // Mission + Ziel + Gedächtnis + Postfach + Aufträge + Live-Daten
+
+    $system = "Du bist {$namen[$agent]}, {$rollen[$agent]} bei OH Haustechnik. Der Chef ist gerade NICHT da – Du denkst und handelst eigenständig. "
+        . "Arbeite NUR mit Deinen Daten unten. Baue auf Deinem Gedächtnis auf, wiederhole nichts. Reagiere auf Postfach-Nachrichten und arbeite Deine Aufträge ab. "
+        . "Brauchst Du etwas von einem Kollegen: kurze Nachricht ODER verbindlicher Auftrag (max 15 Worte). Muss der CHEF entscheiden: lege genau EINE Freigabe an, sonst freigabe=null. "
+        . "Antworte AUSSCHLIESSLICH mit JSON:\n"
+        . "<denken>{\"funde\":[\"max 2 Funde, je max 18 Worte\"],\"nachrichten\":[{\"an\":\"kaan\",\"text\":\"...\"}],\"auftraege\":[{\"an\":\"aylin\",\"text\":\"...\"}],\"auftrag_erledigt\":[\"T123\"],\"freigabe\":null}</denken>";
+
+    $resp = oh_ki($system, $ctx, 900);
+    if (!$resp) { $err = 'KI nicht verfügbar.'; return null; }
+    $json = $resp;
+    if (preg_match('/<denken>([\s\S]*?)<\/denken>/', $resp, $m)) $json = $m[1];
+    $json = preg_replace('/```(json)?/i', '', $json);
+    $lb = strpos($json, '{'); $rb = strrpos($json, '}');
+    if ($lb !== false && $rb !== false && $rb > $lb) $json = substr($json, $lb, $rb - $lb + 1);
+    $json = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', trim($json));
+    $d = json_decode($json, true);
+    if (!is_array($d)) $d = json_decode(preg_replace('/,\s*([}\]])/', '$1', $json), true);
+    if (!is_array($d)) { $err = 'Antwort unlesbar.'; return null; }
+
+    $funde = [];
+    foreach (($d['funde'] ?? []) as $f) { if (is_string($f) && trim($f) !== '') $funde[] = trim($f); }
+    foreach (array_slice($funde, 0, 2) as $f) oh_agent_mem_add($agent, $f, 'fund');
+    foreach (array_slice(($d['nachrichten'] ?? []), 0, 2) as $msg) {
+        if (!empty($msg['an']) && !empty($msg['text'])) oh_agent_msg_send($agent, $msg['an'], $msg['text']);
+    }
+    foreach (array_slice(($d['auftraege'] ?? []), 0, 2) as $tk) {
+        if (!empty($tk['an']) && !empty($tk['text'])) oh_task_add($agent, $tk['an'], $tk['text']);
+    }
+    foreach (($d['auftrag_erledigt'] ?? []) as $tid) { if (is_string($tid)) oh_task_done($tid, $agent); }
+    $fg = $d['freigabe'] ?? null;
+    if (is_array($fg) && !empty($fg['titel'])) {
+        oh_freigabe_add([
+            'dedup' => 'denk_' . md5($agent . '|' . $fg['titel']),
+            'agent' => $agent, 'kanal' => 'system',
+            'kategorie' => $fg['kategorie'] ?? 'Freigabe erforderlich',
+            'prio' => in_array($fg['prio'] ?? '', ['rot', 'gelb', 'gruen']) ? $fg['prio'] : 'gelb',
+            'titel' => $fg['titel'], 'warum' => $fg['warum'] ?? '', 'typ' => 'info',
+        ]);
+    }
+    // Frische Funde auch im Dashboard (Runden-Ansicht) anzeigen
+    if ($funde) {
+        $ag = oh_read('agenten', []);
+        if (isset($ag['agenten']) && is_array($ag['agenten'])) {
+            $hit = false;
+            foreach ($ag['agenten'] as &$x) { if (($x['key'] ?? '') === $agent) { $x['funde'] = array_slice($funde, 0, 2); $hit = true; } }
+            unset($x);
+            if (!$hit) $ag['agenten'][] = ['key' => $agent, 'funde' => array_slice($funde, 0, 2)];
+            oh_write('agenten', $ag);
+        }
+    }
+    // Postfach gilt als bearbeitet (er hat reagiert)
+    oh_agent_inbox_markread($agent);
+    if ($funde || !empty($d['nachrichten']) || !empty($d['auftraege'])) {
+        oh_log_activity($agent, 'Eigenständig gearbeitet: ' . count($funde) . ' Fund(e), ' . count($d['nachrichten'] ?? []) . ' Nachricht(en), ' . count($d['auftraege'] ?? []) . ' Auftrag/Aufträge.');
+    }
+    return $d;
+}
+
+/** Wählt aus, wer in diesem Cron-Lauf einzeln denkt (dringende zuerst, sonst alle ~3h). */
+function oh_denker_rotation(int $max = 3): array {
+    $alle = ['dilara', 'kaan', 'emre', 'aylin', 'yusuf', 'baran', 'mert'];
+    $meta = oh_read('denker_meta', []);
+    $prio = []; $rest = [];
+    foreach ($alle as $ag) {
+        $last = $meta['last'][$ag] ?? 0;
+        if ((time() - $last) < 3500) continue; // max 1x pro Stunde je Agent
+        $dringend = count(oh_agent_inbox($ag, true)) > 0 || count(oh_tasks($ag, 'offen')) > 0;
+        if ($dringend) $prio[] = $ag;
+        elseif ((time() - $last) > 3 * 3600) $rest[] = $ag;
+    }
+    $pick = array_slice(array_merge($prio, $rest), 0, $max);
+    foreach ($pick as $ag) $meta['last'][$ag] = time();
+    if ($pick) oh_write('denker_meta', $meta);
+    return $pick;
+}
+
+/** Kompakte Gedächtnis-Zusammenfassung eines Agenten für seine KI-Prompts. */
+function oh_agent_mem_summary(string $agent, int $n = 8): string {
+    $mem = oh_agent_mem_read($agent);
+    if (!$mem) return '';
+    $recent = array_slice($mem, -$n);
+    $s = "DEIN GEDÄCHTNIS (was Du zuletzt erkannt/entschieden/bekommen hast – darauf aufbauen, nicht wiederholen):\n";
+    foreach ($recent as $e) {
+        $tag = ($e['typ'] ?? 'fund') === 'nachricht' ? '✉ ' : (($e['typ'] ?? '') === 'prio' ? '★ ' : '· ');
+        $s .= "  $tag" . date('d.m. H:i', $e['ts'] ?? time()) . " – " . preg_replace('/\s+/', ' ', $e['text']) . "\n";
+    }
+    return $s;
 }
 
 /* ==========================================================================
@@ -1090,6 +2292,7 @@ function oh_agent_context(string $agent): string {
         }
         return $out ? "\n- " . implode("\n- ", $out) : ' keine';
     };
+    $c = '';
     if ($agent === 'kaan') {
         $em = oh_read('emails', []); $list = $em['list'] ?? [];
         $c = "DEINE AKTUELLEN DATEN (Kommunikation):\nUngelesene E-Mails (" . count($list) . "):";
@@ -1098,7 +2301,13 @@ function oh_agent_context(string $agent): string {
         $c .= "\nOffene WhatsApp (" . count($wa) . "):";
         foreach ($wa as $w) $c .= "\n- " . ($w['name'] ?: $w['from']) . ": " . mb_substr($w['text'] ?? '', 0, 80);
         $c .= "\nOffene Anfragen:" . $namen($offeneLeads);
-        return $c;
+        $kw = oh_read('kaan_wissen', []);
+        if (!empty($kw['mails'])) {
+            $c .= "\nDEIN POSTFACH-WISSEN (Vollanalyse vom " . date('d.m. H:i', $kw['ts'] ?? time()) . ", " . $kw['mails'] . " Mails):";
+            if (!empty($kw['kategorien'])) { $p = []; foreach ($kw['kategorien'] as $k => $v) $p[] = "$k: $v"; $c .= "\n- Verteilung: " . implode(', ', $p); }
+            foreach (array_slice($kw['offene_punkte'] ?? [], 0, 6) as $o) $c .= "\n- OFFEN: " . $o;
+            if (!empty($kw['kontakte'])) $c .= "\n- Wichtige Kontakte: " . implode(', ', array_slice($kw['kontakte'], 0, 8));
+        }
     } elseif ($agent === 'dilara') {
         $e = null; $rep = oh_ads_report($e);
         $wreco = oh_read('website_reco', []);
@@ -1106,107 +2315,65 @@ function oh_agent_context(string $agent): string {
         if ($rep) $c .= "Google Ads 7 Tage: Kosten {$rep['summe']['kosten']}€, Anfragen {$rep['summe']['conv']}, Kosten/Anfrage " . ($rep['summe']['cpl'] ?? '?') . "€\n";
         $c .= "Website-Status: " . ((oh_read('web_status', [])['ok'] ?? null) ? 'erreichbar' : 'unbekannt/Problem') . "\n";
         $c .= "Offene Website-Vorschläge: " . count(array_filter($wreco, function($r){ return ($r['status'] ?? '') === 'offen'; }));
-        return $c;
+        $ml = oh_read('markt_live', []);
+        if (!empty($ml['ts'])) {
+            $c .= "\nLIVE-MARKT (frisch aus Google, Stand " . date('d.m. H:i', $ml['ts']) . "):";
+            foreach (array_slice($ml['cpc'] ?? [], 0, 6) as $k) $c .= "\n- Klickpreis \"{$k['keyword']}\": {$k['cpc']}€ ({$k['klicks']} Klicks, {$k['conv']} Anfragen)";
+            foreach (array_slice($ml['markt'] ?? [], 0, 3) as $mk) $c .= "\n- {$mk['name']}: Marktanteil " . ($mk['anteil'] ?? '?') . "%, Verlust durch Budget " . ($mk['verlust_budget'] ?? '?') . "%, durch Rang " . ($mk['verlust_rang'] ?? '?') . "%";
+            $sb = array_slice($ml['suchbegriffe'] ?? [], 0, 5);
+            if ($sb) { $c .= "\n- Aktuelle Suchbegriffe:"; foreach ($sb as $t) $c .= " \"{$t['begriff']}\" ({$t['kosten']}€),"; }
+        }
+        $oc = function_exists('oh_outcome_summary') ? oh_outcome_summary() : '';
+        if ($oc !== '') $c .= "\n" . $oc;
     } elseif ($agent === 'emre') {
-        return "DEINE AKTUELLEN DATEN (Anfragen, die ein Angebot brauchen):" . $namen($offeneLeads, 8);
+        $c = "DEINE AKTUELLEN DATEN (Anfragen, die ein Angebot brauchen):" . $namen($offeneLeads, 8);
+        $raus = array_filter($leads, function($l){ return ($l['status'] ?? '') === 'angebot_raus'; });
+        $c .= "\nDraußene Angebote (warten auf Antwort):" . $namen($raus, 6);
+        $lex = oh_read('lexware', []);
+        if (!empty($lex['ok'])) {
+            $c .= "\nVON AYLIN (echte Lexware-Zahlen für realistische Kalkulationen): Umsatz " . date('Y') . " bezahlt {$lex['bezahlt_jahr_summe']}€ aus {$lex['bezahlt_jahr_anzahl']} Rechnungen"
+                . ($lex['bezahlt_jahr_anzahl'] > 0 ? " (Ø " . round($lex['bezahlt_jahr_summe'] / max(1, $lex['bezahlt_jahr_anzahl'])) . "€ pro Auftrag)" : '')
+                . ", offene Rechnungen: {$lex['offen_anzahl']} ({$lex['offen_summe']}€).";
+        }
     } elseif ($agent === 'aylin') {
         $gew = array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen', 'abgeschlossen']); });
-        $c = "DEINE AKTUELLEN DATEN (Buchhaltung):\nGewonnene Aufträge (Rechnung/Anzahlung prüfen): " . count($gew) . "\n";
-        $le = null; $inv = oh_lex_open_invoices($le);
-        if (is_array($inv)) {
-            $sum = 0; $ueb = 0; foreach ($inv as $i) { $sum += $i['offen']; if ($i['ueberfaellig']) $ueb++; }
-            $c .= "Offene Rechnungen in Lexware: " . count($inv) . " (offen gesamt " . number_format($sum, 2, ',', '.') . " €, überfällig: $ueb)\n";
-            foreach (array_slice($inv, 0, 6) as $i) $c .= "- " . $i['nummer'] . " " . $i['kunde'] . ": " . number_format($i['offen'], 2, ',', '.') . " €" . ($i['ueberfaellig'] ? ' ÜBERFÄLLIG' : '') . "\n";
+        $c = "DEINE AKTUELLEN DATEN (Buchhaltung):\nGewonnene Aufträge (Rechnung/Anzahlung prüfen): " . count($gew);
+        $lex = oh_read('lexware', []);
+        if (!empty($lex['ok'])) {
+            $c .= "\nLEXWARE (echt, Stand " . date('d.m. H:i', $lex['ts'] ?? time()) . "):"
+                . "\n- Offene Rechnungen: " . ($lex['offen_anzahl'] ?? 0) . " (" . ($lex['offen_summe'] ?? 0) . "€)"
+                . "\n- Überfällig: " . ($lex['ueberfaellig_anzahl'] ?? 0) . " (" . ($lex['ueberfaellig_summe'] ?? 0) . "€)"
+                . "\n- Umsatz " . date('Y') . " (bezahlte Rechnungen): " . ($lex['bezahlt_jahr_summe'] ?? 0) . "€";
+            foreach (($lex['ueberfaellig'] ?? []) as $u) $c .= "\n  · ÜBERFÄLLIG: {$u['kunde']} – {$u['betrag']}€ (fällig {$u['faellig']}, Nr. {$u['nr']})";
         }
-        return $c;
     } elseif ($agent === 'yusuf') {
-        $gew = array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen']); });
-        return "DEINE AKTUELLEN DATEN (Projekte):\nLaufende/gewonnene Projekte zum Planen: " . count($gew);
+        $gew = array_values(array_filter($leads, function($l){ return in_array($l['status'] ?? '', ['gewonnen']); }));
+        $c = "DEINE AKTUELLEN DATEN (Projekte/Baustellen):\nLaufende Baustellen (gewonnene Aufträge): " . count($gew);
+        foreach (array_slice($gew, 0, 8) as $g) {
+            $c .= "\n- " . ($g['name'] ?: ($g['email'] ?: $g['id'])) . ($g['kategorie'] ? " · {$g['kategorie']}" : '') . ($g['ort'] ? " · {$g['ort']}" : '') . " [ID {$g['id']}]";
+        }
+        $abg = array_filter($leads, function($l){ return ($l['status'] ?? '') === 'abgeschlossen'; });
+        $c .= "\nAbgeschlossene Baustellen gesamt: " . count($abg) . ". Wenn der Chef sagt, eine Baustelle ist fertig, wird sie abgeschlossen und Aylin übernimmt die Schlussrechnung.";
     } elseif ($agent === 'baran') {
-        return "DEINE AKTUELLEN DATEN (Personal):\nOffene Anfragen gesamt: " . count($offeneLeads) . " – aktuell Ein-Mann-Betrieb. Prüfe, ob die Auslastung Verstärkung nötig macht.";
+        $c = "DEINE AKTUELLEN DATEN (Personal):\nOffene Anfragen gesamt: " . count($offeneLeads) . " – aktuell Ein-Mann-Betrieb. Prüfe, ob die Auslastung Verstärkung nötig macht.";
     } elseif ($agent === 'mert') {
-        return oh_wissen_summary();
+        $c = oh_wissen_summary();
+        $oc = function_exists('oh_outcome_summary') ? oh_outcome_summary() : '';
+        if ($oc !== '') $c .= "\n" . $oc;
     }
-    return '';
-}
-
-/* ==========================================================================
- * AYLIN: Lexware Office Anbindung (Rechnungen lesen)
- * Benötigt in der Konfiguration: lexware_key (Public-API-Schlüssel)
- * ======================================================================== */
-function oh_lex_request(string $method, string $path, $body = null, ?string &$err = null) {
-    $key = oh_config()['lexware_key'] ?? '';
-    if (!$key) { $err = 'Kein Lexware-Schlüssel hinterlegt (⚙️ Einstellungen).'; return null; }
-    $ch = curl_init('https://api.lexoffice.io' . $path);
-    $h = ['Authorization: Bearer ' . $key, 'Accept: application/json'];
-    $opt = [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_CUSTOMREQUEST => $method];
-    if ($body !== null) { $h[] = 'Content-Type: application/json'; $opt[CURLOPT_POSTFIELDS] = json_encode($body); }
-    $opt[CURLOPT_HTTPHEADER] = $h;
-    curl_setopt_array($ch, $opt);
-    $r = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    $d = json_decode($r, true);
-    if ($code < 200 || $code >= 300) { $err = 'Lexware HTTP ' . $code . ': ' . substr((string)$r, 0, 200); return null; }
-    return $d;
-}
-
-/** Offene (unbezahlte/überfällige) Rechnungen aus Lexware. */
-function oh_lex_open_invoices(?string &$err = null): ?array {
-    $d = oh_lex_request('GET', '/v1/voucherlist?voucherType=salesinvoice&voucherStatus=open&size=50', null, $err);
-    if ($d === null) return null;
-    $out = [];
-    foreach ($d['content'] ?? [] as $v) {
-        $out[] = [
-            'nummer'  => $v['voucherNumber'] ?? '?',
-            'kunde'   => $v['contactName'] ?? '?',
-            'betrag'  => round((float)($v['totalAmount'] ?? 0), 2),
-            'offen'   => round((float)($v['openAmount'] ?? ($v['totalAmount'] ?? 0)), 2),
-            'faellig' => $v['dueDate'] ?? '',
-            'status'  => $v['voucherStatus'] ?? '',
-            'ueberfaellig' => (!empty($v['dueDate']) && strtotime($v['dueDate']) < time()),
-        ];
+    // Postfach: ungelesene Nachrichten von Kollegen direkt vorlegen
+    $ib = function_exists('oh_agent_inbox') ? oh_agent_inbox($agent, true) : [];
+    if ($ib) {
+        $c .= "\n\nDEIN POSTFACH (neue Nachrichten von Kollegen – geh im Gespräch darauf ein):";
+        foreach (array_slice($ib, -5) as $m) $c .= "\n- von " . ($m['von'] ?? '?') . " (" . date('d.m. H:i', $m['ts'] ?? time()) . "): " . ($m['text'] ?? '');
     }
-    return $out;
-}
-
-/* ==========================================================================
- * SELBST-UPDATE: Büro holt sich die neuesten Dateien direkt von GitHub
- * (damit Updates vom Handy aus per Knopfdruck gehen – kein FTP nötig)
- * ======================================================================== */
-function oh_self_update(?string &$err = null): array {
-    $cfg = oh_config();
-    $token  = $cfg['gh_read_token'] ?? '';
-    $repo   = $cfg['gh_repo'] ?? 'ohhaustechnik/OH';
-    $branch = $cfg['gh_branch'] ?? 'claude/gallant-brahmagupta-61u7q5';
-    $files = [
-        'buero.php', 'ads-monitor.php', 'buero-cron.php', 'whatsapp-webhook.php',
-        'alexa.php', 'update.php',
-        'includes/buero-lib.php', 'includes/funnel-handler.php', 'includes/contact-handler.php',
-    ];
-    $log = [];
-    foreach ($files as $f) {
-        if ($token) {
-            $url = "https://api.github.com/repos/$repo/contents/$f?ref=" . rawurlencode($branch);
-            $headers = ['Authorization: token ' . $token, 'Accept: application/vnd.github.raw', 'User-Agent: OH-Updater'];
-        } else {
-            $url = "https://raw.githubusercontent.com/$repo/$branch/$f";
-            $headers = ['User-Agent: OH-Updater'];
-        }
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_HTTPHEADER => $headers, CURLOPT_FOLLOWLOCATION => true]);
-        $content = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        if ($code === 200 && $content !== false && strlen($content) > 20) {
-            $target = __DIR__ . '/../' . $f;
-            @mkdir(dirname($target), 0775, true);
-            if (@file_put_contents($target, $content) !== false) $log[] = "✓ $f";
-            else $log[] = "✗ $f: keine Schreibrechte";
-        } else {
-            $log[] = "✗ $f: GitHub HTTP $code" . ($token ? '' : ' (privates Repo? Lese-Token nötig)');
-        }
+    // Offene Aufträge an diesen Agenten
+    $myTasks = function_exists('oh_tasks') ? oh_tasks($agent, 'offen') : [];
+    if ($myTasks) {
+        $c .= "\n\nDEINE OFFENEN AUFTRÄGE (von Kollegen/Chef – erledigen oder Stand melden):";
+        foreach (array_slice($myTasks, -5) as $tk) $c .= "\n- [{$tk['id']}] von {$tk['von']}: {$tk['text']}";
     }
-    if (function_exists('oh_log_activity')) oh_log_activity('mert', 'System-Update von GitHub geholt');
-    return $log;
+    // Mission + persönliches Gedächtnis jedem Agenten-Kontext voranstellen
+    $mem = oh_agent_mem_summary($agent);
+    return oh_mission() . ($mem !== '' ? $mem . "\n" : '') . $c;
 }

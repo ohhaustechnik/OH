@@ -1,18 +1,12 @@
-# macOS
-.DS_Store
-
-# Backups
-Backup.zip
-*.bak
-
-# Editor
-*.code-workspace
-
-# Büro-System: Geheimnisse & Laufzeitdaten (nie committen!)
-
-# React-Build
-app-react/node_modules
-
-# Büro-Laufzeitdaten (nie committen)
+# Secrets & Kundendaten – NIEMALS auf GitHub
 daten/*.json
 daten/*.log
+daten/tts_cache/
+termine.json
+umbau.json
+chat.json
+# Backups & Archive
+*.bak
+*.zip
+# System/lokal
+.DS_Store

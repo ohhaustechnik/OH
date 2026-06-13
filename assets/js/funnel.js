@@ -299,6 +299,7 @@
     --------------------------------------------------------------- */
     function buildFormData() {
         const fd = new FormData();
+        try{fd.append("quelle",localStorage.getItem("oh_quelle")||"website");}catch(e){fd.append("quelle","website");}
 
         // Step 1 – Kategorie
         const kat = document.querySelector('input[name="kategorie"]:checked');
@@ -495,6 +496,7 @@
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gesendet…';
 
         const fd = new FormData();
+        try{fd.append("quelle",localStorage.getItem("oh_quelle")||"website");}catch(e){fd.append("quelle","website");}
         const kat = wrap.querySelector('input[name="fi_kategorie"]:checked');
         fd.append('kategorie', kat ? kat.value : '');
         // Elektro-Typ (nur bei elektro)
@@ -560,4 +562,15 @@
         if (errorMsg) errorMsg.classList.remove('visible');
     }
 
+})();
+
+/* Lead-Quelle merken (Google-Ads-Klick = gclid, sonst UTM/Website) –
+   wird beim Absenden des Funnels mitgeschickt, damit das Buero-System
+   lernt, welche Quelle echte Auftraege bringt. */
+(function () {
+    try {
+        var p = new URLSearchParams(window.location.search);
+        if (p.get('gclid')) localStorage.setItem('oh_quelle', 'google-ads');
+        else if (p.get('utm_source')) localStorage.setItem('oh_quelle', 'utm-' + p.get('utm_source'));
+    } catch (e) {}
 })();
