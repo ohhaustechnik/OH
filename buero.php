@@ -156,14 +156,27 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
     } elseif ($a === 'website_apply' || $a === 'website_later' || $a === 'website_dismiss') {
         $id = $in['id'] ?? '';
         $reco = oh_read('website_reco', []);
-        $newStatus = $a === 'website_apply' ? 'uebernommen' : ($a === 'website_dismiss' ? 'abgelehnt' : 'spaeter');
         $hit = null;
-        foreach ($reco as &$rr) { if (($rr['id'] ?? '') === $id) { $rr['status'] = $newStatus; $hit = $rr; } }
+        foreach ($reco as $rr0) { if (($rr0['id'] ?? '') === $id) { $hit = $rr0; break; } }
+        $executed = false; $undo = false; $msg = '';
+        if ($a === 'website_apply') {
+            if ($hit && function_exists('oh_website_apply_reco')) {
+                $werr = null;
+                $r = oh_website_apply_reco($hit, $werr);   // sichere Text-Änderung WIRKLICH ausführen (Backup+Undo)
+                $executed = !empty($r['executed']);
+                $undo = $executed;
+                $msg = $r['msg'] ?? '';
+            } else { $msg = 'Notiert, Chef!'; }
+            $newStatus = 'uebernommen';
+        } elseif ($a === 'website_dismiss') { $newStatus = 'abgelehnt'; }
+        else { $newStatus = 'spaeter'; }
+        foreach ($reco as &$rr) { if (($rr['id'] ?? '') === $id) { $rr['status'] = $newStatus; } }
         unset($rr);
         oh_write('website_reco', $reco);
-        if ($a === 'website_apply' && $hit) oh_log_activity('dilara', 'Website-Optimierung vorgemerkt: ' . ($hit['titel'] ?? ''));
-        if ($hit && function_exists('oh_change_log')) oh_change_log('website_reco', 'Website-Vorschlag: ' . ($hit['titel'] ?? ''), 'offen', $newStatus, $id);
-        echo json_encode(['ok' => true, 'msg' => $a === 'website_apply' ? 'Notiert, Chef! Dilara hat den Vorschlag vorbereitet. (Automatisches Live-Ändern der Website bauen wir als sicheren Baustein als Nächstes.)' : '']);
+        if ($a === 'website_apply' && $hit) oh_log_activity('dilara', ($executed ? 'Website LIVE geändert: ' : 'Website-Optimierung vorgemerkt: ') . ($hit['titel'] ?? ''));
+        // Bei echter Ausführung hat oh_website_execute_change bereits einen rückgängig-machbaren 'website_text'-Eintrag erzeugt – kein Doppel-Log.
+        if ($hit && function_exists('oh_change_log') && !$executed) oh_change_log('website_reco', 'Website-Vorschlag: ' . ($hit['titel'] ?? ''), 'offen', $newStatus, $id);
+        echo json_encode(['ok' => true, 'executed' => $executed, 'undo' => $undo, 'msg' => $a === 'website_apply' ? $msg : '']);
     } elseif ($a === 'lead_add') {
         echo json_encode(['lead' => oh_add_lead($in)]);
     } elseif ($a === 'lead_update') {
@@ -2069,8 +2082,8 @@ async function chatRecoDone(btn){
   const action=chatReco.kind==='web'?'website_apply':'ads_apply';
   const titel=chatReco.titel||'';
   let d={}; try{d=await api(action,{id:chatReco.id});}catch(e){}
-  const bar=gl('chatRecoBar'); if(bar){bar.innerHTML='<span class="crb-txt">✅ Erledigt – ist jetzt aus Deiner Aufgabenliste raus.</span>';}
-  pushMsg('ai','✅ Erledigt, Chef! Ich hab die Empfehlung „'+titel+'" als übernommen markiert. Beim Zurückgehen ist sie aus der Liste verschwunden.');
+  const bar=gl('chatRecoBar'); if(bar){bar.innerHTML='<span class="crb-txt">'+(d.executed?'✅ Live geändert':'✅ Erledigt')+' – ist jetzt aus Deiner Aufgabenliste raus.</span>';}
+  pushMsg('ai',(d.executed?'✅ ':'📝 ')+(d.msg||('Erledigt, Chef! Ich hab die Empfehlung „'+titel+'" als übernommen markiert.')));
   chatReco=null;
   if(typeof loadDashboard==='function')loadDashboard();
 }
@@ -2150,10 +2163,12 @@ function renderWeb(list){
       <button class="task-go" style="width:100%;text-align:center;margin-top:8px" onclick="dilaraChat(this)" data-id="${esc(r.id||'')}" data-kind="web" data-titel="${esc(r.titel||'')}" data-was="${esc(r.was||'')}">💬 Mit Dilara besprechen</button></div>`;}).join('');
 }
 async function webApply(id,btn){
-  btn.disabled=true;btn.textContent='✓';
+  btn.disabled=true;btn.textContent='⏳ …';
   let d={};try{d=await api('website_apply',{id});}catch(e){}
-  const card=btn.closest('.reco');if(card&&d.msg){const m=document.createElement('div');m.className='reco-result';m.textContent='📝 '+d.msg;card.appendChild(m);}
-  setTimeout(()=>{loadWeb();loadDashboard();},2200);
+  const card=btn.closest('.reco');
+  if(card){const m=document.createElement('div');m.className='reco-result'+(d.executed?' done':'');m.textContent=(d.executed?'✅ ':'📝 ')+(d.msg||'Übernommen');card.appendChild(m);}
+  if(d.msg&&typeof speak==='function')speak(cleanSpeech(d.msg));
+  setTimeout(()=>{loadWeb();loadDashboard();},2400);
 }
 async function webAct(action,id,btn){btn.disabled=true;await api(action,{id});setTimeout(loadWeb,400);}
 

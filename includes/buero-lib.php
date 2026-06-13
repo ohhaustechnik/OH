@@ -2299,15 +2299,29 @@ function oh_fetch_website(): array {
 function oh_website_analyze(?string &$err = null): ?array {
     $w = oh_fetch_website();
     if (empty($w['ok'])) { $err = 'Website konnte nicht geladen werden (Adresse unter ⚙️ prüfen).'; return null; }
+    // Exakt editierbare Texte als Vorlage mitgeben – so liefert Dilara verbatim "alt"-Strings,
+    // die sich sicher 1:1 ersetzen lassen (Design/Farben bleiben unangetastet).
+    $ed = function_exists('oh_website_get_editable') ? oh_website_get_editable() : [];
+    $edTxt = '';
+    foreach ($ed as $e) {
+        $z = ($e['id'] === 'headline') ? 'headline' : ((strpos($e['id'], 'btn') === 0) ? 'cta' : 'text');
+        $edTxt .= '- ziel="' . $z . '" · ' . $e['element'] . ': "' . $e['alt_text'] . "\"\n";
+    }
     $ctx = "WEBSITE OH Haustechnik:\nTitel: {$w['title']}\nH1: " . implode(' | ', $w['h1'])
          . "\nH2: " . implode(' | ', $w['h2']) . "\nMeta-Beschreibung: {$w['desc']}\n"
-         . "Kontaktformular vorhanden: " . ($w['hasForm'] ? 'ja' : 'NEIN') . "\n\nSeitentext (Auszug):\n{$w['text']}";
-    $system = "Du bist Dilara, die Marketing-/Website-Agentin von OH Haustechnik (Elektriker Nürnberg). "
-        . "Ziel: mehr hochwertige Anfragen über die Website (Conversion). Analysiere die echte Website und liefere 3-5 KONKRETE Optimierungen "
-        . "(Überschrift/Headline, Vertrauenselemente, Kontaktformular, Klarheit des Angebots, Handlungsaufforderung, Mobil). "
-        . "STELLE KEINE FRAGEN. Fertige Vorschläge mit erwarteter Verbesserung in Prozent. Du-Form. "
-        . "Antworte AUSSCHLIESSLICH mit JSON: <web>[{\"titel\":\"Chef, ...\",\"was\":\"<konkrete Änderung, ggf. mit fertigem neuen Text>\",\"warum\":\"<warum, einfach>\",\"verbesserung\":\"+18% Anfragen\",\"dringlichkeit\":\"rot|gelb|gruen\"}]</web>";
-    $resp = oh_ki($system, $ctx, 1800);
+         . "Kontaktformular vorhanden: " . ($w['hasForm'] ? 'ja' : 'NEIN') . "\n\n"
+         . "EXAKT EDITIERBARE TEXTE (nutze als \"alt\" GENAU den Text zwischen den Anführungszeichen):\n"
+         . ($edTxt !== '' ? $edTxt : "(keine eindeutigen erkannt)\n")
+         . "\nSeitentext (Auszug):\n{$w['text']}";
+    $system = "Du bist Dilara, Web-/Marketing-Designerin von OH Haustechnik (Elektriker Nürnberg). "
+        . "Die Seite soll wie eine hochwertige Premium-Marke auf 1-Mio-€-Niveau wirken: klar, selbstbewusst, vertrauenswürdig, fehlerfrei, perfektes Deutsch, kein Werbe-Blabla. "
+        . "ABSOLUTE REGEL: Das DESIGN bleibt zu 100% erhalten – du änderst NIEMALS Farben, Schriften, Layout, CSS, Klassen oder Struktur und fügst KEIN HTML ein. "
+        . "Du verbesserst ausschließlich den sichtbaren TEXT bereits vorhandener Elemente (Button-Beschriftung, Vertrauens-Hinweise, Überschriften, Sätze). "
+        . "Liefere 3-5 konkrete Verbesserungen. STELLE KEINE FRAGEN. Du-Form. "
+        . "Wenn die Verbesserung einen der oben gelisteten editierbaren Texte betrifft: setze \"ziel\" passend (headline/cta/text), \"alt\" = EXAKT der bestehende Text, \"neu\" = der verbesserte REINE Text OHNE jegliches HTML/Markup. "
+        . "Wenn ein Vorschlag mehr als eine reine, eindeutige Textänderung wäre (z.B. neues Element, Layout, Bild), setze \"ziel\":\"manuell\" und lass \"alt\" und \"neu\" leer. "
+        . "Antworte AUSSCHLIESSLICH mit JSON: <web>[{\"titel\":\"Chef, ...\",\"was\":\"<konkrete Änderung>\",\"warum\":\"<warum, einfach>\",\"verbesserung\":\"+18% Anfragen\",\"dringlichkeit\":\"rot|gelb|gruen\",\"ziel\":\"headline|cta|text|manuell\",\"alt\":\"\",\"neu\":\"\"}]</web>";
+    $resp = oh_ki($system, $ctx, 2200);
     if (!$resp) { $err = 'KI nicht verfügbar (Schlüssel/Guthaben).'; return null; }
     $json = $resp;
     if (preg_match('/<web>([\s\S]*?)<\/web>/', $resp, $m)) $json = $m[1];
@@ -2318,7 +2332,12 @@ function oh_website_analyze(?string &$err = null): ?array {
     if (!is_array($list) || !count($list)) { $err = 'Dilara konnte keine klaren Vorschläge bilden – nochmal versuchen.'; return null; }
     $reco = [];
     foreach ($list as $i => $r) {
-        $reco[] = array_merge($r, ['id' => 'W' . date('ymd') . $i, 'status' => 'offen', 'created' => time()]);
+        if (!is_array($r)) continue;
+        $reco[] = array_merge(
+            ['titel' => '', 'was' => '', 'warum' => '', 'verbesserung' => '', 'dringlichkeit' => 'gelb', 'ziel' => 'manuell', 'alt' => '', 'neu' => ''],
+            $r,
+            ['id' => 'W' . date('ymd') . $i, 'status' => 'offen', 'created' => time()]
+        );
     }
     oh_write('website_reco', $reco);
     if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website analysiert: ' . count($reco) . ' Optimierungs-Vorschlag/Vorschläge erstellt');
@@ -2337,20 +2356,32 @@ function oh_website_root_file(string $name = 'index.php'): string {
 
 function oh_website_get_editable(): array {
     $html = @file_get_contents(oh_website_root_file('index.php'));
-    $out = [];
+    $out = []; $seen = [];
     if ($html === false) return $out;
+    // 1) Hauptüberschrift (H1) – Sonderbehandlung beim Ausführen
     if (preg_match('/<h1\b[^>]*>(.*?)<\/h1>/is', $html, $m)) {
         $roh = trim($m[1]);
         $text = trim(preg_replace('/\s+/', ' ', strip_tags(str_replace(['<br>', '<br/>', '<br />'], ' ', $roh))));
-        $out[] = ['id' => 'headline', 'element' => 'Hauptüberschrift (H1)', 'datei' => 'index.php', 'alt_html' => $roh, 'alt_text' => $text];
+        if ($text !== '') $out[] = ['id' => 'headline', 'element' => 'Hauptüberschrift (H1)', 'datei' => 'index.php', 'alt_html' => $roh, 'alt_text' => $text];
     }
-    if (preg_match_all('/(?:open-funnel|data-open-funnel)[^>]*>\s*([^<]{5,90}?)\s*</is', $html, $mm)) {
-        $seen = [];
-        foreach ($mm[1] as $i => $t) {
-            $t = trim(preg_replace('/\s+/', ' ', html_entity_decode($t)));
-            if ($t === '' || isset($seen[$t])) continue;
+    // 2) Buttons mit eindeutigem, sichtbarem Text (Icon wird ignoriert) – sichere 1:1-Textswaps
+    if (preg_match_all('/<button\b[^>]*>(.*?)<\/button>/is', $html, $bm)) {
+        foreach ($bm[1] as $i => $inner) {
+            $t = trim(preg_replace('/\s+/', ' ', strip_tags($inner)));
+            if ($t === '' || mb_strlen($t) < 4 || mb_strlen($t) > 80 || isset($seen[$t])) continue;
+            if (substr_count($html, $t) !== 1) continue; // nur eindeutige Texte
             $seen[$t] = true;
-            $out[] = ['id' => 'cta' . $i, 'element' => 'Button / Handlungsaufforderung', 'datei' => 'index.php', 'alt_html' => $t, 'alt_text' => $t];
+            $out[] = ['id' => 'btn' . $i, 'element' => 'Button / Handlungsaufforderung', 'datei' => 'index.php', 'alt_html' => $t, 'alt_text' => $t];
+        }
+    }
+    // 3) Vertrauens-Badges (kurze, eindeutige Texte)
+    if (preg_match_all('/hero-trust-pill[^>]*>(.*?)<\/span>/is', $html, $pm)) {
+        foreach ($pm[1] as $i => $inner) {
+            $t = trim(preg_replace('/\s+/', ' ', strip_tags($inner)));
+            if ($t === '' || mb_strlen($t) < 4 || mb_strlen($t) > 80 || isset($seen[$t])) continue;
+            if (substr_count($html, $t) !== 1) continue;
+            $seen[$t] = true;
+            $out[] = ['id' => 'trust' . $i, 'element' => 'Vertrauens-Hinweis', 'datei' => 'index.php', 'alt_html' => $t, 'alt_text' => $t];
         }
     }
     return $out;
@@ -2366,7 +2397,7 @@ function oh_website_queue_change(string $element, string $alt, string $neu, stri
     $alt = trim($alt); $neu = trim($neu);
     if ($alt === '' || $neu === '' || $alt === $neu) return null;
     $eintrag = [
-        'id' => 'WQ' . date('ymdHis'),
+        'id' => 'WQ' . date('ymdHis') . substr((string)mt_rand(100, 999), 0, 3),
         'element' => mb_substr($element, 0, 120),
         'datei' => preg_replace('/[^a-z0-9_.\-]/i', '', $datei) ?: 'index.php',
         'alt' => mb_substr($alt, 0, 2000),
@@ -2390,6 +2421,15 @@ function oh_website_execute_change(string $id, ?string &$err = null): ?array {
     foreach ($q as $i => $x) { if (($x['id'] ?? '') === $id) { $hit = $x; $idx = $i; break; } }
     if (!$hit) { $err = 'Vorgemerkte Änderung nicht gefunden.'; return null; }
     if (($hit['status'] ?? '') !== 'angenommen') { $err = 'Nur angenommene Änderungen können ausgeführt werden.'; return null; }
+
+    // DESIGN-SCHUTZ: der neue Text muss reiner Text sein – kein HTML/CSS/Code.
+    // So kann sich niemals Farbe, Layout oder Struktur ändern, nur die Wörter.
+    $neuPruef = trim((string)($hit['neu'] ?? ''));
+    if (mb_strlen($neuPruef) < 2) { $err = 'Neuer Text ist zu kurz – nichts geändert.'; return null; }
+    if (preg_match('/[<>{}]/', $neuPruef) || stripos($neuPruef, 'style=') !== false || stripos($neuPruef, 'class=') !== false || stripos($neuPruef, 'http') !== false) {
+        $err = 'Sicherheitsabbruch: Der neue Text enthält Code/Markup/Links – Design bleibt geschützt, nichts geändert.';
+        return null;
+    }
 
     $dateiName = preg_replace('/[^a-z0-9_.\-]/i', '', $hit['datei'] ?? 'index.php') ?: 'index.php';
     $datei = dirname(__DIR__) . '/' . $dateiName;
@@ -2417,6 +2457,12 @@ function oh_website_execute_change(string $id, ?string &$err = null): ?array {
         if ($n === 0) { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Alter Text nicht gefunden – nichts geändert.'; return null; }
         if ($n > 1)  { @unlink(dirname(__DIR__) . '/' . $bakName); $err = 'Alter Text kommt mehrfach vor – aus Sicherheit nicht ausgeführt.'; return null; }
         $html = str_replace($alt, $neu, $html);
+        // DESIGN-SCHUTZ: reiner Textswap darf die Anzahl der HTML-Tags NICHT verändern.
+        if (substr_count($html, '<') !== substr_count($vorher, '<') || substr_count($html, '>') !== substr_count($vorher, '>')) {
+            @unlink(dirname(__DIR__) . '/' . $bakName);
+            $err = 'Sicherheitsabbruch: HTML-Struktur würde sich ändern – Design geschützt, nichts geändert.';
+            return null;
+        }
     }
 
     // 2) Sicherheits-Checks vor dem Schreiben
@@ -2439,6 +2485,37 @@ function oh_website_execute_change(string $id, ?string &$err = null): ?array {
     oh_write('website_pending', $q);
     if (function_exists('oh_log_activity')) oh_log_activity('dilara', 'Website-Änderung AUSGEFÜHRT (live): ' . $hit['element']);
     return ['ok' => true, 'backup' => $bakName, 'change_id' => $changeId];
+}
+
+/* --------------------------------------------------------------------------
+ * Empfehlung übernehmen = WIRKLICH ausführen, aber nur wenn es ein sicherer,
+ * eindeutiger reiner Text-Swap ist (Design/Farben bleiben 1:1). Alles andere
+ * wird ehrlich als "vorgemerkt – Freigabe nötig" zurückgegeben.
+ * Rückgabe: ['executed'=>bool, 'msg'=>string, 'backup'=>?, 'change_id'=>?]
+ * ------------------------------------------------------------------------ */
+function oh_website_apply_reco(array $r, ?string &$err = null): array {
+    $neu  = trim((string)($r['neu'] ?? ''));
+    $alt  = trim((string)($r['alt'] ?? ''));
+    $ziel = strtolower(trim((string)($r['ziel'] ?? '')));
+    // Nur klar abgegrenzte, eindeutige Texte werden automatisch live geschaltet.
+    $autobar = in_array($ziel, ['cta', 'text', 'subline', 'trust'], true) && $alt !== '' && $neu !== '' && $alt !== $neu;
+    if (!$autobar) {
+        return ['executed' => false, 'msg' => 'Notiert, Chef! Diesen Vorschlag bereite ich vor – er braucht kurz deine Freigabe, weil er mehr als einen eindeutigen Text betrifft. Dein Design bleibt dabei komplett unangetastet.'];
+    }
+    $q = oh_website_queue_change('Text', $alt, $neu, 'index.php');
+    if (!$q) { return ['executed' => false, 'msg' => 'Konnte nicht eindeutig zugeordnet werden – als Vorschlag vorgemerkt.']; }
+    $eerr = null;
+    $res = oh_website_execute_change($q['id'], $eerr);
+    if (!$res) {
+        $err = $eerr;
+        return ['executed' => false, 'msg' => '⚠️ ' . ($eerr ?: 'Live-Änderung sicherheitshalber abgebrochen – nichts verändert.')];
+    }
+    return [
+        'executed'  => true,
+        'msg'       => '✅ Live geändert, Chef – im gleichen Design, nur der Text ist jetzt stärker. Backup angelegt, jederzeit im Archiv rückgängig.',
+        'backup'    => $res['backup'] ?? '',
+        'change_id' => $res['change_id'] ?? '',
+    ];
 }
 
 /* --------------------------------------------------------------------------
