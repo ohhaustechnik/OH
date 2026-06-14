@@ -98,15 +98,24 @@ Schritt, den ich tun muss. Frag nicht nach meinem Passwort/Zugang.
 
 ## 📌 STAND (wird von Claude aktualisiert)
 
-**Letztes Update:** 2026-06-14 (von Claude — Session „alles ausführen")
+**Letztes Update:** 2026-06-14 (von Claude — Session „alles abarbeiten")
 
-**Erledigt:**
+**Erledigt (diese Session):**
+- ✅ Alle 3 neuen Commits live auf den Server gebracht (getestet, Test OK):
+  `festpreis-kalkulator.php` (Premium-Redesign Blau), `assets/js/funnel.js`
+  + `includes/funnel-handler.php` (Conversion-Wert-Tracking).
+- ✅ Aufgabe 1 (Ads-Label in `oh-track.js` einbauen): Es ist noch **kein Label**
+  eingetragen → nichts einzubauen. `oh-track.js` ist vorbereitet und wartet.
+- ✅ Aufgabe 2 (neue Wünsche umsetzen): Keine neuen Wünsche gefunden → nichts zu tun.
+- ✅ Aufgabe 3 (Stand schreiben & pushen): erledigt (diese Datei).
+- ✅ Auto-Deploy-Task „OH Auto-Deploy" war **deaktiviert** → wieder **aktiviert**.
+  Läuft wieder alle 3 Min, neue Pushes gehen automatisch live.
+- ✅ GitHub-Stand und Live-Server sind synchron (Commit `5a9e43e`).
+
+**Frühere Bausteine (fertig & live):**
 - Alle Website-Bausteine fertig & live (siehe „Was bereits fertig ist").
 - Conversion-Wert-Tracking im Code eingebaut (wartet auf Ads-Label).
 - Premium-Kalkulator-Redesign abgeschlossen.
-- Anweisungen durchgearbeitet: Aufgabe 1 (Label einbauen) — noch kein Label
-  eingetragen, daher nichts zu tun; `oh-track.js` ist vorbereitet und wartet.
-  Aufgabe 2 (neue Wünsche) — keine neuen Wünsche gefunden.
 
 **Offen — bei DIR (Adnan):**
 1. ⏳ Die 4 Anzeigen-Ziel-URLs in Google Ads umstellen (Schritt 1 oben).
@@ -118,7 +127,11 @@ Schritt, den ich tun muss. Frag nicht nach meinem Passwort/Zugang.
 4. ⏳ Bewertungen sammeln (Ziel 40+).
 
 **Offen — automatisierbar (Claude erledigt auf Wunsch):**
-- Label in oh-track.js eintragen (sobald oben eingetragen).
-- Optional: Tag-1-Follow-up-Automatik (kein Lead wird kalt).
+- Label in `oh-track.js` eintragen — **sobald du dein Label oben einträgst,
+  macht Claude den Rest automatisch.**
+- Optional: Tag-1-Follow-up-Automatik (kein Lead wird kalt). ⚠️ Schickt echte
+  E-Mails an deine Leads — **ein „ja" von dir, dann baue ich es.**
 
-**Dein nächster EINER Schritt:** Schritt 1 — die 4 Ziel-URLs umstellen.
+**Dein nächster EINER Schritt:** Schritt 1 — die 4 Ziel-URLs in Google Ads
+umstellen (Tabelle oben). Das bringt sofort die schon bezahlten Klicks auf die
+richtige Seite = mehr Anfragen, ohne einen Cent mehr Werbebudget.
