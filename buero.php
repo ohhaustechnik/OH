@@ -212,6 +212,8 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'has_anthropic'  => !empty($c['anthropic_key']),
             'ads_customer_id'=> $c['ads_customer_id'] ?? '',
             'ads_login_customer_id' => $c['ads_login_customer_id'] ?? '',
+            'ads_conversion_label'  => $c['ads_conversion_label'] ?? '',
+            'ads_call_label'        => $c['ads_call_label'] ?? '',
             'has_ads'        => !empty($c['ads_developer_token']) && !empty($c['ads_refresh_token']),
             'site_url'       => $c['site_url'] ?? '',
             'wa_verify_token'=> $c['wa_verify_token'] ?? 'oh-wa',
@@ -238,6 +240,8 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'ads_refresh_token'      => $in['ads_refresh_token'] ?? '',
             'ads_customer_id'        => $in['ads_customer_id'] ?? '',
             'ads_login_customer_id'  => $in['ads_login_customer_id'] ?? '',
+            'ads_conversion_label'   => $in['ads_conversion_label'] ?? '',
+            'ads_call_label'         => $in['ads_call_label'] ?? '',
             'site_url'        => $in['site_url'] ?? '',
             'wa_token'        => $in['wa_token'] ?? '',
             'wa_verify_token' => $in['wa_verify_token'] ?? '',
@@ -348,6 +352,15 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         unset($rr);
         oh_write('ads_reco', $reco);
         echo json_encode($result);
+    } elseif ($a === 'ads_setup_conversion') {
+        // Legt die Lead-Conversion an (oder findet sie), speichert das Label -> Wert-Tracking live.
+        $cerr = null;
+        $r = function_exists('oh_ads_setup_lead_conversion') ? oh_ads_setup_lead_conversion($cerr) : ['ok' => false, 'err' => 'Funktion fehlt'];
+        echo json_encode(['ok' => !empty($r['ok']), 'err' => $cerr ?? ($r['err'] ?? null), 'label' => $r['label'] ?? '', 'created' => !empty($r['created']), 'hinweis' => $r['hinweis'] ?? '']);
+    } elseif ($a === 'ads_save_conversion_label') {
+        // Manuelles Eintragen des Labels (Fallback, falls API es nicht auslesen konnte).
+        oh_config_set(['ads_conversion_label' => trim($in['label'] ?? '')]);
+        echo json_encode(['ok' => true]);
     } elseif ($a === 'ads_set_lp_urls') {
         // Setzt die Final-URLs der Keywords auf die passenden Landingpages (Message-Match).
         // Greift nur auf bewussten Knopfdruck ins Live-Konto; alte URLs werden für Undo gesichert.
@@ -1278,6 +1291,19 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <p class="intro">Ein Klick setzt die finalen URLs deiner Keywords auf die passenden Landingpages (Altbau, Elektriker, Sanierung). Bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget. Alte URLs werden gesichert (rückgängig machbar).</p>
     <button class="btn btn-cyan" id="adsUrlBtn" onclick="setAdsLpUrls()">🔗 Final-URLs jetzt setzen</button>
     <div id="adsUrlMsg" class="msg-ok" style="margin-top:10px"></div>
+  </div>
+  <div class="card" style="border-color:var(--gold)">
+    <h2>&#127942; Conversion-Tracking einrichten</h2>
+    <p class="intro">Ein Klick legt die Lead-Conversion „OH Website Lead" in deinem Google-Ads-Konto an (oder findet eine vorhandene), holt das Label und aktiviert das Wert-Tracking automatisch auf allen Seiten. So lernt Google Ads, welche Anzeigen echte Großaufträge bringen.</p>
+    <button class="btn btn-cyan" id="adsConvBtn" onclick="setupAdsConversion()">🏆 Conversion jetzt einrichten</button>
+    <div id="adsConvMsg" class="msg-ok" style="margin-top:10px"></div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#26324a)">
+      <label style="font-size:13px;opacity:.85">Conversion-Label manuell (Fallback, aus Google Ads → „Tag einrichten", Teil nach <code>AW-…/</code>)</label>
+      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+        <input type="text" id="adsConvLabel" placeholder="z. B. AbCdEfG123" style="flex:1;min-width:160px">
+        <button class="btn btn-ghost" onclick="saveAdsConvLabel()">Speichern</button>
+      </div>
+    </div>
   </div>
   <div class="card" style="border-color:var(--gold)">
     <h2>&#128203; Google-Ads-Maßnahmenplan</h2>
@@ -2805,6 +2831,29 @@ async function recoLater(id,btn){
   btn.disabled=true;
   await api('ads_later',{id});
   setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
+}
+async function setupAdsConversion(){
+  if(!confirm('Lead-Conversion jetzt in Google Ads einrichten?\n\nLegt die Conversion-Aktion „OH Website Lead" an (oder nutzt eine vorhandene) und aktiviert das Wert-Tracking. Ändert KEIN Budget.')) return;
+  const btn=gl('adsConvBtn'), msg=gl('adsConvMsg');
+  const t=btn.textContent; btn.disabled=true; btn.textContent='⏳ Wird eingerichtet …';
+  msg.className='msg-ok'; msg.textContent='';
+  try{
+    const d=await api('ads_setup_conversion');
+    if(!d.ok){
+      msg.className='fehler'; msg.innerHTML='⚠️ '+esc(d.err||'Fehler')+'<br>Tipp: Sind die 5 Ads-Zugangsdaten unter ⚙️ eingetragen? Sonst Label unten manuell eintragen.';
+    } else {
+      msg.className='msg-ok';
+      msg.innerHTML=(d.label?('✅ '):('ℹ️ '))+esc(d.hinweis||'Erledigt.')+(d.label?('<br>Label: <b>'+esc(d.label)+'</b>'):'');
+      if(d.label) gl('adsConvLabel').value=d.label;
+    }
+  }catch(e){ msg.className='fehler'; msg.textContent='Verbindungsfehler.'; }
+  btn.disabled=false; btn.textContent=t;
+}
+async function saveAdsConvLabel(){
+  const v=gl('adsConvLabel').value.trim(); const msg=gl('adsConvMsg');
+  if(!v){ msg.className='fehler'; msg.textContent='Bitte ein Label eingeben.'; return; }
+  try{ await api('ads_save_conversion_label',{label:v}); msg.className='msg-ok'; msg.textContent='✅ Label gespeichert – Wert-Tracking ist aktiv.'; }
+  catch(e){ msg.className='fehler'; msg.textContent='Speichern fehlgeschlagen.'; }
 }
 async function setAdsLpUrls(){
   if(!confirm('Final-URLs deiner Keywords jetzt auf die passenden Landingpages setzen?\n\nDas ändert dein Live-Google-Ads-Konto (nur die Ziel-URLs, KEIN Budget). Die alten URLs werden gesichert und sind rückgängig machbar.')) return;

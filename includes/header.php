@@ -109,6 +109,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<?php
+/* Conversion-Label aus der Büro-Konfiguration -> echte Ads-Conversion mit Wert (falls gesetzt). */
+if (!function_exists('oh_config')) { @require_once __DIR__ . '/buero-lib.php'; }
+$__conv = [];
+if (function_exists('oh_config') && !empty($ohCfg = oh_config())) {
+    if (!empty($ohCfg['ads_conversion_label'])) $__conv['lead_form_submit'] = $ohCfg['ads_conversion_label'];
+    if (!empty($ohCfg['ads_call_label']))       $__conv['phone_click']      = $ohCfg['ads_call_label'];
+}
+if ($__conv): ?>
+<script>window.OH_ADS_CONV = <?= json_encode($__conv, JSON_UNESCAPED_SLASHES) ?>;</script>
+<?php endif; ?>
 <script defer src="<?php echo $base_path; ?>assets/js/oh-track.js"></script>
 </head>
 <body>

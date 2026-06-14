@@ -46,20 +46,17 @@ und 0 Anfragen** gebracht — fast sicher, weil die Klicks auf einer unpassenden
 landeten. Mit der dedizierten Altbau-Seite sollte das endlich Anfragen bringen — **ohne
 einen Cent mehr Budget.**
 
-### B) Conversion-Aktionen anlegen (damit Google lernt, was Kunden bringt)
-Google Ads → oben **„Tools"** → **„Conversions"** → **„+ Neue Conversion-Aktion"**:
+### B+C) Conversion-Tracking — ✅ JETZT PER KNOPF im Büro
+**Büro-Dashboard → „📈 Google Ads" → Karte „🏆 Conversion-Tracking einrichten" →
+Knopf „🏆 Conversion jetzt einrichten".**
+Ein Klick legt die Lead-Conversion „OH Website Lead" in deinem Ads-Konto an (oder findet
+eine vorhandene), holt automatisch das Label und aktiviert das **Wert-Tracking auf allen
+Seiten** — du musst nichts mehr in den Code eintragen.
 
-1. **Lead-Formular:**
-   - Typ **„Website"**, Kategorie **„Lead / Kontaktformular absenden"**
-   - Bei „Wert": **„Für jede Conversion unterschiedliche Werte verwenden"** ⚠️ (Pflicht! sonst wird der Euro-Wert ignoriert)
-   - Zählung: **„Eine"**
-2. **Anruf:** zweite Aktion für **Telefon-Klicks / „Anrufe aus Anzeigen"**.
-3. Beide Aktionen auf **„Primär"** stellen → Scroll/Seitenaufruf auf **„Sekundär"**.
-
-### C) Dein Label holen & unten eintragen
-Bei der **Lead-Aktion** → **„Tag einrichten / Tag selbst hinzufügen"** → dort steht
-`send_to: 'AW-17801418796/XXXX'`. Den Teil **nach dem `/`** unten bei
-**„DEIN LABEL HIER"** eintragen → Claude baut den Rest automatisch ein.
+- Falls der Knopf das Label nicht auslesen kann: im selben Kasten gibt es ein
+  **Feld zum manuellen Eintragen** (Label aus Google Ads → „Tag einrichten", Teil nach `AW-…/`).
+- **Anruf-Conversion:** Lege in Google Ads zusätzlich eine Aktion für „Anrufe aus Anzeigen"
+  an und stelle Lead + Anruf auf **„Primär"** (Scroll/Seitenaufruf auf „Sekundär").
 
 ### D) Bewertungen sammeln (kostenlos, stärkster Hebel überhaupt)
 Jedem zufriedenen Kunden den Google-Bewertungslink schicken. Ziel: von 21 → **40+**.
@@ -188,10 +185,12 @@ Schritt, den ich tun muss. Frag nicht nach meinem Passwort/Zugang.
 - Optional: Tag-1-Follow-up-Automatik (kein Lead wird kalt). ⚠️ Schickt echte
   E-Mails an deine Leads — **ein „ja" von dir, dann baue ich es.**
 
-**NEU gebaut (diese Session):** 🔗 URL-Knopf im Büro-Dashboard (Google Ads →
-„Keywords auf die richtige Seite schicken") — setzt die 4 Final-URLs per Klick über die API,
-mit Undo-Sicherung, ohne Budget-Änderung.
+**NEU gebaut (diese Session):**
+- 🔗 **URL-Knopf** (Google Ads → „Keywords auf die richtige Seite schicken") — setzt die
+  4 Final-URLs per Klick über die API, mit Undo-Sicherung, ohne Budget-Änderung.
+- 🏆 **Conversion-Knopf** (Google Ads → „Conversion-Tracking einrichten") — legt die
+  Lead-Conversion an, holt das Label, aktiviert das Wert-Tracking automatisch. Plus Feld
+  zum manuellen Eintragen des Labels als Fallback.
 
-**Dein nächster EINER Schritt:** Im Büro-Dashboard den Knopf **„🔗 Final-URLs jetzt setzen"**
-drücken (Google Ads → „Keywords auf die richtige Seite schicken"). Ein Klick — fertig.
-Das bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget.
+**Dein nächster EINER Schritt:** Beide Knöpfe im Büro drücken (1. URL-Knopf, 2. Conversion-Knopf).
+Wenn eine Fehlermeldung wegen Zugangsdaten kommt → die 5 Google-Ads-Daten unter ⚙️ eintragen.

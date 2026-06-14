@@ -330,6 +330,16 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
 
 <img src="besucher.php?q=<?= htmlspecialchars($quelle) ?>" alt="" width="1" height="1" style="position:absolute;left:-9999px" aria-hidden="true">
 <?php include __DIR__ . '/funnel-modal.php'; ?>
+<?php
+/* Conversion-Label aus der Büro-Konfiguration -> echte Ads-Conversion mit Wert (falls gesetzt). */
+$__conv = [];
+if (!empty($ohCfg = (function_exists('oh_config') ? oh_config() : []))) {
+    if (!empty($ohCfg['ads_conversion_label'])) $__conv['lead_form_submit'] = $ohCfg['ads_conversion_label'];
+    if (!empty($ohCfg['ads_call_label']))       $__conv['phone_click']      = $ohCfg['ads_call_label'];
+}
+if ($__conv): ?>
+<script>window.OH_ADS_CONV = <?= json_encode($__conv, JSON_UNESCAPED_SLASHES) ?>;</script>
+<?php endif; ?>
 <script src="assets/js/oh-track.js"></script>
 <script src="assets/js/funnel.js"></script>
 <script>

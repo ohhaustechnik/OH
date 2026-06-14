@@ -1583,6 +1583,81 @@ function oh_ads_set_budget(float $euroProTag, ?string &$err = null, ?array &$und
     return false;
 }
 
+/** Extrahiert das Conversion-Label (Teil nach AW-xxxx/) aus den Tag-Snippets. */
+function oh_ads_extract_label(array $ca): string {
+    foreach (($ca['tagSnippets'] ?? []) as $ts) {
+        $snippet = ($ts['eventSnippet'] ?? '') . ' ' . ($ts['globalSiteTag'] ?? '');
+        if (preg_match('#AW-\d+/([\w-]+)#', $snippet, $m)) return $m[1];
+    }
+    return '';
+}
+
+/**
+ * Richtet die Lead-Conversion „OH Website Lead" ein (oder findet eine vorhandene),
+ * holt das Conversion-Label und speichert es in der Konfiguration.
+ * Danach feuert die Website automatisch echte Ads-Conversions mit Euro-Wert.
+ * Greift nur auf bewussten Knopfdruck ins Live-Konto. Idempotent (legt nichts doppelt an).
+ */
+function oh_ads_setup_lead_conversion(?string &$err = null): array {
+    $name = 'OH Website Lead';
+    // 1) Vorhandene Conversion-Aktion suchen (kein Duplikat anlegen)
+    $rows = oh_ads_search(
+        "SELECT conversion_action.resource_name, conversion_action.name, conversion_action.status, "
+      . "conversion_action.tag_snippets FROM conversion_action "
+      . "WHERE conversion_action.name = '" . str_replace("'", '', $name) . "'",
+        $err
+    );
+    if ($rows === null) return ['ok' => false, 'err' => $err];
+
+    $resource = ''; $label = '';
+    if (!empty($rows)) {
+        $ca = $rows[0]['conversionAction'] ?? [];
+        $resource = $ca['resourceName'] ?? '';
+        $label = oh_ads_extract_label($ca);
+        $created = false;
+    } else {
+        // 2) Neu anlegen
+        $ops = [['create' => [
+            'name'         => $name,
+            'type'         => 'WEBPAGE',
+            'category'     => 'SUBMIT_LEAD_FORM',
+            'status'       => 'ENABLED',
+            'primaryForGoal' => true,
+            'countingType' => 'ONE_PER_CLICK',
+            'valueSettings' => ['defaultValue' => 1000, 'alwaysUseDefaultValue' => false],
+        ]]];
+        $res = oh_ads_mutate('conversionActions:mutate', ['operations' => $ops, 'partialFailure' => false], $err);
+        if ($res === null) return ['ok' => false, 'err' => $err];
+        $resource = $res['results'][0]['resourceName'] ?? '';
+        $created = true;
+    }
+
+    // 3) Label nachladen, falls noch nicht vorhanden
+    if ($resource !== '' && $label === '') {
+        $rows2 = oh_ads_search(
+            "SELECT conversion_action.resource_name, conversion_action.tag_snippets "
+          . "FROM conversion_action WHERE conversion_action.resource_name = '" . str_replace("'", '', $resource) . "'",
+            $err
+        );
+        if (!empty($rows2)) $label = oh_ads_extract_label($rows2[0]['conversionAction'] ?? []);
+    }
+
+    // 4) Label speichern -> fließt automatisch live auf alle Seiten
+    if ($label !== '') {
+        oh_config_set(['ads_conversion_label' => $label]);
+        if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Ads Lead-Conversion eingerichtet (Label gespeichert, Wert-Tracking aktiv).');
+    }
+
+    return [
+        'ok'      => true,
+        'created' => $created,
+        'label'   => $label,
+        'hinweis' => $label !== ''
+            ? 'Lead-Conversion ist aktiv – die Website sendet ab jetzt echte Conversions mit Euro-Wert.'
+            : 'Conversion-Aktion ist angelegt, aber das Label konnte nicht automatisch ausgelesen werden. Bitte Label aus Google Ads (Tag einrichten) ins Feld eintragen.',
+    ];
+}
+
 /** Feste Zuordnung Keyword -> passende Landingpage (Message-Match für bessere Conversions). */
 function oh_ads_lp_url_map(): array {
     return [
