@@ -110,12 +110,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
   gtag('config', 'G-004VQKCXXC');
 </script>
 <?php
-/* Conversion-Label aus der Büro-Konfiguration -> echte Ads-Conversion mit Wert (falls gesetzt). */
-if (!function_exists('oh_config')) { @require_once __DIR__ . '/buero-lib.php'; }
+/* Conversion-Label direkt & leichtgewichtig aus daten/config.json lesen (KEIN Laden der grossen Lib). */
 $__conv = [];
-if (function_exists('oh_config') && !empty($ohCfg = oh_config())) {
-    if (!empty($ohCfg['ads_conversion_label'])) $__conv['lead_form_submit'] = $ohCfg['ads_conversion_label'];
-    if (!empty($ohCfg['ads_call_label']))       $__conv['phone_click']      = $ohCfg['ads_call_label'];
+$__cfgFile = __DIR__ . '/../daten/config.json';
+if (is_readable($__cfgFile)) {
+    $__cfg = json_decode(@file_get_contents($__cfgFile), true);
+    if (is_array($__cfg)) {
+        if (!empty($__cfg['ads_conversion_label'])) $__conv['lead_form_submit'] = $__cfg['ads_conversion_label'];
+        if (!empty($__cfg['ads_call_label']))       $__conv['phone_click']      = $__cfg['ads_call_label'];
+    }
 }
 if ($__conv): ?>
 <script>window.OH_ADS_CONV = <?= json_encode($__conv, JSON_UNESCAPED_SLASHES) ?>;</script>

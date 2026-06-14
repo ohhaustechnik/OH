@@ -195,24 +195,7 @@ include 'includes/header.php';
             </a>
         </div>
 
-        <p style="text-align:center;color:var(--text-muted,#6b7280);font-size:0.9rem;margin-top:1.5rem">
-            Sie werden in <span id="danke-count">6</span> Sekunden automatisch zur Startseite weitergeleitet …
-        </p>
-
     </div>
 </section>
-
-<script>
-/* Nach kurzer Bestätigung automatisch zur Hauptseite weiterleiten. */
-(function () {
-    var sek = 6;
-    var el = document.getElementById('danke-count');
-    var t = setInterval(function () {
-        sek--;
-        if (el) el.textContent = sek;
-        if (sek <= 0) { clearInterval(t); window.location.href = 'index.php'; }
-    }, 1000);
-})();
-</script>
 
 <?php include 'includes/footer.php'; ?>
