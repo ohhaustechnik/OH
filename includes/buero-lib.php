@@ -1805,6 +1805,56 @@ function oh_ads_healthcheck(?string &$err = null): array {
     return $checks;
 }
 
+/** Beste Landingpage zu einem Keyword (Message-Match nach Thema). */
+function oh_ads_best_lp_for_keyword(string $text): string {
+    $b = 'https://oh-haustechnik.de/';
+    $t = oh_ads_kw_norm($text);
+    if (strpos($t, 'altbau') !== false) return $b . 'altbausanierung-nuernberg.php';
+    if (strpos($t, 'kernsanier') !== false || (strpos($t, 'komplett') !== false && strpos($t, 'sanier') !== false)) return $b . 'komplettsanierung-nuernberg.php';
+    if (strpos($t, 'zähler') !== false || strpos($t, 'zaehler') !== false || strpos($t, 'wallbox') !== false || strpos($t, 'unterverteilung') !== false || strpos($t, 'sicherungskasten') !== false) return $b . 'zaehlerschrank-wallbox-nuernberg.php';
+    if (strpos($t, 'netzwerk') !== false || strpos($t, 'datendose') !== false || strpos($t, 'patchpanel') !== false || strpos($t, 'lan ') !== false) return $b . 'netzwerkverkabelung-buero.php';
+    if (strpos($t, 'sanier') !== false || strpos($t, 'modernisier') !== false || strpos($t, 'erneuer') !== false || strpos($t, 'wohnung') !== false || strpos($t, 'haus') !== false) return $b . 'wohnung-elektro-sanieren-nuernberg.php';
+    if (strpos($t, 'elektr') !== false || strpos($t, 'installation') !== false) return $b . 'elektroinstallation-nuernberg.php';
+    return $b . 'wohnung-elektro-sanieren-nuernberg.php';
+}
+
+/** Setzt für ALLE aktiven Keywords die finale URL auf die thematisch passende Landingpage. */
+function oh_ads_map_all_keywords_to_lp(?string &$err = null): array {
+    $rows = oh_ads_search("SELECT ad_group_criterion.resource_name, ad_group_criterion.keyword.text, ad_group_criterion.final_urls "
+        . "FROM ad_group_criterion WHERE ad_group_criterion.type='KEYWORD' AND ad_group_criterion.status!='REMOVED' "
+        . "AND campaign.advertising_channel_type='SEARCH' AND campaign.status='ENABLED'", $err);
+    if ($rows === null) return ['gesamt' => 0, 'geaendert' => 0, 'schon_ok' => 0, 'fehler' => $err];
+    $ops = []; $undo = []; $okCount = 0;
+    foreach ($rows as $r) {
+        $c = $r['adGroupCriterion'] ?? []; $rn = $c['resourceName'] ?? ''; $txt = $c['keyword']['text'] ?? '';
+        if ($rn === '' || $txt === '') continue;
+        $url = oh_ads_best_lp_for_keyword($txt);
+        $cur = $c['finalUrls'][0] ?? '';
+        if (oh_ads_kw_norm($cur) === oh_ads_kw_norm($url)) { $okCount++; continue; }
+        $ops[]  = ['update' => ['resourceName' => $rn, 'finalUrls' => [$url]], 'updateMask' => 'final_urls'];
+        $undo[] = ['resource' => $rn, 'alt' => $c['finalUrls'] ?? []];
+    }
+    $changed = 0;
+    if ($ops) {
+        foreach (array_chunk($ops, 500) as $chunk) {
+            $res = oh_ads_mutate('adGroupCriteria:mutate', ['operations' => $chunk, 'partialFailure' => true], $err);
+            if ($res !== null) $changed += count($chunk);
+        }
+        $store = oh_read('ads_url_undo', []); array_unshift($store, ['ts' => time(), 'changes' => $undo]); oh_write('ads_url_undo', array_slice($store, 0, 20));
+    }
+    return ['gesamt' => count($rows), 'geaendert' => $changed, 'schon_ok' => $okCount, 'fehler' => $err];
+}
+
+/** MASTER: übernimmt in einem Klick alles, was die API setzen kann. */
+function oh_ads_optimize_all(?string &$err = null): array {
+    $out = ['keywords_map' => [], 'sanierung' => [], 'conversion' => [], 'fehler' => []];
+    $e = null; $out['keywords_map'] = oh_ads_map_all_keywords_to_lp($e); if ($e) $out['fehler'][] = 'Keyword-URLs: ' . $e;
+    $e = null; $out['sanierung']    = oh_ads_optimize_sanierung($e);     if ($e) $out['fehler'][] = 'Sanierung: ' . $e;
+    $e = null; $out['conversion']   = oh_ads_setup_lead_conversion($e);  if ($e) $out['fehler'][] = 'Conversion: ' . $e;
+    oh_config_set(['ads_optimized_at' => date('Y-m-d H:i')]);
+    return $out;
+}
+
 /** Feste Zuordnung Keyword -> passende Landingpage (Message-Match für bessere Conversions). */
 function oh_ads_lp_url_map(): array {
     return [

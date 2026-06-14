@@ -352,6 +352,11 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         unset($rr);
         oh_write('ads_reco', $reco);
         echo json_encode($result);
+    } elseif ($a === 'ads_optimize_all') {
+        @set_time_limit(120);
+        $oerr = null;
+        $r = function_exists('oh_ads_optimize_all') ? oh_ads_optimize_all($oerr) : ['fehler' => ['Funktion fehlt']];
+        echo json_encode(['ok' => empty($r['fehler']), 'bericht' => $r, 'err' => $oerr]);
     } elseif ($a === 'ads_healthcheck') {
         $herr = null;
         $checks = function_exists('oh_ads_healthcheck') ? oh_ads_healthcheck($herr) : [];
@@ -1294,36 +1299,23 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <div id="adsBody"><div class="spinner-mini">Lade …</div></div>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadAds()">↻ Aktualisieren</button>
   </div>
-  <div class="card" style="border-color:var(--gold)">
-    <h2>&#127919; Keywords auf die richtige Seite schicken</h2>
-    <p class="intro">Ein Klick setzt die finalen URLs deiner Keywords auf die passenden Landingpages (Altbau, Elektriker, Sanierung). Bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget. Alte URLs werden gesichert (rückgängig machbar).</p>
-    <button class="btn btn-cyan" id="adsUrlBtn" onclick="setAdsLpUrls()">🔗 Final-URLs jetzt setzen</button>
-    <div id="adsUrlMsg" class="msg-ok" style="margin-top:10px"></div>
-  </div>
-  <div class="card" style="border-color:var(--gold)">
-    <h2>&#128269; Ads-Gesundheitscheck (prüft deine echte Anzeige)</h2>
-    <p class="intro">Liest dein Google-Ads-Konto und sagt dir ✅/⚠️/❌: Kampagne & Budget, ob Keywords auf Landingpages zeigen, ob schädliche Negative aktiv sind, Lead-Conversion, Müll-Conversions, Conversion-Label. Ändert nichts.</p>
-    <button class="btn btn-cyan" id="adsCheckBtn" onclick="adsHealthcheck()">🔍 Anzeige jetzt prüfen</button>
-    <div id="adsCheckMsg" style="margin-top:10px"></div>
-  </div>
-  <div class="card" style="border-color:var(--gold)">
-    <h2>&#127919; Sanierungs-Fokus optimieren (1 Klick)</h2>
-    <p class="intro">Setzt deine Kampagne auf hochwertige Sanierungsanfragen: entfernt schädliche Negativ-Keywords (die Sanierungskunden blockieren: „erneuern", „kosten", „installation" …), fügt Sanierungs-Keywords hinzu und filtert Kleinkram (Lampenwechsel, „kostenlos", Jobs …). Alles rückgängig machbar, kein Budget-Eingriff.</p>
-    <button class="btn btn-cyan" id="adsOptBtn" onclick="optimizeAdsSanierung()">🎯 Jetzt auf Sanierung optimieren</button>
-    <div id="adsOptMsg" class="msg-ok" style="margin-top:10px"></div>
-  </div>
-  <div class="card" style="border-color:var(--gold)">
-    <h2>&#127942; Conversion-Tracking einrichten</h2>
-    <p class="intro">Ein Klick legt die Lead-Conversion „OH Website Lead" in deinem Google-Ads-Konto an (oder findet eine vorhandene), holt das Label und aktiviert das Wert-Tracking automatisch auf allen Seiten. So lernt Google Ads, welche Anzeigen echte Großaufträge bringen.</p>
-    <button class="btn btn-cyan" id="adsConvBtn" onclick="setupAdsConversion()">🏆 Conversion jetzt einrichten</button>
-    <div id="adsConvMsg" class="msg-ok" style="margin-top:10px"></div>
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#26324a)">
-      <label style="font-size:13px;opacity:.85">Conversion-Label manuell (Fallback, aus Google Ads → „Tag einrichten", Teil nach <code>AW-…/</code>)</label>
-      <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+  <div class="card" style="border-color:var(--gold)" id="adsMasterCard">
+    <h2>&#128640; Anzeige komplett optimieren (einmalig)</h2>
+    <p class="intro">EIN Klick übernimmt alles, was die API setzen kann: <b>alle Keywords</b> auf die thematisch passende Landingpage, Sanierungs-Keywords + Junk-Filter, schädliche Negative raus, Lead-Conversion einrichten. Kein Budget-Eingriff, alles rückgängig machbar.</p>
+    <button class="btn btn-cyan" id="adsAllBtn" onclick="optimizeAdsAll()">🚀 Jetzt alles übernehmen</button>
+    <div id="adsAllMsg" class="msg-ok" style="margin-top:10px"></div>
+    <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;opacity:.8">Conversion-Label manuell eintragen (nur falls nötig)</summary>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <input type="text" id="adsConvLabel" placeholder="z. B. AbCdEfG123" style="flex:1;min-width:160px">
         <button class="btn btn-ghost" onclick="saveAdsConvLabel()">Speichern</button>
       </div>
-    </div>
+    </details>
+  </div>
+  <div class="card" style="border-color:var(--gold)">
+    <h2>&#128269; Ads-Gesundheitscheck (ist die Kampagne OH 100 % fit?)</h2>
+    <p class="intro">Liest dein echtes Google-Ads-Konto und sagt dir ✅/⚠️/❌, ob alles sitzt, damit morgen Anfragen reinkommen. Ändert nichts.</p>
+    <button class="btn btn-cyan" id="adsCheckBtn" onclick="adsHealthcheck()">🔍 Anzeige jetzt prüfen</button>
+    <div id="adsCheckMsg" style="margin-top:10px"></div>
   </div>
   <div class="card" style="border-color:var(--gold)">
     <h2>&#128203; Google-Ads-Maßnahmenplan</h2>
@@ -2851,6 +2843,35 @@ async function recoLater(id,btn){
   btn.disabled=true;
   await api('ads_later',{id});
   setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
+}
+function adsMasterDone(when){
+  const c=gl('adsMasterCard'); if(!c) return;
+  c.innerHTML='<h2>✅ Anzeige optimiert</h2><p class="intro">Übernommen'+(when?(' am '+esc(when)):'')+'. Prüfe unten mit dem Gesundheitscheck.</p>'
+    +'<button class="btn btn-ghost" onclick="adsMasterReset()">↻ Erneut optimieren</button>';
+}
+function adsMasterReset(){ try{localStorage.removeItem('oh_ads_optimized');}catch(e){} location.reload(); }
+(function(){ try{ if(localStorage.getItem('oh_ads_optimized')==='1' && document.getElementById('adsMasterCard')) adsMasterDone(''); }catch(e){} })();
+async function optimizeAdsAll(){
+  if(!confirm('Jetzt ALLES übernehmen?\n\n• alle Keywords auf die passende Landingpage\n• Sanierungs-Keywords + Junk-Filter\n• schädliche Negative raus\n• Lead-Conversion einrichten\n\nKein Budget-Eingriff. Rückgängig machbar.')) return;
+  const btn=gl('adsAllBtn'), msg=gl('adsAllMsg');
+  const t=btn.textContent; btn.disabled=true; btn.textContent='⏳ Übernehme alles … (bis zu 60s)';
+  msg.className='msg-ok'; msg.textContent='';
+  try{
+    const d=await api('ads_optimize_all');
+    const b=d.bericht||{}, km=b.keywords_map||{}, sa=b.sanierung||{};
+    let html='<b>Übernommen:</b><ul style="margin:8px 0 0 18px;line-height:1.7">';
+    html+='<li>🔗 Keywords auf Landingpage: <b>'+(km.geaendert||0)+'</b> geändert, '+(km.schon_ok||0)+' schon ok (von '+(km.gesamt||0)+')</li>';
+    html+='<li>🗑️ Schädliche Negative entfernt: <b>'+((sa.entfernte_negative||[]).length)+'</b></li>';
+    html+='<li>➕ Sanierungs-Keywords: <b>'+((sa.neue_keywords||[]).length)+'</b> · 🚫 Junk-Negative: <b>'+((sa.neue_negative||[]).length)+'</b></li>';
+    html+='<li>🏆 Lead-Conversion: <b>'+esc((b.conversion&&b.conversion.label)?'Label aktiv':'eingerichtet')+'</b></li>';
+    html+='</ul><div style="margin-top:8px">❗ Müll-Conversions (Website-Besuche/Engagements) musst du noch 1× in Google Ads auf „Sekundär" stellen – das kann die API nicht sicher.</div>';
+    const fehler=(b.fehler||[]);
+    if(fehler.length){ html+='<div style="margin-top:8px;color:#c0392b">⚠️ '+fehler.map(esc).join('<br>')+'</div>'; }
+    msg.innerHTML=html;
+    try{localStorage.setItem('oh_ads_optimized','1');}catch(e){}
+    setTimeout(function(){ if(typeof adsHealthcheck==='function') adsHealthcheck(); }, 1200);
+  }catch(e){ msg.className='fehler'; msg.textContent='Verbindungsfehler oder Zeitüberschreitung – bitte „Anzeige prüfen" drücken, ob es trotzdem griff.'; }
+  btn.disabled=false; btn.textContent=t;
 }
 async function adsHealthcheck(){
   const btn=gl('adsCheckBtn'), msg=gl('adsCheckMsg');
