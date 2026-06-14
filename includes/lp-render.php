@@ -163,7 +163,55 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
   .sec{padding:52px 0}.hero{padding:24px 0 50px}
   .topbar{padding-bottom:34px}.tb-call span{display:none}
 }
-/* fixe Aktionsleiste mobil – maximaler Direktkontakt */
+/* ── Funnel auf Landingpages: Design-Variablen & LP-Overrides ── */
+:root{
+  /* Fehlende Variablen aus der Hauptseite – Funnel-CSS braucht diese */
+  --blue-dark:#0c1526;
+  --blue-primary:#e8a24a;
+  --blue-light:rgba(232,162,74,.08);
+  --gray-100:#f0ede7;
+  --gray-200:#e0d8cc;
+  --gray-300:#c8bfb2;
+  --text-primary:#15202f;
+  --text-secondary:#5b6b80;
+  --text-muted:#7e8ea7;
+  --font-display:'Sora',sans-serif;
+  --font-primary:'Manrope',sans-serif;
+}
+/* Modal-Body: Crème-Hintergrund statt weiss */
+.funnel-modal{background:#fffdf9}
+/* Header: Navy + Amber statt Blau */
+.funnel-header{background:linear-gradient(135deg,#0c1526 0%,#16223a 100%)}
+/* Fortschrittsbalken: Amber */
+.funnel-progress-bar-fill{background:var(--amber)}
+/* Schritt-Titel: Navy */
+.funnel-step-title{color:#0c1526}
+/* Auswahlkarten: Hover + Checked in Amber */
+.funnel-option-label:hover{border-color:#e8a24a;background:rgba(232,162,74,.08)}
+.funnel-option input:checked + .funnel-option-label{border-color:#e8a24a;background:rgba(232,162,74,.1);box-shadow:0 0 0 3px rgba(232,162,74,.18)}
+.funnel-option-icon{background:linear-gradient(135deg,#0c1526,#16223a)}
+.funnel-option input:checked + .funnel-option-label::after{background:#e8a24a;color:#1a1206}
+/* Checkboxen */
+.funnel-checkbox-item:hover{border-color:#e8a24a;background:rgba(232,162,74,.07)}
+.funnel-checkbox-item input{accent-color:#e8a24a}
+/* Inputs */
+.funnel-input:focus,.funnel-textarea:focus{border-color:#e8a24a;box-shadow:0 0 0 3px rgba(232,162,74,.15)}
+.funnel-label span{color:#e8a24a}
+/* Upload-Bereich */
+.funnel-upload-label:hover{border-color:#e8a24a;background:rgba(232,162,74,.07);color:#0c1526}
+.funnel-upload-label i{color:#e8a24a}
+.funnel-upload-name{color:#e8a24a}
+/* DSGVO-Box */
+.funnel-dsgvo{background:rgba(232,162,74,.07);border-color:rgba(232,162,74,.25)}
+.funnel-dsgvo input{accent-color:#e8a24a}
+/* Weiter/Senden-Button: Amber */
+.funnel-btn--next,.funnel-btn--submit{background:linear-gradient(135deg,#e8a24a,#cf8a32);color:#1a1206;border:none}
+.funnel-btn--next:hover,.funnel-btn--submit:hover{background:linear-gradient(135deg,#cf8a32,#b87520)}
+/* Sub-Options Hintergrund */
+.funnel-suboptions{background:#f0ede7;border-color:#e0d8cc}
+.funnel-suboptions-title{color:#0c1526}
+/* Block-Titel über Abschnitten */
+.funnel-split-block-title{font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5b6b80;margin:.9rem 0 .5rem}
 .mobar{display:none}
 @media(max-width:820px){
   .mobar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:90;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
