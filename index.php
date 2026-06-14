@@ -18,11 +18,11 @@ include 'includes/header.php';
 <section class="hero" aria-label="Startseite Hero">
 
  <!-- Hintergrund-Video -->
-<video class="hero-video hero-video-desktop" autoplay muted loop playsinline preload="auto">
+<video class="hero-video hero-video-desktop" autoplay muted loop playsinline preload="metadata">
     <source src="assets/videos/Hero-video.mp4.mp4" type="video/mp4">
 </video>
 
-<video class="hero-video hero-video-mobile" autoplay muted loop playsinline preload="auto">
+<video class="hero-video hero-video-mobile" autoplay muted loop playsinline preload="metadata">
     <source src="assets/videos/hero-video-mobile.mp4" type="video/mp4">
 </video>
 
@@ -249,9 +249,9 @@ rel="noopener">
             <h3>Behandlungsraum / Friseur</h3>
 
             <div class="before-after-slider">
-                <img src="assets/img/projekte/Vorher%20Friseur.jpeg" alt="Vorher Friseur Behandlungsraum">
+                <img src="assets/img/projekte/Vorher%20Friseur.jpeg" alt="Vorher Friseur Behandlungsraum" loading="lazy" decoding="async">
                 <div class="after-image">
-                    <img src="assets/img/projekte/Nachher%20Friseur.jpeg" alt="Nachher Friseur Behandlungsraum">
+                    <img src="assets/img/projekte/Nachher%20Friseur.jpeg" alt="Nachher Friseur Behandlungsraum" loading="lazy" decoding="async">
                 </div>
 
                 <input type="range" min="0" max="100" value="50" class="before-after-range">
@@ -513,7 +513,7 @@ document.querySelectorAll('.before-after-slider').forEach(function(slider) {
 
             <!-- Bild -->
             <div class="ueber-image-box" data-animate>
-                <img src="assets/img/ohhaustechnikueberuns.png" alt="OH Haustechnik – Über uns" class="ueber-foto">
+                <img src="assets/img/ohhaustechnikueberuns.png" alt="OH Haustechnik – Über uns" class="ueber-foto" loading="lazy" decoding="async">
             </div>
 
             <!-- Text -->
