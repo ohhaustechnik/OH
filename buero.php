@@ -352,6 +352,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         unset($rr);
         oh_write('ads_reco', $reco);
         echo json_encode($result);
+    } elseif ($a === 'ads_healthcheck') {
+        $herr = null;
+        $checks = function_exists('oh_ads_healthcheck') ? oh_ads_healthcheck($herr) : [];
+        echo json_encode(['ok' => $herr === null, 'checks' => $checks, 'err' => $herr]);
     } elseif ($a === 'ads_optimize_sanierung') {
         $oerr = null;
         $rep = function_exists('oh_ads_optimize_sanierung') ? oh_ads_optimize_sanierung($oerr) : ['fehler' => ['Funktion fehlt']];
@@ -1295,6 +1299,12 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <p class="intro">Ein Klick setzt die finalen URLs deiner Keywords auf die passenden Landingpages (Altbau, Elektriker, Sanierung). Bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget. Alte URLs werden gesichert (rückgängig machbar).</p>
     <button class="btn btn-cyan" id="adsUrlBtn" onclick="setAdsLpUrls()">🔗 Final-URLs jetzt setzen</button>
     <div id="adsUrlMsg" class="msg-ok" style="margin-top:10px"></div>
+  </div>
+  <div class="card" style="border-color:var(--gold)">
+    <h2>&#128269; Ads-Gesundheitscheck (prüft deine echte Anzeige)</h2>
+    <p class="intro">Liest dein Google-Ads-Konto und sagt dir ✅/⚠️/❌: Kampagne & Budget, ob Keywords auf Landingpages zeigen, ob schädliche Negative aktiv sind, Lead-Conversion, Müll-Conversions, Conversion-Label. Ändert nichts.</p>
+    <button class="btn btn-cyan" id="adsCheckBtn" onclick="adsHealthcheck()">🔍 Anzeige jetzt prüfen</button>
+    <div id="adsCheckMsg" style="margin-top:10px"></div>
   </div>
   <div class="card" style="border-color:var(--gold)">
     <h2>&#127919; Sanierungs-Fokus optimieren (1 Klick)</h2>
@@ -2841,6 +2851,29 @@ async function recoLater(id,btn){
   btn.disabled=true;
   await api('ads_later',{id});
   setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
+}
+async function adsHealthcheck(){
+  const btn=gl('adsCheckBtn'), msg=gl('adsCheckMsg');
+  const t=btn.textContent; btn.disabled=true; btn.textContent='⏳ Prüfe Anzeige …';
+  msg.innerHTML='';
+  try{
+    const d=await api('ads_healthcheck');
+    if(!d.ok && (!d.checks||!d.checks.length)){ msg.innerHTML='<div class="fehler">⚠️ '+esc(d.err||'Fehler')+'</div>'; }
+    else{
+      let ok=0,bad=0,warn=0;
+      let html='<div style="display:flex;flex-direction:column;gap:8px">';
+      (d.checks||[]).forEach(c=>{
+        const ic=c.status==='ok'?'✅':(c.status==='warn'?'⚠️':'❌');
+        if(c.status==='ok')ok++;else if(c.status==='warn')warn++;else bad++;
+        const col=c.status==='ok'?'#1aa86a':(c.status==='warn'?'#cf8a32':'#c0392b');
+        html+='<div style="border-left:3px solid '+col+';padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px">'+ic+' <b>'+esc(c.label)+'</b><br><span style="opacity:.85;font-size:13px">'+esc(c.detail)+'</span></div>';
+      });
+      html+='</div>';
+      html='<div style="margin-bottom:10px;font-weight:700">'+ok+' ✅ · '+warn+' ⚠️ · '+bad+' ❌</div>'+html;
+      msg.innerHTML=html;
+    }
+  }catch(e){ msg.innerHTML='<div class="fehler">Verbindungsfehler.</div>'; }
+  btn.disabled=false; btn.textContent=t;
 }
 async function optimizeAdsSanierung(){
   if(!confirm('Kampagne jetzt auf Sanierungs-Fokus optimieren?\n\n• entfernt schädliche Negative (erneuern, kosten, installation …)\n• fügt Sanierungs-Keywords hinzu\n• filtert Kleinkram (Lampenwechsel, kostenlos, Jobs …)\n\nÄndert KEIN Budget. Alles rückgängig machbar.')) return;

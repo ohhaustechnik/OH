@@ -1747,6 +1747,64 @@ function oh_ads_optimize_sanierung(?string &$err = null): array {
     return $report;
 }
 
+/**
+ * Liest die echte Google-Ads-Kampagne (read-only) und gibt einen Gesundheits-Bericht:
+ * Kampagne/Budget, Keyword-Landingpages, schädliche Negative, Lead-Conversion,
+ * Müll-Conversions als Primär, Conversion-Label. Ändert NICHTS.
+ */
+function oh_ads_healthcheck(?string &$err = null): array {
+    $checks = [];
+    $add = function ($label, $status, $detail) use (&$checks) { $checks[] = ['label' => $label, 'status' => $status, 'detail' => $detail]; };
+
+    // 0) Verbindung + aktive Such-Kampagnen + Budget
+    $camps = oh_ads_search("SELECT campaign.name, campaign.status, campaign_budget.amount_micros "
+        . "FROM campaign WHERE campaign.status='ENABLED' AND campaign.advertising_channel_type='SEARCH'", $err);
+    if ($camps === null) {
+        return [['label' => 'Verbindung zu Google Ads', 'status' => 'bad', 'detail' => ($err ?: 'Login fehlgeschlagen') . ' – 5 Ads-Zugangsdaten unter ⚙️ prüfen.']];
+    }
+    $budget = 0; foreach ($camps as $c) $budget += (float)($c['campaignBudget']['amountMicros'] ?? 0) / 1e6;
+    $add('Aktive Such-Kampagnen', count($camps) > 0 ? 'ok' : 'bad',
+        count($camps) . ' aktiv' . ($budget ? (' · Budget ~' . round($budget, 2) . ' €/Tag') : ' · KEIN Budget!'));
+
+    // 1) Keywords -> eigene Landingpage?
+    $kws = oh_ads_search("SELECT ad_group_criterion.keyword.text, ad_group_criterion.final_urls "
+        . "FROM ad_group_criterion WHERE ad_group_criterion.type='KEYWORD' AND ad_group_criterion.status!='REMOVED' "
+        . "AND campaign.advertising_channel_type='SEARCH' AND campaign.status='ENABLED'", $err);
+    $kAll = 0; $kLP = 0;
+    foreach (($kws ?: []) as $k) { $kAll++; $u = $k['adGroupCriterion']['finalUrls'][0] ?? '';
+        if ($u && strpos($u, '.php') !== false && strpos($u, '/index.php') === false && !preg_match('#//[^/]+/?$#', $u)) $kLP++; }
+    $add('Keywords mit eigener Landingpage', $kAll ? ($kLP >= max(1, $kAll * 0.5) ? 'ok' : 'warn') : 'warn',
+        $kLP . ' von ' . $kAll . ' Keywords zeigen auf eine Landingpage');
+
+    // 2) Schädliche Negative noch aktiv?
+    $negs = oh_ads_search("SELECT campaign_criterion.keyword.text FROM campaign_criterion "
+        . "WHERE campaign_criterion.negative=TRUE AND campaign_criterion.type='KEYWORD'", $err);
+    $schaedlich = ['erneuern','kosten','installation','elektroinstallation','sanierung','sanieren','modernisierung','komplettsanierung','kernsanierung','altbau','altbausanierung'];
+    $bad = []; foreach (($negs ?: []) as $n) { $t = oh_ads_kw_norm($n['campaignCriterion']['keyword']['text'] ?? ''); if (in_array($t, $schaedlich, true)) $bad[] = $t; }
+    $add('Schädliche Negative (blockieren Sanierung)', $bad ? 'bad' : 'ok',
+        $bad ? ('NOCH AKTIV: ' . implode(', ', $bad) . ' → „🎯 Sanierungs-Fokus optimieren" drücken') : 'keine gefunden');
+
+    // 3) Conversion-Aktionen
+    $cas = oh_ads_search("SELECT conversion_action.name, conversion_action.status, conversion_action.category, conversion_action.primary_for_goal FROM conversion_action", $err);
+    $leadStatus = ''; $junkPrimary = []; $junkCats = ['PAGE_VIEW','STORE_VISIT','OUTBOUND_CLICK','STORE_SALE'];
+    foreach (($cas ?: []) as $c) {
+        $ca = $c['conversionAction'] ?? []; $nm = $ca['name'] ?? ''; $cat = $ca['category'] ?? ''; $prim = !empty($ca['primaryForGoal']);
+        if (stripos($nm, 'OH Website Lead') !== false) $leadStatus = (($ca['status'] ?? '') === 'ENABLED') ? 'aktiv ✓' : 'angelegt (wird aktiv nach 1. echter Anfrage)';
+        if ($prim && (in_array($cat, $junkCats, true) || stripos($nm, 'website visit') !== false || stripos($nm, 'engagement') !== false || stripos($nm, 'route') !== false || stripos($nm, 'wegbeschreibung') !== false))
+            $junkPrimary[] = $nm;
+    }
+    $add('Lead-Conversion „OH Website Lead"', $leadStatus ? 'ok' : 'warn', $leadStatus ?: 'nicht gefunden → „🏆 Conversion einrichten" drücken');
+    $add('Müll-Conversions als „Primär"', $junkPrimary ? 'bad' : 'ok',
+        $junkPrimary ? (count($junkPrimary) . ' Stück → in Ads auf „Sekundär" stellen: ' . implode(', ', array_slice($junkPrimary, 0, 5))) : 'keine');
+
+    // 4) Conversion-Label im Büro gespeichert?
+    $cfg = oh_config();
+    $add('Conversion-Label im Büro', !empty($cfg['ads_conversion_label']) ? 'ok' : 'warn',
+        !empty($cfg['ads_conversion_label']) ? 'gespeichert' : 'noch leer → Label speichern (Wert-Tracking inaktiv)');
+
+    return $checks;
+}
+
 /** Feste Zuordnung Keyword -> passende Landingpage (Message-Match für bessere Conversions). */
 function oh_ads_lp_url_map(): array {
     return [
