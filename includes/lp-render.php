@@ -26,6 +26,15 @@ $quelle = $g('quelle', 'lp');
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="assets/css/funnel.css">
+<!-- Google tag (gtag.js) – Landingpages jetzt ebenfalls getrackt -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17801418796"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17801418796');
+  gtag('config', 'G-004VQKCXXC');
+</script>
 <style>
 :root{
   --ink:#0c1526;--ink2:#0a1120;--ink-soft:#16223a;
@@ -212,6 +221,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
 
 <img src="besucher.php?q=<?= htmlspecialchars($quelle) ?>" alt="" width="1" height="1" style="position:absolute;left:-9999px" aria-hidden="true">
 <?php include __DIR__ . '/funnel-modal.php'; ?>
+<script src="assets/js/oh-track.js"></script>
 <script src="assets/js/funnel.js"></script>
 <script>
 /* Quellen-Tracking NACH funnel.js setzen, damit die Landing-Page-Quelle gewinnt.

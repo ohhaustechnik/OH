@@ -39,6 +39,7 @@
         overlay.classList.add('open');
         document.body.style.overflow = 'hidden';
         goToStep(1);
+        if (window.ohTrack) ohTrack('funnel_start', { value: 1 });
     }
 
     function closeFunnel() {
@@ -279,6 +280,7 @@
         .then(function (res) { return res.json(); })
         .then(function (data) {
             if (data.success) {
+                if (window.ohTrack) ohTrack('lead_form_submit', { value: 10 });
                 closeFunnel();
                 window.location.href = 'danke.php';
             } else {
@@ -538,6 +540,7 @@
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.success) {
+                    if (window.ohTrack) ohTrack('lead_form_submit', { value: 10 });
                     window.location.href = 'danke.php';
                 } else {
                     showError(data.message || 'Fehler beim Senden. Bitte versuchen Sie es erneut.');

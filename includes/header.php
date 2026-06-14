@@ -109,6 +109,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<script defer src="<?php echo $base_path; ?>assets/js/oh-track.js"></script>
 </head>
 <body>
 

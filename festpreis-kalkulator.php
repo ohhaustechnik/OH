@@ -590,9 +590,23 @@ document.querySelector('.premium-form').addEventListener('submit', function(e){
     if(phone === '' && email === ''){
         alert('Bitte Telefonnummer oder E-Mail-Adresse angeben.');
         e.preventDefault();
+    } else {
+        // Micro-Conversion: Kalkulator abgeschlossen (berechneter Preis als Wert)
+        if(window.ohTrack){
+            var pr=(document.getElementById('form-price')||{}).value||'';
+            ohTrack('kalkulator_abschluss',{value: parseInt((pr+'').replace(/[^0-9]/g,''))||0});
+        }
     }
 
 });
+
+/* Micro-Conversion: Kalkulator gestartet (erste Interaktion mit der Konfiguration) */
+(function(){
+    var ca=document.getElementById('config-area'); var started=false;
+    if(ca) ca.addEventListener('click', function(){
+        if(!started){ started=true; if(window.ohTrack) ohTrack('kalkulator_start',{value:1}); }
+    }, true);
+})();
 </script>
 
 <?php include 'includes/footer.php'; ?>
