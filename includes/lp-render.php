@@ -39,6 +39,39 @@ $ohCount   = (int)$ohReviews['count'];
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<?php
+/* Strukturierte Daten – jede Landingpage liefert jetzt LocalBusiness + Service(+Offer) + FAQ an Google.
+   Das ist die Voraussetzung für Rich-Results und besseres lokales Ranking (Long-Tail). */
+$lpGraph = [
+  [
+    '@type' => ['LocalBusiness', 'Electrician'],
+    '@id'   => 'https://oh-haustechnik.de/#business',
+    'name'  => 'OH Haustechnik',
+    'telephone' => '+49 175 7481006',
+    'url'   => 'https://oh-haustechnik.de/' . $g('slug'),
+    'areaServed' => ['Nürnberg', 'Fürth', 'Erlangen', 'Schwabach', 'Stein', 'Zirndorf'],
+    'priceRange' => $g('preis_range', '€€'),
+    'aggregateRating' => ['@type' => 'AggregateRating', 'ratingValue' => $ohReviews['rating'], 'reviewCount' => $ohCount],
+  ],
+];
+$lpService = [
+  '@type' => 'Service',
+  'serviceType' => $g('h1'),
+  'provider' => ['@id' => 'https://oh-haustechnik.de/#business'],
+  'areaServed' => 'Nürnberg',
+  'description' => $g('meta'),
+];
+if ($g('ab_preis')) {
+  $lpService['offers'] = ['@type' => 'Offer', 'priceCurrency' => 'EUR', 'price' => (string)$g('ab_preis'), 'availability' => 'https://schema.org/InStock'];
+}
+$lpGraph[] = $lpService;
+if ($g('faq')) {
+  $fq = ['@type' => 'FAQPage', 'mainEntity' => []];
+  foreach ($g('faq') as $q) $fq['mainEntity'][] = ['@type' => 'Question', 'name' => $q[0], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $q[1]]];
+  $lpGraph[] = $fq;
+}
+?>
+<script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@graph' => $lpGraph], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 <style>
 :root{
   --ink:#0c1526;--ink2:#0a1120;--ink-soft:#16223a;
@@ -137,6 +170,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
     background:rgba(12,21,38,.97);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.1)}
   .mobar a,.mobar button{flex:1;border:none;cursor:pointer;font-family:'Sora';font-weight:700;font-size:14px;border-radius:12px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
   .mobar .m-call{background:rgba(255,255,255,.1);color:#fff}
+  .mobar .m-wa{background:#25D366;color:#06301a}
   .mobar .m-offer{background:linear-gradient(135deg,var(--amber),var(--amber-d));color:#1a1206}
   body{padding-bottom:72px}
 }
@@ -158,11 +192,33 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
     <div class="cta-row">
       <button class="btn-primary" data-open-funnel><i class="fas fa-bolt"></i> <?= htmlspecialchars($g('cta', 'Kostenloses Angebot anfordern')) ?></button>
       <a class="btn-ghost" href="festpreis-kalkulator.php"><i class="fas fa-calculator"></i> Preis in 2 Min berechnen</a>
-      <a class="btn-ghost" href="tel:+491757481006"><i class="fas fa-phone"></i> Jetzt anrufen</a>
+      <a class="btn-ghost" href="https://wa.me/491757481006?text=<?= rawurlencode('Hallo OH Haustechnik, ich interessiere mich für: ' . $g('h1')) ?>" target="_blank" rel="noopener" data-wa><i class="fab fa-whatsapp"></i> WhatsApp</a>
     </div>
     <div class="rating"><span class="stars">★★★★★</span> <b><?= $ohRating ?></b> aus <?= $ohCount ?> Google-Bewertungen · echte Kunden aus der Region</div>
   </div>
 </header>
+
+<?php if ($g('preise')): ?>
+<section class="sec">
+  <div class="wrap">
+    <div class="kicker">Preis-Orientierung</div>
+    <h2><?= htmlspecialchars($g('preis_titel', 'Was kostet das ungefähr?')) ?></h2>
+    <p class="lead"><?= htmlspecialchars($g('preis_lead', 'Echte Richtwerte aus der Praxis im Raum Nürnberg – Ihren verbindlichen Festpreis bekommen Sie nach einem kurzen Vor-Ort-Termin.')) ?></p>
+    <div class="cards">
+      <?php foreach ($g('preise') as $p): $hot = !empty($p[3]); ?>
+      <div class="lcard reveal" style="background:var(--paper);border:1px solid <?= $hot ? 'var(--amber)' : 'var(--line)' ?>;box-shadow:0 8px 26px rgba(20,30,50,<?= $hot ? '.10' : '.05' ?>)">
+        <?php if ($hot): ?><div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1a1206;background:var(--amber);padding:4px 11px;border-radius:999px;margin-bottom:12px">Beliebteste Wahl</div><?php endif; ?>
+        <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue-d)"><?= htmlspecialchars($p[0]) ?></div>
+        <div style="font-family:'Sora';font-weight:800;font-size:31px;color:var(--txt);margin:7px 0"><?= htmlspecialchars($p[1]) ?></div>
+        <p style="font-size:15px;color:var(--txt-dim)"><?= htmlspecialchars($p[2]) ?></p>
+        <button class="btn-primary" data-open-funnel style="margin-top:18px;padding:13px 22px;font-size:15px"><i class="fas fa-bolt"></i> Festpreis anfragen</button>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <p style="text-align:center;color:var(--txt-dim);font-size:14px;margin-top:26px">Richtwerte inkl. Material als Orientierung · ohne MwSt. (Kleinunternehmer §19 UStG) · verbindlich nach Vor-Ort-Termin.</p>
+  </div>
+</section>
+<?php endif; ?>
 
 <section class="sec sec-cream">
   <div class="wrap">
@@ -220,7 +276,8 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
 
 <div class="mobar">
   <a class="m-call" href="tel:+491757481006"><i class="fas fa-phone"></i> Anrufen</a>
-  <button class="m-offer" data-open-funnel><i class="fas fa-bolt"></i> Festpreis-Angebot</button>
+  <a class="m-wa" href="https://wa.me/491757481006?text=<?= rawurlencode('Hallo OH Haustechnik, ich interessiere mich für: ' . $g('h1')) ?>" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+  <button class="m-offer" data-open-funnel><i class="fas fa-bolt"></i> Angebot</button>
 </div>
 
 <img src="besucher.php?q=<?= htmlspecialchars($quelle) ?>" alt="" width="1" height="1" style="position:absolute;left:-9999px" aria-hidden="true">

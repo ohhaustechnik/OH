@@ -142,6 +142,7 @@ function oh_add_lead(array $data): array {
         'ort'       => '',
         'details'   => '',
         'status'    => 'neu',          // neu | angebot_raus | nachgefasst | gewonnen | abgeschlossen | verloren
+        'first_response_ts' => 0,      // wann zum ersten Mal reagiert wurde (Reaktionszeit-Messung)
         'angebot_ts'=> 0,
         'abschluss_ts' => 0,
         'bewertung_angefragt' => false,
@@ -167,8 +168,52 @@ function oh_add_lead(array $data): array {
     oh_write('leads', $leads);
     // Anfrage an das ganze Team verteilen: jeder Agent versteht sie und handelt
     if (function_exists('oh_lead_broadcast')) oh_lead_broadcast($lead, $w);
+    // SOFORT-ALARM an den Chef bei heißen / großen Anfragen – die erste Stunde entscheidet
+    if (($lead['stufe'] ?? '') === 'HOT' || ($lead['wert_klasse'] ?? '') === 'gross') {
+        oh_notify_hot_lead($lead);
+    }
     if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Neue ' . $lead['stufe'] . '-Anfrage erfasst: ' . ($lead['name'] ?: ($lead['email'] ?: $lead['id'])));
     return $lead;
+}
+
+/**
+ * Sofort-Benachrichtigung an den Chef, sobald ein heißer/großer Lead reinkommt.
+ * Nutzt den bestehenden Mailversand (keine zusätzlichen Schlüssel nötig). Eine
+ * optionale Webhook-URL (Telegram/Slack/Pushover) wird ebenfalls bedient, wenn
+ * in der Config 'hot_lead_webhook' hinterlegt ist.
+ */
+function oh_notify_hot_lead(array $lead): void {
+    $cfg = function_exists('oh_config') ? oh_config() : [];
+    $to  = $cfg['chef_mail'] ?? $cfg['gmail_user'] ?? 'oh.haustechnik@gmail.com';
+    $name = $lead['name'] ?: ($lead['email'] ?: ($lead['telefon'] ?: 'Anfrage'));
+    $tel  = $lead['telefon'] ?? '';
+    $kat  = $lead['kategorie'] ?: '-';
+    $eur  = $lead['wert_eur'] ?? '';
+    $ort  = trim(($lead['plz'] ?? '') . ' ' . ($lead['ort'] ?? ''));
+    $kurz = mb_substr((string)($lead['details'] ?? ''), 0, 200);
+    $subj = '🔥 HEISSER LEAD: ' . $name . ' – ' . $kat . ($eur ? ' (' . $eur . ')' : '');
+    $body = "Gerade reingekommen – bitte SCHNELL zurückrufen (die erste Stunde entscheidet):\n\n"
+          . "Name:     $name\n"
+          . ($tel ? "Telefon:  $tel  (jetzt anrufen!)\n" : '')
+          . ($lead['email'] ? "E-Mail:   {$lead['email']}\n" : '')
+          . "Leistung: $kat\n"
+          . ($ort ? "Ort:      $ort\n" : '')
+          . ($eur ? "Potenzial:$eur\n" : '')
+          . ($kurz ? "Wunsch:   $kurz\n" : '')
+          . "Quelle:   " . ($lead['source'] ?? 'website') . "\n\n"
+          . "Im Büro-System öffnen: https://oh-haustechnik.de/buero.php\n";
+    if (function_exists('oh_send_mail') && filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        oh_send_mail($to, $subj, $body, $lead['email'] ?: null);
+    }
+    // Optionaler Push-Webhook (Telegram/Pushover/Slack) – nur wenn konfiguriert
+    if (!empty($cfg['hot_lead_webhook'])) {
+        $ctx = stream_context_create(['http' => [
+            'method' => 'POST', 'timeout' => 4,
+            'header' => "Content-Type: application/json\r\n",
+            'content' => json_encode(['text' => $subj . "\n" . $body], JSON_UNESCAPED_UNICODE),
+        ]]);
+        @file_get_contents($cfg['hot_lead_webhook'], false, $ctx);
+    }
 }
 
 /* ==========================================================================
