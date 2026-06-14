@@ -265,7 +265,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
       </div>
       <?php endforeach; ?>
     </div>
-    <p style="text-align:center;color:var(--txt-dim);font-size:14px;margin-top:26px">Richtwerte inkl. Material als Orientierung · ohne MwSt. (Kleinunternehmer §19 UStG) · verbindlich nach Vor-Ort-Termin.</p>
+    <p style="text-align:center;color:var(--txt-dim);font-size:14px;margin-top:26px">Richtwerte inkl. Material als Orientierung · verbindlich nach Vor-Ort-Termin.</p>
   </div>
 </section>
 <?php endif; ?>

@@ -254,7 +254,7 @@ if ($appointment !== "") {
                 <div class="premium-price-card">
                     <small>Ihr Preis</small>
                     <strong id="side-price">89 €</strong>
-                    <span id="side-price-sub">inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).</span>
+                    <span id="side-price-sub">inkl. Montage, Anfahrt in Ihrer Zone.</span>
                     <i class="fas fa-lightbulb"></i>
                 </div>
                 <button class="premium-hint-btn" type="button" onclick="openHint(defaultHint)">
@@ -393,7 +393,7 @@ function updateForm(service, details, price, subtitle){
     document.getElementById("form-details").value = details;
     document.getElementById("form-price").value = price;
     sidePrice.textContent = price;
-    sidePriceSub.textContent = subtitle || "inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).";
+    sidePriceSub.textContent = subtitle || "inkl. Montage, Anfahrt in Ihrer Zone.";
 }
 
 function serviceClickEvents(){
@@ -563,7 +563,7 @@ function showLampe(){
                 <small>Ihr Preis inkl. Montage</small>
                 <strong id="main-price">89 €</strong>
             </div>
-            <span>inkl. Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).</span>
+            <span>inkl. Anfahrt in Ihrer Zone.</span>
         </div>
 
         <p class="premium-info-line"><i class="fas fa-info-circle"></i> Standardmontage. Sonderfälle werden individuell kalkuliert.</p>
@@ -587,7 +587,7 @@ function showLampe(){
         const price = 89 + ((lampCount - 1) * 35) + parseInt(zone);
         priceText = price + " €";
         document.getElementById("main-price").textContent = priceText;
-        updateForm("Lampenmontage", lampCount + " Standardlampe(n)", priceText, "inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).");
+        updateForm("Lampenmontage", lampCount + " Standardlampe(n)", priceText, "inkl. Montage, Anfahrt in Ihrer Zone.");
     }
 
     document.querySelectorAll("[data-location]").forEach(btn => {
