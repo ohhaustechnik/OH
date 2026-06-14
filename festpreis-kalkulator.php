@@ -138,6 +138,42 @@ if ($appointment !== "") {
         .gp-grid{display:grid;gap:10px;margin-top:8px}
         .gp-grid label{font-size:13px;font-weight:600;color:#2e3b4e}
         .gp-grid select,.gp-grid input{width:100%;padding:11px;border:1px solid #d8dee8;border-radius:10px;font-size:14px}
+        /* ---- PREMIUM-WIZARD ---- */
+        .wiz-progress{max-width:760px;margin:0 auto 26px}
+        .wiz-track{height:6px;background:#e8edf5;border-radius:6px;overflow:hidden;margin-bottom:13px}
+        .wiz-track>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3f7bf0,#2a5fc7);border-radius:6px;transition:width .45s cubic-bezier(.4,0,.2,1)}
+        .wiz-steps{display:flex;justify-content:space-between;gap:8px}
+        .wiz-st{flex:1;background:none;border:none;cursor:pointer;font:inherit;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:#9aa7b8;padding:4px}
+        .wiz-st .wiz-n{width:27px;height:27px;border-radius:50%;background:#e8edf5;color:#7b8aa0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;transition:.25s;flex-shrink:0}
+        .wiz-st.active{color:#15202f}
+        .wiz-st.active .wiz-n{background:#3f7bf0;color:#fff;box-shadow:0 4px 12px rgba(63,123,240,.4)}
+        .wiz-st.done .wiz-n{background:#34c98a;color:#fff}
+        .wiz-panel{display:none}
+        .wiz-panel.active{display:block;animation:wizIn .4s ease both}
+        @keyframes wizIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+        .wiz-h{font-size:clamp(21px,3vw,27px);font-weight:800;color:#15202f;margin:0 0 6px;text-align:center}
+        .wiz-sub{text-align:center;color:#5b6b80;margin:0 auto 24px;max-width:48ch;font-size:15px}
+        .wiz-grid{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start}
+        .wiz-side{position:sticky;top:90px;display:flex;flex-direction:column;gap:12px}
+        .wiz-recap{margin-bottom:18px}
+        .wiz-recap-card{display:flex;justify-content:space-between;align-items:center;gap:14px;background:#f4f8ff;border:1px solid #d6e2fb;border-radius:14px;padding:16px 18px}
+        .wiz-recap-card small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#7b8aa0;margin-bottom:2px}
+        .wiz-recap-card strong{display:block;font-size:16px;color:#15202f}
+        .wiz-recap-card span{font-size:13px;color:#5b6b80}
+        .wiz-recap-price{text-align:right;white-space:nowrap}
+        .wiz-recap-price strong{color:#2a5fc7;font-size:21px}
+        .wiz-nav{display:flex;justify-content:space-between;gap:12px;margin-top:26px;max-width:760px;margin-left:auto;margin-right:auto}
+        .wiz-back,.wiz-next{border:none;cursor:pointer;font:inherit;font-weight:700;font-size:15px;border-radius:13px;padding:15px 28px;display:inline-flex;align-items:center;gap:9px;transition:transform .15s,box-shadow .15s,background .15s}
+        .wiz-back{background:#eef2f8;color:#42536b}
+        .wiz-back:hover{background:#e2e8f1}
+        .wiz-next{background:linear-gradient(135deg,#3f7bf0,#2a5fc7);color:#fff;box-shadow:0 10px 26px rgba(63,123,240,.32);margin-left:auto}
+        .wiz-next:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(63,123,240,.42)}
+        @media(max-width:820px){
+          .wiz-grid{grid-template-columns:1fr}
+          .wiz-side{position:static}
+          .wiz-st{flex-direction:column;gap:5px;font-size:11px;text-align:center}
+          .wiz-back,.wiz-next{padding:14px 18px;font-size:14px}
+        }
         </style>
 
         <div class="premium-rep-bar">
@@ -150,6 +186,18 @@ if ($appointment !== "") {
             <span><b>Testphase:</b> Unser Sofort-Kalkulator ist neu. Sollte einmal etwas nicht passen – kein Problem: Wir prüfen jedes Angebot persönlich und melden uns mit dem finalen Festpreis.</span>
         </div>
 
+        <div class="wiz-progress">
+            <div class="wiz-track"><i id="wizBar"></i></div>
+            <div class="wiz-steps">
+                <button type="button" class="wiz-st active" data-s="1" onclick="wizGo(1)"><span class="wiz-n">1</span> Leistung</button>
+                <button type="button" class="wiz-st" data-s="2" onclick="wizGo(2)"><span class="wiz-n">2</span> Konfigurieren</button>
+                <button type="button" class="wiz-st" data-s="3" onclick="wizGo(3)"><span class="wiz-n">3</span> Kontakt &amp; Termin</button>
+            </div>
+        </div>
+
+        <div class="wiz-panel active" id="wiz1">
+        <h2 class="wiz-h">Was kann ich für dich tun?</h2>
+        <p class="wiz-sub">Wähle deine Leistung – du bekommst sofort einen transparenten Festpreis. Bei großen Projekten machen wir dir ein persönliches Angebot.</p>
         <div class="premium-services">
             <button class="premium-service" type="button" data-type="grossprojekt">
                 <i class="fas fa-house-chimney"></i>
@@ -180,23 +228,32 @@ if ($appointment !== "") {
                 <span>ab 70 €/h</span>
             </button>
         </div>
+        </div><!-- /wiz1 -->
 
-        <div class="premium-layout">
+        <div class="wiz-panel" id="wiz2">
+          <div class="wiz-grid">
             <div class="premium-left" id="config-area"></div>
-
-            <div class="premium-right">
+            <aside class="wiz-side">
                 <div class="premium-price-card">
                     <small>Ihr Preis</small>
                     <strong id="side-price">89 €</strong>
                     <span id="side-price-sub">inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).</span>
                     <i class="fas fa-lightbulb"></i>
                 </div>
-
                 <button class="premium-hint-btn" type="button" onclick="openHint(defaultHint)">
                     <i class="fas fa-info-circle"></i>
                     Wichtige Hinweise anzeigen
                 </button>
+            </aside>
+          </div>
+          <div class="wiz-nav">
+            <button type="button" class="wiz-back" onclick="wizGo(1)"><i class="fas fa-arrow-left"></i> Zurück</button>
+            <button type="button" class="wiz-next" onclick="wizGo(3)">Weiter <i class="fas fa-arrow-right"></i></button>
+          </div>
+        </div><!-- /wiz2 -->
 
+        <div class="wiz-panel" id="wiz3">
+          <div class="wiz-recap" id="wizRecap"></div>
             <div class="premium-appointments">
     <h3><i class="far fa-calendar-alt"></i> Freien Termin auswählen</h3>
 
@@ -285,8 +342,10 @@ if ($appointment !== "") {
                         Unverbindlich & kostenlos
                     </small>
                 </form>
-            </div>
-        </div>
+          <div class="wiz-nav">
+            <button type="button" class="wiz-back" onclick="wizGo(2)"><i class="fas fa-arrow-left"></i> Zurück</button>
+          </div>
+        </div><!-- /wiz3 -->
 
         <div class="premium-benefits">
             <div><i class="fas fa-tags"></i><strong>Festpreise</strong><span>Transparente Preise von Anfang an</span></div>
@@ -331,8 +390,29 @@ function serviceClickEvents(){
             if(btn.dataset.type === "fi") showFI();
             if(btn.dataset.type === "fehler") showFehler();
             if(btn.dataset.type === "grossprojekt") showGrossprojekt();
+            wizGo(2);
         });
     });
+}
+
+/* ---- PREMIUM-WIZARD: Schritt-Steuerung ---- */
+let wizStep=1;
+function wizGo(n){
+    n=Math.max(1,Math.min(3,n));
+    if(n>=2 && !document.querySelector(".premium-service.active")) return; // erst Leistung wählen
+    wizStep=n;
+    document.querySelectorAll(".wiz-panel").forEach(p=>p.classList.remove("active"));
+    const panel=document.getElementById("wiz"+n); if(panel)panel.classList.add("active");
+    document.querySelectorAll(".wiz-st").forEach(s=>{const sv=+s.dataset.s;s.classList.toggle("active",sv===n);s.classList.toggle("done",sv<n);});
+    const bar=document.getElementById("wizBar"); if(bar)bar.style.width=((n-1)/2*100)+"%";
+    if(n===3)wizRecap();
+    const top=document.querySelector(".wiz-progress"); if(top)top.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function wizRecap(){
+    const g=id=>document.getElementById(id);
+    const s=(g("form-service")||{}).value||"",d=(g("form-details")||{}).value||"",p=(g("form-price")||{}).value||"";
+    const r=document.getElementById("wizRecap"); if(!r)return;
+    r.innerHTML='<div class="wiz-recap-card"><div><small>Deine Auswahl</small><strong>'+s+'</strong><span>'+d+'</span></div><div class="wiz-recap-price"><small>Preis</small><strong>'+p+'</strong></div></div>';
 }
 
 /* Großprojekt-/Sanierungs-Pfad: kein Fixpreis, sondern Qualifizierung ->
@@ -681,6 +761,8 @@ function closeHint(){
 serviceClickEvents();
 appointmentEvents();
 showLampe();
+document.querySelectorAll(".premium-service").forEach(b=>b.classList.remove("active")); // Start: noch nichts gewählt
+wizGo(1);
 document.querySelector('.premium-form').addEventListener('submit', function(e){
 
     let phone = document.getElementById('phone-field').value.trim();
