@@ -222,8 +222,20 @@ include 'includes/header.php';
 
                         <!-- SCHRITT 3 -->
                         <div class="funnel-step" id="fi-step-3">
-                            <div class="funnel-step-title">Wie groß ist das Objekt?</div>
-                            <div class="funnel-step-desc">Wählen Sie die ungefähre Wohn- oder Nutzfläche.</div>
+                            <div class="funnel-step-title">Angaben zum Objekt</div>
+                            <div class="funnel-step-desc">Damit wir Ihren Festpreis genau kalkulieren können.</div>
+                            <div class="funnel-split-block-title"><i class="fas fa-building-user" style="margin-right:0.35rem;"></i>Um was für ein Objekt geht es?</div>
+                            <div class="funnel-option-grid">
+                                <div class="funnel-option"><input type="radio" name="fi_objekttyp" id="fi-otyp-wohnung" value="Wohnung"><label class="funnel-option-label" for="fi-otyp-wohnung"><span class="funnel-option-icon"><i class="fas fa-door-closed"></i></span><span class="funnel-option-text">Wohnung<small>Etagen- / Eigentumswohnung</small></span></label></div>
+                                <div class="funnel-option"><input type="radio" name="fi_objekttyp" id="fi-otyp-haus" value="Haus"><label class="funnel-option-label" for="fi-otyp-haus"><span class="funnel-option-icon"><i class="fas fa-house"></i></span><span class="funnel-option-text">Haus<small>Einfamilien- / Reihenhaus</small></span></label></div>
+                                <div class="funnel-option"><input type="radio" name="fi_objekttyp" id="fi-otyp-gewerbe" value="Gewerbe"><label class="funnel-option-label" for="fi-otyp-gewerbe"><span class="funnel-option-icon"><i class="fas fa-store"></i></span><span class="funnel-option-text">Gewerbe<small>Büro, Laden, Praxis</small></span></label></div>
+                                <div class="funnel-option"><input type="radio" name="fi_objekttyp" id="fi-otyp-mehrere" value="Mehrere Objekte"><label class="funnel-option-label" for="fi-otyp-mehrere"><span class="funnel-option-icon"><i class="fas fa-layer-group"></i></span><span class="funnel-option-text">Mehrere Objekte<small>z. B. mehrere Wohnungen / Haus + Wohnung</small></span></label></div>
+                            </div>
+                            <div class="funnel-count-input-wrap">
+                                <label for="fi-zimmer-anzahl">Anzahl Zimmer <small style="font-weight:400;color:var(--text-muted)">(optional, je Objekt)</small></label>
+                                <input type="number" id="fi-zimmer-anzahl" name="fi_zimmer_anzahl" min="1" max="99" placeholder="z. B. 3">
+                            </div>
+                            <div class="funnel-split-block-title" style="margin-top:1.1rem;"><i class="fas fa-ruler-combined" style="margin-right:0.35rem;"></i>Ungefähre Wohn- oder Nutzfläche</div>
                             <div class="funnel-option-grid cols-1">
                                 <div class="funnel-option"><input type="radio" name="fi_objektgroesse" id="fi-obj-50" value="Bis 50 m²"><label class="funnel-option-label" for="fi-obj-50"><span class="funnel-option-icon"><i class="fas fa-home"></i></span><span class="funnel-option-text">Bis 50 m²<small>Kleine Wohnung / Studio</small></span></label></div>
                                 <div class="funnel-option"><input type="radio" name="fi_objektgroesse" id="fi-obj-100" value="50 – 100 m²"><label class="funnel-option-label" for="fi-obj-100"><span class="funnel-option-icon"><i class="fas fa-home"></i></span><span class="funnel-option-text">50 – 100 m²<small>Mittelgroße Wohnung / Haus</small></span></label></div>

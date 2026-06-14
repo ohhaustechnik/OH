@@ -474,7 +474,11 @@
                 }
                 return true;
             }
-            case 3: if (!wrap.querySelector('input[name="fi_objektgroesse"]:checked')) { showError('Bitte wählen Sie die Objektgröße aus.'); return false; } return true;
+            case 3: {
+                if (!wrap.querySelector('input[name="fi_objekttyp"]:checked')) { showError('Bitte wählen Sie aus, um was für ein Objekt es geht.'); return false; }
+                if (!wrap.querySelector('input[name="fi_objektgroesse"]:checked')) { showError('Bitte wählen Sie die ungefähre Fläche aus.'); return false; }
+                return true;
+            }
             case 4: if (!wrap.querySelector('input[name="fi_ausfuehrungszeit"]:checked')) { showError('Bitte wählen Sie einen Ausführungszeitraum aus.'); return false; } return true;
             case 5: if (!wrap.querySelector('input[name="fi_erreichbarkeit"]:checked')) { showError('Bitte wählen Sie Ihre bevorzugte Erreichbarkeit aus.'); return false; } return true;
             case 6: {
@@ -520,6 +524,10 @@
         const lampen = document.getElementById('fi-lampen-anzahl');
         if (lampen?.value) fd.append('lampen_anzahl', lampen.value);
 
+        const objtyp = wrap.querySelector('input[name="fi_objekttyp"]:checked');
+        fd.append('objekttyp', objtyp ? objtyp.value : '');
+        const ziAnz = document.getElementById('fi-zimmer-anzahl');
+        fd.append('zimmer_anzahl', ziAnz && ziAnz.value ? ziAnz.value : '');
         const obj = wrap.querySelector('input[name="fi_objektgroesse"]:checked');
         fd.append('objektgroesse', obj ? obj.value : '');
         const zeit = wrap.querySelector('input[name="fi_ausfuehrungszeit"]:checked');
