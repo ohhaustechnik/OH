@@ -1794,8 +1794,10 @@ function oh_ads_healthcheck(?string &$err = null): array {
             $junkPrimary[] = $nm;
     }
     $add('Lead-Conversion „OH Website Lead"', $leadStatus ? 'ok' : 'warn', $leadStatus ?: 'nicht gefunden → „🏆 Conversion einrichten" drücken');
-    $add('Müll-Conversions als „Primär"', $junkPrimary ? 'bad' : 'ok',
-        $junkPrimary ? (count($junkPrimary) . ' Stück → in Ads auf „Sekundär" stellen: ' . implode(', ', array_slice($junkPrimary, 0, 5))) : 'keine');
+    $add('Müll-Conversions (Info)', $junkPrimary ? 'warn' : 'ok',
+        $junkPrimary
+            ? (count($junkPrimary) . ' als „Primär" markiert – ABER nur relevant, wenn sie in den Zielvorhaben deiner Kampagne einbezogen sind. Sind sie in 0 Kampagnen ("einbezogen = Nein"), einfach ignorieren.')
+            : 'keine');
 
     // 4) Conversion-Label im Büro gespeichert?
     $cfg = oh_config();
