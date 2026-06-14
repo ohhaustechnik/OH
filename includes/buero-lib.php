@@ -1583,6 +1583,86 @@ function oh_ads_set_budget(float $euroProTag, ?string &$err = null, ?array &$und
     return false;
 }
 
+/** Feste Zuordnung Keyword -> passende Landingpage (Message-Match für bessere Conversions). */
+function oh_ads_lp_url_map(): array {
+    return [
+        'altbau elektrik erneuern' => 'https://oh-haustechnik.de/altbausanierung-nuernberg.php',
+        'altbausanierung elektro'  => 'https://oh-haustechnik.de/altbausanierung-nuernberg.php',
+        'elektriker nürnberg'      => 'https://oh-haustechnik.de/elektroinstallation-nuernberg.php',
+        'sanierung nbg'            => 'https://oh-haustechnik.de/wohnung-elektro-sanieren-nuernberg.php',
+    ];
+}
+
+/** Normalisiert Keyword-Text für den Abgleich (klein, getrimmt, Mehrfach-Leerzeichen weg). */
+function oh_ads_kw_norm(string $t): string {
+    return trim(preg_replace('/\s+/', ' ', mb_strtolower($t)));
+}
+
+/**
+ * Setzt für alle aktiven Keywords die finale URL gemäß oh_ads_lp_url_map().
+ * Greift NUR ins Live-Konto, wenn diese Funktion bewusst aufgerufen wird (Knopf im Büro).
+ * Alte URLs werden für Undo gespeichert. Gibt einen Bericht je Keyword zurück.
+ */
+function oh_ads_apply_lp_urls(?string &$err = null): array {
+    $map = oh_ads_lp_url_map();
+    // Alle nicht entfernten Keywords aus aktiven Such-Kampagnen lesen
+    $rows = oh_ads_search(
+        "SELECT ad_group_criterion.resource_name, ad_group_criterion.keyword.text, "
+      . "ad_group_criterion.final_urls, campaign.name "
+      . "FROM ad_group_criterion "
+      . "WHERE ad_group_criterion.type = 'KEYWORD' AND ad_group_criterion.status != 'REMOVED' "
+      . "AND campaign.advertising_channel_type = 'SEARCH' AND campaign.status = 'ENABLED'",
+        $err
+    );
+    if ($rows === null) return [];
+
+    // Treffer je Ziel-Keyword sammeln
+    $bericht = [];
+    foreach ($map as $kw => $url) { $bericht[$kw] = ['keyword' => $kw, 'url' => $url, 'status' => 'nicht gefunden', 'anzahl' => 0, 'alt' => []]; }
+
+    $ops = []; $undo = [];
+    foreach ($rows as $r) {
+        $crit = $r['adGroupCriterion'] ?? [];
+        $text = oh_ads_kw_norm($crit['keyword']['text'] ?? '');
+        $rn   = $crit['resourceName'] ?? '';
+        if ($text === '' || $rn === '') continue;
+        foreach ($map as $kw => $url) {
+            if (oh_ads_kw_norm($kw) === $text) {
+                $altUrls = $crit['finalUrls'] ?? [];
+                if (count($altUrls) === 1 && oh_ads_kw_norm($altUrls[0]) === oh_ads_kw_norm($url)) {
+                    // Bereits korrekt – nichts zu tun
+                    $bericht[$kw]['status'] = 'bereits korrekt';
+                    $bericht[$kw]['anzahl']++;
+                    break;
+                }
+                $ops[]  = ['update' => ['resourceName' => $rn, 'finalUrls' => [$url]], 'updateMask' => 'final_urls'];
+                $undo[] = ['resource' => $rn, 'alt' => $altUrls];
+                $bericht[$kw]['status'] = 'geändert';
+                $bericht[$kw]['anzahl']++;
+                $bericht[$kw]['alt'] = $altUrls;
+                break;
+            }
+        }
+    }
+
+    if ($ops) {
+        $res = oh_ads_mutate('adGroupCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+        if ($res === null) {
+            foreach ($bericht as &$b) { if ($b['status'] === 'geändert') $b['status'] = 'fehler'; }
+            unset($b);
+        } else {
+            // Undo-Info + Protokoll speichern -> jederzeit rückgängig machbar
+            $store = oh_read('ads_url_undo', []);
+            array_unshift($store, ['ts' => time(), 'changes' => $undo]);
+            oh_write('ads_url_undo', array_slice($store, 0, 20));
+            if (function_exists('oh_log_activity')) {
+                oh_log_activity('kaan', 'Ads Final-URLs auf passende Landingpages gesetzt (' . count($ops) . ' Keyword(s)).');
+            }
+        }
+    }
+    return array_values($bericht);
+}
+
 /**
  * Setzt eine Empfehlung um. Sichere Änderungen (negative Keywords, neue
  * Keywords, eindeutiges Budget) werden direkt im Konto ausgeführt – Dein

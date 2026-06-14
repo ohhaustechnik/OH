@@ -348,6 +348,12 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         unset($rr);
         oh_write('ads_reco', $reco);
         echo json_encode($result);
+    } elseif ($a === 'ads_set_lp_urls') {
+        // Setzt die Final-URLs der Keywords auf die passenden Landingpages (Message-Match).
+        // Greift nur auf bewussten Knopfdruck ins Live-Konto; alte URLs werden für Undo gesichert.
+        $uerr = null;
+        $bericht = function_exists('oh_ads_apply_lp_urls') ? oh_ads_apply_lp_urls($uerr) : [];
+        echo json_encode(['ok' => $uerr === null, 'err' => $uerr, 'bericht' => $bericht]);
     } elseif ($a === 'agent_inbox') {
         $list = function_exists('oh_agent_inbox') ? oh_agent_inbox($in['agent'] ?? '') : [];
         $tasks = function_exists('oh_tasks') ? array_slice(oh_tasks($in['agent'] ?? '', 'offen'), -8) : [];
@@ -1266,6 +1272,12 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <h2>&#128200; Deine Ads-Zahlen (7 Tage)</h2>
     <div id="adsBody"><div class="spinner-mini">Lade …</div></div>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadAds()">↻ Aktualisieren</button>
+  </div>
+  <div class="card" style="border-color:var(--gold)">
+    <h2>&#127919; Keywords auf die richtige Seite schicken</h2>
+    <p class="intro">Ein Klick setzt die finalen URLs deiner Keywords auf die passenden Landingpages (Altbau, Elektriker, Sanierung). Bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget. Alte URLs werden gesichert (rückgängig machbar).</p>
+    <button class="btn btn-cyan" id="adsUrlBtn" onclick="setAdsLpUrls()">🔗 Final-URLs jetzt setzen</button>
+    <div id="adsUrlMsg" class="msg-ok" style="margin-top:10px"></div>
   </div>
   <div class="card" style="border-color:var(--gold)">
     <h2>&#128203; Google-Ads-Maßnahmenplan</h2>
@@ -2793,6 +2805,27 @@ async function recoLater(id,btn){
   btn.disabled=true;
   await api('ads_later',{id});
   setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
+}
+async function setAdsLpUrls(){
+  if(!confirm('Final-URLs deiner Keywords jetzt auf die passenden Landingpages setzen?\n\nDas ändert dein Live-Google-Ads-Konto (nur die Ziel-URLs, KEIN Budget). Die alten URLs werden gesichert und sind rückgängig machbar.')) return;
+  const btn=gl('adsUrlBtn'), msg=gl('adsUrlMsg');
+  const t=btn.textContent; btn.disabled=true; btn.textContent='⏳ Wird gesetzt …';
+  msg.className='msg-ok'; msg.textContent='';
+  try{
+    const d=await api('ads_set_lp_urls');
+    if(!d.ok){
+      msg.className='fehler'; msg.innerHTML='⚠️ '+esc(d.err||'Fehler')+'<br>Tipp: Sind die 5 Ads-Zugangsdaten unter ⚙️ eingetragen?';
+    } else {
+      let html='<b>Ergebnis:</b><ul style="margin:8px 0 0 18px;line-height:1.7">';
+      (d.bericht||[]).forEach(b=>{
+        const ic = b.status==='geändert'?'✅':(b.status==='bereits korrekt'?'✓':(b.status==='nicht gefunden'?'➖':'⚠️'));
+        html+='<li>'+ic+' <b>'+esc(b.keyword)+'</b> – '+esc(b.status)+(b.anzahl?(' ('+b.anzahl+'×)'):'')+'</li>';
+      });
+      html+='</ul>';
+      msg.className='msg-ok'; msg.innerHTML=html;
+    }
+  }catch(e){ msg.className='fehler'; msg.textContent='Verbindungsfehler.'; }
+  btn.disabled=false; btn.textContent=t;
 }
 async function loadAds(){
   lastAdsReport=null; const _kb=gl('adsKiBtn'); if(_kb)_kb.disabled=true;

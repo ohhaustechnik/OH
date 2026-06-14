@@ -23,10 +23,15 @@
 
 ## 🟦 GOOGLE ADS — Schritt für Schritt (Klick für Klick)
 
-### A) Anzeigen auf die richtige Seite schicken (HEUTE, ~10 Min — größter Soforteffekt)
+### A) Anzeigen auf die richtige Seite schicken (HEUTE — größter Soforteffekt)
 Du zahlst schon für diese Klicks — sie landen auf einer unpassenden Seite und gehen verloren.
 
-**So geht's:** Google Ads öffnen → linke Spalte **„Keywords"** → auf das Keyword klicken →
+**✅ NEU – per Knopf (einfachster Weg):** Büro-Dashboard → **„📈 Google Ads"** →
+Karte **„🎯 Keywords auf die richtige Seite schicken"** → Knopf **„🔗 Final-URLs jetzt setzen"**.
+Ein Klick setzt alle 4 URLs automatisch über die API. Alte URLs werden gesichert
+(rückgängig machbar). KEIN Budget wird verändert.
+
+**Oder von Hand:** Google Ads → linke Spalte **„Keywords"** → auf das Keyword klicken →
 Stift/Bearbeiten → Feld **„Finale URL"** → Adresse aus der Tabelle einfügen → **Speichern**.
 
 | Dein Keyword | Neue Finale URL (kopieren) |
@@ -85,9 +90,9 @@ hier die Wahrheit, damit keine Session etwas Falsches verspricht oder dein Geld 
 > ohne dass Adnan es ausdrücklich in diesem Dokument oder im Chat freigegeben hat.
 > Lesen/Analysieren ist ok. Schreiben = nur mit Freigabe.
 
-**Wenn du Automatisierung willst:** Claude kann dir im Büro-Dashboard einen **Knopf** bauen,
-mit dem **du** die 4 Final-URLs per Klick setzt (du bleibst in Kontrolle, ein Klick statt
-4× von Hand). Schreib „**ja, URL-Knopf bauen**" unten in den STAND, dann baut Claude es.
+**✅ URL-Knopf ist gebaut:** Büro-Dashboard → „📈 Google Ads" → Karte „🎯 Keywords auf die
+richtige Seite schicken" → „🔗 Final-URLs jetzt setzen". Setzt die 4 URLs per Klick über die
+API, sichert die alten URLs (rückgängig machbar), ändert KEIN Budget. Du drückst, du kontrollierst.
 
 ---
 
@@ -183,6 +188,10 @@ Schritt, den ich tun muss. Frag nicht nach meinem Passwort/Zugang.
 - Optional: Tag-1-Follow-up-Automatik (kein Lead wird kalt). ⚠️ Schickt echte
   E-Mails an deine Leads — **ein „ja" von dir, dann baue ich es.**
 
-**Dein nächster EINER Schritt:** Schritt 1 — die 4 Ziel-URLs in Google Ads
-umstellen (Tabelle oben). Das bringt sofort die schon bezahlten Klicks auf die
-richtige Seite = mehr Anfragen, ohne einen Cent mehr Werbebudget.
+**NEU gebaut (diese Session):** 🔗 URL-Knopf im Büro-Dashboard (Google Ads →
+„Keywords auf die richtige Seite schicken") — setzt die 4 Final-URLs per Klick über die API,
+mit Undo-Sicherung, ohne Budget-Änderung.
+
+**Dein nächster EINER Schritt:** Im Büro-Dashboard den Knopf **„🔗 Final-URLs jetzt setzen"**
+drücken (Google Ads → „Keywords auf die richtige Seite schicken"). Ein Klick — fertig.
+Das bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget.
