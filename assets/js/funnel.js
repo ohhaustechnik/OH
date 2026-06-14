@@ -285,7 +285,7 @@
         .then(function (res) { return res.json(); })
         .then(function (data) {
             if (data.success) {
-                if (window.ohTrack) ohTrack('lead_form_submit', { value: 10 });
+                if (window.ohTrack) ohTrack('lead_form_submit', { value: data.value || 10, currency: data.currency || 'EUR', wert_klasse: data.wert_klasse || '' });
                 closeFunnel();
                 window.location.href = 'danke.php';
             } else {
@@ -557,7 +557,7 @@
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.success) {
-                    if (window.ohTrack) ohTrack('lead_form_submit', { value: 10 });
+                    if (window.ohTrack) ohTrack('lead_form_submit', { value: data.value || 10, currency: data.currency || 'EUR', wert_klasse: data.wert_klasse || '' });
                     window.location.href = 'danke.php';
                 } else {
                     showError(data.message || 'Fehler beim Senden. Bitte versuchen Sie es erneut.');

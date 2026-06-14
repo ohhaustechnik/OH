@@ -169,8 +169,10 @@ if (!empty($strasse)) $standort .= ', ' . $strasse;
 // Lead im Büro-System speichern (für Dashboard, HOT/WARM/KALT, Automatik)
 // ---------------------------------------------------------------
 @require_once __DIR__ . '/buero-lib.php';
+$convValue   = 10;        // Fallback-Conversion-Wert
+$convKlasse  = '';
 if (function_exists('oh_add_lead')) {
-    oh_add_lead([
+    $neuerLead = oh_add_lead([
         'source'        => $quelle,
         'name'          => trim($vorname . ' ' . $nachname),
         'email'         => $email,
@@ -184,6 +186,11 @@ if (function_exists('oh_add_lead')) {
         'ort'           => $ort,
         'details'       => trim(($suboptionen ? $suboptionen . '. ' : '') . $details),
     ]);
+    // Geschätzten Auftragswert für value-based Bidding in Google Ads ableiten.
+    // So lernt Ads, welche Kampagnen echte Großaufträge bringen – nicht nur Klicks.
+    $convKlasse = $neuerLead['wert_klasse'] ?? '';
+    $wertMap    = ['gross' => 8000, 'mittel' => 2500, 'klein' => 400];
+    $convValue  = $wertMap[$convKlasse] ?? 1000;
 }
 
 // Boundary für Multipart (nur wenn Anhänge vorhanden)
@@ -319,8 +326,11 @@ if ($sent) {
 // ---------------------------------------------------------------
 if ($sent) {
     echo json_encode([
-        'success' => true,
-        'message' => 'Vielen Dank! Ihre Anfrage wurde erfolgreich übermittelt. Wir melden uns innerhalb von 24 Stunden.'
+        'success'     => true,
+        'message'     => 'Vielen Dank! Ihre Anfrage wurde erfolgreich übermittelt. Wir melden uns innerhalb von 24 Stunden.',
+        'value'       => $convValue,        // geschätzter Auftragswert (EUR) für Ads-Conversion
+        'wert_klasse' => $convKlasse,       // gross | mittel | klein
+        'currency'    => 'EUR'
     ]);
 } else {
     echo json_encode([
