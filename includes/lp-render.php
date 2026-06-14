@@ -11,6 +11,10 @@
 $LP = $LP ?? [];
 $g = fn($k, $d = '') => $LP[$k] ?? $d;
 $quelle = $g('quelle', 'lp');
+require_once __DIR__ . '/buero-lib.php';
+$ohReviews = function_exists('oh_google_reviews') ? oh_google_reviews() : ['rating' => 5.0, 'count' => 21];
+$ohRating  = number_format($ohReviews['rating'], 1, ',', '');
+$ohCount   = (int)$ohReviews['count'];
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
@@ -156,7 +160,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
       <a class="btn-ghost" href="festpreis-kalkulator.php"><i class="fas fa-calculator"></i> Preis in 2 Min berechnen</a>
       <a class="btn-ghost" href="tel:+491757481006"><i class="fas fa-phone"></i> Jetzt anrufen</a>
     </div>
-    <div class="rating"><span class="stars">★★★★★</span> <b>5,0</b> aus 15 Google-Bewertungen · echte Kunden aus der Region</div>
+    <div class="rating"><span class="stars">★★★★★</span> <b><?= $ohRating ?></b> aus <?= $ohCount ?> Google-Bewertungen · echte Kunden aus der Region</div>
   </div>
 </header>
 

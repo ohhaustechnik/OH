@@ -221,6 +221,11 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'autopilot_kaan'   => $c['autopilot_kaan'] ?? 'an',
             'autopilot_aylin'  => $c['autopilot_aylin'] ?? 'an',
             'autopilot_dilara' => $c['autopilot_dilara'] ?? 'an',
+            'google_rating'    => $c['google_rating'] ?? '',
+            'google_count'     => $c['google_count'] ?? '',
+            'google_place_id'  => $c['google_place_id'] ?? '',
+            'has_google_api'   => !empty($c['google_places_key']),
+            'reviews_live'     => function_exists('oh_google_reviews') ? oh_google_reviews() : null,
         ]);
     } elseif ($a === 'config_set') {
         oh_config_set([
@@ -241,6 +246,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
             'autopilot_kaan'   => $in['autopilot_kaan'] ?? '',
             'autopilot_aylin'  => $in['autopilot_aylin'] ?? '',
             'autopilot_dilara' => $in['autopilot_dilara'] ?? '',
+            'google_rating'    => $in['google_rating'] ?? '',
+            'google_count'     => $in['google_count'] ?? '',
+            'google_places_key'=> $in['google_places_key'] ?? '',
+            'google_place_id'  => $in['google_place_id'] ?? '',
         ]);
         echo json_encode(['ok' => true]);
     } elseif ($a === 'scan_now') {
@@ -255,6 +264,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $err = null;
         $p = function_exists('oh_prognose') ? oh_prognose($err) : null;
         echo json_encode($p !== null ? ['ok' => true, 'prognose' => $p] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'reviews_refresh') {
+        $err = null;
+        $r = function_exists('oh_google_reviews_refresh') ? oh_google_reviews_refresh($err) : null;
+        echo json_encode($r !== null ? ['ok' => true, 'rating' => $r['rating'], 'count' => $r['count']] : ['ok' => false, 'error' => $err]);
     } elseif ($a === 'adsplan_get') {
         $items = function_exists('oh_ads_plan') ? oh_ads_plan() : [];
         $done = 0; foreach ($items as $i) if (!empty($i['done'])) $done++;
@@ -1252,6 +1265,22 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <div id="siteMsg" class="msg-ok"></div>
   </div>
   <div class="card">
+    <h2>&#11088; Google-Bewertungen (Website)</h2>
+    <p class="intro">Die Sterne-Zeile auf Website &amp; Landingpages („5,0 aus X Bewertungen"). <b>Manuell</b>: trag den aktuellen Stand ein. <b>Automatisch</b>: mit Google-Places-API-Key + Place-ID aktualisiert es sich täglich von selbst.</p>
+    <div id="revLive" class="intro" style="color:var(--cyan)"></div>
+    <label>Bewertung (z. B. 5,0)</label>
+    <input type="text" id="gRating" placeholder="5,0">
+    <label style="margin-top:8px">Anzahl Bewertungen (z. B. 21)</label>
+    <input type="text" id="gCount" placeholder="21">
+    <label style="margin-top:8px">Google Places API-Key (optional, für Auto-Update)</label>
+    <input type="password" id="gKey" placeholder="••• (leer = unverändert)">
+    <label style="margin-top:8px">Google Place-ID (optional)</label>
+    <input type="text" id="gPlace" placeholder="ChIJ…">
+    <button class="btn btn-cyan" style="margin-top:12px" onclick="saveReviews()">Speichern</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="refreshReviews(this)">🔄 Jetzt von Google holen</button>
+    <div id="revMsg" class="msg-ok"></div>
+  </div>
+  <div class="card">
     <h2>&#128218; Gelernte Korrekturen (Kalkulator)</h2>
     <p class="intro">Das System lernt aus Deinen Korrekturen für genauere Preise.</p>
     <div id="lernListe"></div>
@@ -1995,6 +2024,11 @@ async function toggleSettings(){
       gl('waPhone').value=c.wa_phone_id||'';
       gl('waVerify').value=c.wa_verify_token||'oh-wa';
       gl('siteUrl').value=c.site_url||'';
+      gl('gRating').value=c.google_rating||'';
+      gl('gCount').value=c.google_count||'';
+      gl('gPlace').value=c.google_place_id||'';
+      gl('gKey').value='';
+      if(c.reviews_live){const rl=c.reviews_live;gl('revLive').textContent='Aktuell angezeigt: '+(''+rl.rating).replace('.',',')+' aus '+rl.count+' Bewertungen ('+(rl.quelle==='google'?'live von Google':'manuell')+').';}
       gl('apKaan').checked=(c.autopilot_kaan||'an')==='an';
       gl('apAylin').checked=(c.autopilot_aylin||'an')==='an';
       gl('apDilara').checked=(c.autopilot_dilara||'an')==='an';
@@ -2035,6 +2069,27 @@ async function saveWa(){
   gl('waToken').value='';
   gl('waMsg').textContent='✓ WhatsApp gespeichert';
   setTimeout(()=>gl('waMsg').textContent='',2500);
+}
+async function saveReviews(){
+  await api('config_set',{
+    google_rating:gl('gRating').value.trim().replace(',','.'),
+    google_count:gl('gCount').value.trim(),
+    google_places_key:gl('gKey').value.trim(),
+    google_place_id:gl('gPlace').value.trim()
+  });
+  gl('gKey').value='';
+  gl('revMsg').textContent='✓ Gespeichert';
+  setTimeout(()=>gl('revMsg').textContent='',2500);
+}
+async function refreshReviews(btn){
+  const o=btn.textContent; btn.textContent='… hole von Google';
+  try{
+    const r=await api('reviews_refresh');
+    if(r&&r.ok){gl('revMsg').textContent='✓ '+(''+r.rating).replace('.',',')+' aus '+r.count+' Bewertungen (live von Google)';}
+    else{gl('revMsg').textContent='⚠️ '+((r&&r.error)||'Fehler – API-Key & Place-ID prüfen');}
+  }catch(e){gl('revMsg').textContent='⚠️ Verbindungsfehler';}
+  btn.textContent=o;
+  setTimeout(()=>gl('revMsg').textContent='',8000);
 }
 async function saveSite(){
   await api('config_set',{site_url:gl('siteUrl').value.trim()});

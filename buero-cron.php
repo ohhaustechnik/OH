@@ -111,6 +111,14 @@ if (function_exists('oh_lex_refresh') && !empty(oh_config()['lexware_api_key']))
     elseif ($lerr) $log[] = 'Lexware FEHLER: ' . $lerr;
 }
 
+// Google-Bewertungen aktualisieren (Sterne/Anzahl auf Website & Landingpages)
+if (function_exists('oh_google_reviews_refresh') && !empty(oh_config()['google_places_key'])) {
+    $gerr = null;
+    $gr = oh_google_reviews_refresh($gerr);
+    if ($gr) $log[] = 'Google-Bewertungen: ' . $gr['rating'] . ' aus ' . $gr['count'];
+    elseif ($gerr) $log[] = 'Google-Bewertungen FEHLER: ' . $gerr;
+}
+
 // Aylin (Autopilot): freundliche Zahlungserinnerungen bei überfälligen Rechnungen
 if (function_exists('oh_aylin_erinnerungen') && !empty(oh_config()['lexware_api_key'])) {
     $merr2 = null;

@@ -2181,6 +2181,51 @@ function oh_ads_plan_toggle(string $id, bool $done): void {
     oh_write('ads_plan', $save);
 }
 
+/* ==========================================================================
+ * GOOGLE-BEWERTUNGEN (Sterne + Anzahl) – immer aktueller Stand.
+ * Reihenfolge: frischer API-Cache (Places API) > manueller Wert aus den
+ * Einstellungen > Standard. So aktualisiert sich „5,0 aus 21" automatisch,
+ * sobald API-Key + Place-ID hinterlegt sind; ohne API zeigt der manuelle Wert.
+ * ======================================================================== */
+function oh_google_reviews(): array {
+    $cfg = oh_config();
+    $defRating = 5.0; $defCount = 21;
+    $c = oh_read('google_reviews', []);
+    if (!empty($c['ts']) && (time() - $c['ts']) < 7 * 86400 && !empty($c['count'])) {
+        return ['rating' => (float)$c['rating'], 'count' => (int)$c['count'], 'quelle' => 'google'];
+    }
+    $r = (isset($cfg['google_rating']) && $cfg['google_rating'] !== '') ? (float)$cfg['google_rating'] : $defRating;
+    $n = (isset($cfg['google_count'])  && $cfg['google_count']  !== '') ? (int)$cfg['google_count']  : $defCount;
+    return ['rating' => $r, 'count' => $n, 'quelle' => 'manuell'];
+}
+
+/** Praktischer Helfer fürs Frontend: „5,0" (deutsches Komma). */
+function oh_google_rating_str(): string {
+    return number_format(oh_google_reviews()['rating'], 1, ',', '');
+}
+
+/** Holt den echten Stand aus der Google Places API und cached ihn (für Cron). */
+function oh_google_reviews_refresh(?string &$err = null): ?array {
+    $cfg = oh_config();
+    $key = $cfg['google_places_key'] ?? '';
+    $pid = $cfg['google_place_id'] ?? '';
+    if ($key === '' || $pid === '') { $err = 'Kein Google-Places-API-Key oder Place-ID hinterlegt.'; return null; }
+    $url = 'https://maps.googleapis.com/maps/api/place/details/json?place_id=' . urlencode($pid)
+         . '&fields=rating,user_ratings_total&language=de&key=' . urlencode($key);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+    $d = json_decode((string)$resp, true);
+    if (!is_array($d) || ($d['status'] ?? '') !== 'OK') { $err = 'Google-Antwort: ' . ($d['status'] ?? 'Fehler'); return null; }
+    $rating = (float)($d['result']['rating'] ?? 0);
+    $count  = (int)($d['result']['user_ratings_total'] ?? 0);
+    if ($count <= 0) { $err = 'Keine Bewertungen erhalten.'; return null; }
+    $out = ['rating' => $rating, 'count' => $count, 'ts' => time()];
+    oh_write('google_reviews', $out);
+    return $out;
+}
+
 /** Tageslimit für Autopilot-Aktionen (Schutz vor Amok). true = darf noch. */
 function oh_autopilot_limit(string $key, int $maxProTag): bool {
     $log = oh_read('autopilot_log', []);

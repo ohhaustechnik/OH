@@ -4,6 +4,11 @@ $meta_description = 'Fachgerechte Elektroinstallation & Altbausanierung im Raum 
 $meta_keywords    = 'Elektroinstallation Nürnberg, Altbausanierung Elektriker, Elektriker Nürnberg, Elektrotechnik Fürth Erlangen, Schutztechnik, Unterverteilung, Modernisierung';
 $canonical_url    = 'https://oh-haustechnik.de/';
 
+require_once __DIR__ . '/includes/buero-lib.php';
+$ohReviews = function_exists('oh_google_reviews') ? oh_google_reviews() : ['rating' => 5.0, 'count' => 21];
+$ohRating  = number_format($ohReviews['rating'], 1, ',', '');
+$ohCount   = (int)$ohReviews['count'];
+
 include 'includes/header.php';
 ?>
 
@@ -60,7 +65,7 @@ rel="noopener">
 <i class="fas fa-star"></i>
 <i class="fas fa-star"></i>
 <i class="fas fa-star"></i>
-5,0 aus 15 Google-Bewertungen
+<?= $ohRating ?> aus <?= $ohCount ?> Google-Bewertungen
 </a>
 			</div>
 
@@ -71,7 +76,7 @@ rel="noopener">
                 </button>
              <a href="festpreis-kalkulator.php" class="btn btn--primary btn--lg btn-glow-pulse icon-bounce hero-calc-btn">
     <i class="fas fa-calculator"></i>
-    Neu: Sofort-Kalkulation & Termin
+    Sofort-Kalkulation & Termin
 </a>
 				<a href="#leistungen" class="btn btn--outline-white btn--lg icon-bounce">
                     <i class="fas fa-bolt"></i>
