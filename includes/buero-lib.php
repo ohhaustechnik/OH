@@ -1658,6 +1658,95 @@ function oh_ads_setup_lead_conversion(?string &$err = null): array {
     ];
 }
 
+/** Entfernt bestimmte negative Keywords (Text-Match) aus allen Such-Kampagnen. Rückgängig per UI. */
+function oh_ads_remove_negative_keywords(array $woerter, ?string &$err = null, ?array &$entfernt = null): bool {
+    $entfernt = [];
+    $ziel = array_map('oh_ads_kw_norm', $woerter);
+    $rows = oh_ads_search(
+        "SELECT campaign_criterion.resource_name, campaign_criterion.keyword.text "
+      . "FROM campaign_criterion WHERE campaign_criterion.negative = TRUE AND campaign_criterion.type = 'KEYWORD'",
+        $err);
+    if ($rows === null) return false;
+    $ops = [];
+    foreach ($rows as $r) {
+        $cc  = $r['campaignCriterion'] ?? [];
+        $txt = oh_ads_kw_norm($cc['keyword']['text'] ?? '');
+        $rn  = $cc['resourceName'] ?? '';
+        if ($txt !== '' && $rn !== '' && in_array($txt, $ziel, true)) {
+            $ops[] = ['remove' => $rn];
+            $entfernt[] = $txt;
+        }
+    }
+    if (!$ops) return true;
+    $res = oh_ads_mutate('campaignCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+    return $res !== null;
+}
+
+/**
+ * Ein-Klick-Optimierung auf Sanierungs-Fokus:
+ *  1) Entfernt schädliche Negative, die Sanierungskunden blockieren.
+ *  2) Fügt hochwertige Sanierungs-Keywords (PHRASE) in die aktivste Anzeigengruppe.
+ *  3) Fügt Junk-/Kleinauftrag-Negative hinzu (filtert unqualifizierte Klicks).
+ * Greift nur auf bewussten Knopfdruck ins Live-Konto, alles rückgängig machbar.
+ */
+function oh_ads_optimize_sanierung(?string &$err = null): array {
+    $cfg = oh_config();
+    $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
+    $report = ['entfernte_negative' => [], 'neue_keywords' => [], 'neue_negative' => [], 'fehler' => []];
+    if ($cid === '') { $report['fehler'][] = 'Keine Ads-Kundennummer hinterlegt.'; return $report; }
+
+    // 1) Schädliche Negative entfernen (blockieren Sanierungs-Suchen)
+    $schaedlich = ['erneuern','kosten','installation','elektroinstallation','sanierung','sanieren',
+                   'modernisierung','modernisieren','komplettsanierung','kernsanierung','altbau','altbausanierung'];
+    $e1 = null; $rem = [];
+    if (oh_ads_remove_negative_keywords($schaedlich, $e1, $rem)) $report['entfernte_negative'] = $rem;
+    elseif ($e1) $report['fehler'][] = 'Negative entfernen: ' . $e1;
+
+    // 2) Sanierungs-Keywords (PHRASE) in aktivste Anzeigengruppe (ein Mutate)
+    $keywords = ['wohnung sanieren','wohnungssanierung','wohnung modernisieren','kernsanierung',
+                 'elektro komplettsanierung','komplettsanierung wohnung','altbausanierung elektro',
+                 'haus elektrik erneuern','elektriker sanierung'];
+    $e2 = null;
+    $rowsAg = oh_ads_search("SELECT ad_group.id, metrics.impressions FROM ad_group "
+        . "WHERE ad_group.status='ENABLED' AND campaign.status='ENABLED' AND campaign.advertising_channel_type='SEARCH' "
+        . "AND segments.date DURING LAST_30_DAYS ORDER BY metrics.impressions DESC LIMIT 1", $e2);
+    $agid = $rowsAg[0]['adGroup']['id'] ?? '';
+    if ($agid !== '') {
+        $ops = [];
+        foreach ($keywords as $kw) {
+            $ops[] = ['create' => ['adGroup' => 'customers/' . $cid . '/adGroups/' . $agid,
+                'status' => 'ENABLED', 'keyword' => ['text' => $kw, 'matchType' => 'PHRASE']]];
+        }
+        $res = oh_ads_mutate('adGroupCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $e2);
+        if ($res !== null) $report['neue_keywords'] = $keywords;
+        else $report['fehler'][] = 'Keywords: ' . $e2;
+    } else {
+        $report['fehler'][] = 'Keine aktive Anzeigengruppe für neue Keywords gefunden.';
+    }
+
+    // 3) Junk-/Kleinauftrag-Negative (ein Mutate, alle aktiven Kampagnen)
+    $junk = ['kostenlos','gratis','selber machen','anleitung','job','jobs','gehalt','ausbildung','lampenwechsel','glühbirne'];
+    $e3 = null;
+    $camps = oh_ads_enabled_search_campaigns($e3);
+    if ($camps) {
+        $ops = [];
+        foreach ($camps as $campId) {
+            foreach ($junk as $n) {
+                $ops[] = ['create' => ['campaign' => 'customers/' . $cid . '/campaigns/' . $campId,
+                    'negative' => true, 'keyword' => ['text' => $n, 'matchType' => 'PHRASE']]];
+            }
+        }
+        $res = oh_ads_mutate('campaignCriteria:mutate', ['operations' => $ops, 'partialFailure' => true], $e3);
+        if ($res !== null) $report['neue_negative'] = $junk;
+        else $report['fehler'][] = 'Negative: ' . $e3;
+    } elseif ($e3) {
+        $report['fehler'][] = 'Kampagnen: ' . $e3;
+    }
+
+    if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Ads auf Sanierungs-Fokus optimiert (Negative/Keywords angepasst).');
+    return $report;
+}
+
 /** Feste Zuordnung Keyword -> passende Landingpage (Message-Match für bessere Conversions). */
 function oh_ads_lp_url_map(): array {
     return [

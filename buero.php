@@ -352,6 +352,10 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         unset($rr);
         oh_write('ads_reco', $reco);
         echo json_encode($result);
+    } elseif ($a === 'ads_optimize_sanierung') {
+        $oerr = null;
+        $rep = function_exists('oh_ads_optimize_sanierung') ? oh_ads_optimize_sanierung($oerr) : ['fehler' => ['Funktion fehlt']];
+        echo json_encode(['ok' => empty($rep['fehler']), 'bericht' => $rep, 'err' => $oerr]);
     } elseif ($a === 'ads_setup_conversion') {
         // Legt die Lead-Conversion an (oder findet sie), speichert das Label -> Wert-Tracking live.
         $cerr = null;
@@ -1291,6 +1295,12 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <p class="intro">Ein Klick setzt die finalen URLs deiner Keywords auf die passenden Landingpages (Altbau, Elektriker, Sanierung). Bringt die schon bezahlten Klicks auf die richtige Seite = mehr Anfragen, ohne Mehrbudget. Alte URLs werden gesichert (rückgängig machbar).</p>
     <button class="btn btn-cyan" id="adsUrlBtn" onclick="setAdsLpUrls()">🔗 Final-URLs jetzt setzen</button>
     <div id="adsUrlMsg" class="msg-ok" style="margin-top:10px"></div>
+  </div>
+  <div class="card" style="border-color:var(--gold)">
+    <h2>&#127919; Sanierungs-Fokus optimieren (1 Klick)</h2>
+    <p class="intro">Setzt deine Kampagne auf hochwertige Sanierungsanfragen: entfernt schädliche Negativ-Keywords (die Sanierungskunden blockieren: „erneuern", „kosten", „installation" …), fügt Sanierungs-Keywords hinzu und filtert Kleinkram (Lampenwechsel, „kostenlos", Jobs …). Alles rückgängig machbar, kein Budget-Eingriff.</p>
+    <button class="btn btn-cyan" id="adsOptBtn" onclick="optimizeAdsSanierung()">🎯 Jetzt auf Sanierung optimieren</button>
+    <div id="adsOptMsg" class="msg-ok" style="margin-top:10px"></div>
   </div>
   <div class="card" style="border-color:var(--gold)">
     <h2>&#127942; Conversion-Tracking einrichten</h2>
@@ -2831,6 +2841,24 @@ async function recoLater(id,btn){
   btn.disabled=true;
   await api('ads_later',{id});
   setTimeout(()=>{if(typeof loadReco==='function'&&gl('s-ads').style.display==='block')loadReco();loadDashboard();},400);
+}
+async function optimizeAdsSanierung(){
+  if(!confirm('Kampagne jetzt auf Sanierungs-Fokus optimieren?\n\n• entfernt schädliche Negative (erneuern, kosten, installation …)\n• fügt Sanierungs-Keywords hinzu\n• filtert Kleinkram (Lampenwechsel, kostenlos, Jobs …)\n\nÄndert KEIN Budget. Alles rückgängig machbar.')) return;
+  const btn=gl('adsOptBtn'), msg=gl('adsOptMsg');
+  const t=btn.textContent; btn.disabled=true; btn.textContent='⏳ Optimiere …';
+  msg.className='msg-ok'; msg.textContent='';
+  try{
+    const d=await api('ads_optimize_sanierung');
+    const b=d.bericht||{};
+    let html='<b>Ergebnis:</b><ul style="margin:8px 0 0 18px;line-height:1.7">';
+    html+='<li>🗑️ Schädliche Negative entfernt: <b>'+((b.entfernte_negative||[]).length)+'</b>'+((b.entfernte_negative||[]).length?(' ('+b.entfernte_negative.join(', ')+')'):'')+'</li>';
+    html+='<li>➕ Sanierungs-Keywords hinzugefügt: <b>'+((b.neue_keywords||[]).length)+'</b></li>';
+    html+='<li>🚫 Junk-Negative hinzugefügt: <b>'+((b.neue_negative||[]).length)+'</b></li>';
+    html+='</ul>';
+    if((b.fehler||[]).length){ html+='<div style="margin-top:8px;color:#c0392b">⚠️ '+b.fehler.map(esc).join('<br>')+'</div>'; msg.className='fehler'; }
+    msg.innerHTML=html;
+  }catch(e){ msg.className='fehler'; msg.textContent='Verbindungsfehler.'; }
+  btn.disabled=false; btn.textContent=t;
 }
 async function setupAdsConversion(){
   if(!confirm('Lead-Conversion jetzt in Google Ads einrichten?\n\nLegt die Conversion-Aktion „OH Website Lead" an (oder nutzt eine vorhandene) und aktiviert das Wert-Tracking. Ändert KEIN Budget.')) return;
