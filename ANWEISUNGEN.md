@@ -98,12 +98,15 @@ Schritt, den ich tun muss. Frag nicht nach meinem Passwort/Zugang.
 
 ## 📌 STAND (wird von Claude aktualisiert)
 
-**Letztes Update:** 2026-06-14 (von Claude)
+**Letztes Update:** 2026-06-14 (von Claude — Session „alles ausführen")
 
 **Erledigt:**
 - Alle Website-Bausteine fertig & live (siehe „Was bereits fertig ist").
 - Conversion-Wert-Tracking im Code eingebaut (wartet auf Ads-Label).
 - Premium-Kalkulator-Redesign abgeschlossen.
+- Anweisungen durchgearbeitet: Aufgabe 1 (Label einbauen) — noch kein Label
+  eingetragen, daher nichts zu tun; `oh-track.js` ist vorbereitet und wartet.
+  Aufgabe 2 (neue Wünsche) — keine neuen Wünsche gefunden.
 
 **Offen — bei DIR (Adnan):**
 1. ⏳ Die 4 Anzeigen-Ziel-URLs in Google Ads umstellen (Schritt 1 oben).
