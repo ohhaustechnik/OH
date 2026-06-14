@@ -286,6 +286,8 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
     } elseif ($a === 'termin_delete') {
         $ok = function_exists('oh_termin_delete') ? oh_termin_delete((string)($in['id'] ?? '')) : false;
         echo json_encode(['ok' => $ok]);
+    } elseif ($a === 'leads_get') {
+        echo json_encode(['ok' => true, 'leads' => oh_read('leads', [])]);
     } elseif ($a === 'ads_reco') {
         // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
         echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
@@ -739,6 +741,28 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .tm-acts button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
 .tm-acts button:hover{border-color:var(--cyan);}
 .tm-acts button.del{color:var(--red);border-color:rgba(255,93,108,.4);}
+.lead-filter{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.lead-chip{background:var(--glass);border:1px solid var(--line);color:var(--txt-dim);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.lead-chip.active{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan);}
+.lead-card{background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 16px 10px;}
+.lead-card.hot{border-left:3px solid var(--red);}
+.lead-card.warm{border-left:3px solid var(--gold);}
+.lead-card.kalt{border-left:3px solid var(--txt-dim);}
+.lead-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.lead-name{font-size:15px;font-weight:800;color:#fff;}
+.lead-badge{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:2px 8px;border-radius:7px;}
+.lead-badge.hot{background:rgba(255,93,108,.2);color:#ff8b96;}
+.lead-badge.warm{background:rgba(231,177,75,.2);color:#f0cd8a;}
+.lead-badge.kalt{background:rgba(126,141,176,.2);color:#aab6cf;}
+.lead-badge.gross{background:rgba(52,224,154,.2);color:#7ef0bd;}
+.lead-date{font-size:10.5px;color:var(--txt-dim);margin-left:auto;}
+.lead-meta{font-size:12px;color:var(--txt-dim);margin-top:6px;line-height:1.55;}
+.lead-meta a{color:var(--cyan);text-decoration:none;}
+.lead-meta b{color:var(--txt);}
+.lead-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.lead-acts button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 11px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+.lead-acts button:hover{border-color:var(--cyan);}
+.lead-acts button.on{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan);}
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
 .ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
@@ -1196,6 +1220,18 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     </div>
     <div id="adsplanBody"><div class="prio-empty">Lade …</div></div>
   </div>
+  <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
+</div>
+
+<!-- ANFRAGEN / LEADS -->
+<div id="s-leads" style="display:none">
+  <div class="card">
+    <h2>&#128229; Anfragen</h2>
+    <p class="intro">Alle eingegangenen Anfragen – jede wird automatisch eingestuft (heiß/warm/kalt + Großauftrag) und an das ganze Team verteilt. Tippe eine Anfrage an, um den Status zu ändern.</p>
+    <div class="lead-filter" id="leadFilter"></div>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="openChat('leads')">💬 Anfrage per KI erfassen / besprechen</button>
+  </div>
+  <div id="leadsBody"><div class="prio-empty">Lade …</div></div>
   <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
 </div>
 
@@ -2015,7 +2051,7 @@ let curSection='home', navHist=[];
 let chatReco=null; // aktuell im Chat besprochene Empfehlung (id + kind 'ads'/'web')
 function showSection(s,track){
   if(track!==false&&curSection&&curSection!==s){navHist.push(curSection);if(navHist.length>12)navHist.shift();}
-  ['home','settings','chat','ads','adsplan','termine','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','adsplan','termine','leads','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
@@ -2030,6 +2066,7 @@ function refreshSection(s){
   if(s==='ads'){if(typeof loadProg==='function')loadProg();if(typeof loadReco==='function')loadReco();if(typeof loadAds==='function')loadAds();}
   else if(s==='adsplan'){if(typeof loadAdsPlan==='function')loadAdsPlan();}
   else if(s==='termine'){if(typeof loadTermine==='function')loadTermine();}
+  else if(s==='leads'){if(typeof loadLeads==='function')loadLeads();}
   else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
   else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
@@ -2053,7 +2090,7 @@ function nav(id){
     case 'dashboard': goHome(); break;
     case 'ads': openAds(); break;
     case 'web': openWeb(); break;
-    case 'leads': openChat('leads'); break;
+    case 'leads': openLeads(); break;
     case 'termine': openTermine(); break;
     case 'kalk': openChat('emre'); break;
     case 'lex': openAgent('aylin'); break;
@@ -2358,6 +2395,62 @@ async function terminMove(id,datum,uhrzeit){
 async function terminDelete(id){
   if(!confirm('Diesen Termin wirklich löschen?'))return;
   await api('termin_delete',{id});loadTermine();
+}
+
+/* --- Anfragen / Leads-Menü --- */
+let leadFilter='alle';
+function openLeads(){showSection('leads');}
+async function loadLeads(){
+  const el=gl('leadsBody'); if(!el)return;
+  el.innerHTML='<div class="prio-empty">Lade …</div>';
+  let d={};try{d=await api('leads_get');}catch(e){}
+  if(!d||!d.ok){el.innerHTML='<div class="prio-empty">Konnte Anfragen nicht laden.</div>';return;}
+  window._leads=d.leads||[];
+  renderLeadFilter(); renderLeads();
+}
+function renderLeadFilter(){
+  const L=window._leads||[];
+  const cnt=f=>f==='alle'?L.length:(f==='gross'?L.filter(l=>l.wert_klasse==='gross').length:L.filter(l=>(l.stufe||'').toUpperCase()===f.toUpperCase()).length);
+  const chips=[['alle','Alle'],['HOT','🔥 Heiß'],['WARM','Warm'],['KALT','Kalt'],['gross','★ Großauftrag']];
+  gl('leadFilter').innerHTML=chips.map(c=>`<button class="lead-chip${leadFilter===c[0]?' active':''}" onclick="setLeadFilter('${c[0]}')">${c[1]} (${cnt(c[0])})</button>`).join('');
+}
+function setLeadFilter(f){leadFilter=f;renderLeadFilter();renderLeads();}
+function renderLeads(){
+  const el=gl('leadsBody'); if(!el)return; const L=window._leads||[];
+  let list=L;
+  if(leadFilter==='gross')list=L.filter(l=>l.wert_klasse==='gross');
+  else if(leadFilter!=='alle')list=L.filter(l=>(l.stufe||'').toUpperCase()===leadFilter.toUpperCase());
+  if(!list.length){el.innerHTML='<div class="prio-empty">Keine Anfragen in dieser Ansicht.</div>';return;}
+  const stMap={neu:'Neu',angebot_raus:'Angebot raus',nachgefasst:'Nachgefasst',gewonnen:'Gewonnen',abgeschlossen:'Abgeschlossen',verloren:'Verloren'};
+  const dt=ts=>{try{return new Date(ts*1000).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return'';}};
+  el.innerHTML=list.map(l=>{
+    const st=(l.stufe||'WARM').toLowerCase();
+    const status=l.status||'neu';
+    const tel=l.telefon?`<a href="tel:${esc(l.telefon)}">${esc(l.telefon)}</a>`:'';
+    const mail=l.email?`<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`:'';
+    const gross=l.wert_klasse==='gross'?`<span class="lead-badge gross">★ Großauftrag ${esc(l.wert_eur||'')}</span>`:'';
+    const stbtns=[['neu','Neu'],['angebot_raus','Angebot'],['gewonnen','Gewonnen'],['verloren','Verloren']].map(s=>`<button class="${status===s[0]?'on':''}" onclick="leadStatus('${l.id}','${s[0]}')">${s[1]}</button>`).join('');
+    return `<div class="lead-card ${st}">
+      <div class="lead-top">
+        <span class="lead-name">${esc(l.name||l.email||l.telefon||'Anfrage')}</span>
+        <span class="lead-badge ${st}">${esc((l.stufe||'').toUpperCase())}</span>
+        ${gross}
+        <span class="lead-date">${esc(dt(l.created))}</span>
+      </div>
+      <div class="lead-meta">
+        ${esc(l.kategorie||'-')}${l.ort?' · '+esc(l.ort):''} · Quelle: ${esc(l.source||'-')}<br>
+        ${tel}${tel&&mail?' · ':''}${mail}
+        ${l.details?'<br><b>Wunsch:</b> '+esc((''+l.details).slice(0,200)):''}
+        <br><b>Status:</b> ${esc(stMap[status]||status)}
+      </div>
+      <div class="lead-acts">${stbtns}</div>
+    </div>`;
+  }).join('');
+}
+async function leadStatus(id,status){
+  await api('lead_update',{id,patch:{status},log:'Status geändert auf '+status});
+  (window._leads||[]).forEach(l=>{if(l.id===id)l.status=status;});
+  renderLeads(); if(typeof loadDashboard==='function')loadDashboard();
 }
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */

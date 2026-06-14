@@ -160,16 +160,49 @@ function oh_add_lead(array $data): array {
     if ($w['klasse'] === 'gross') {
         $lead['stufe'] = 'HOT';
         $lead['verlauf'][] = ['ts' => time(), 'text' => '★ GROSSAUFTRAG-Potenzial erkannt (' . $w['eur'] . ') – mit Vorrang behandeln, schnell anrufen.'];
-        if (function_exists('oh_agent_mem_add')) {
-            oh_agent_mem_add('mert', 'Großauftrag-Anfrage rein: ' . ($lead['name'] ?: ($lead['email'] ?: $lead['id'])) . ' (' . ($lead['kategorie'] ?: '-') . ', ' . $w['eur'] . ') – Vorrang, schnelle Reaktion sichert den Abschluss.', 'fund');
-        }
     }
     $lead['verlauf'][] = ['ts' => time(), 'text' => 'Lead angelegt (' . $lead['source'] . ', ' . $lead['stufe'] . ', Wert: ' . $w['klasse'] . ')'];
 
     array_unshift($leads, $lead);
     oh_write('leads', $leads);
+    // Anfrage an das ganze Team verteilen: jeder Agent versteht sie und handelt
+    if (function_exists('oh_lead_broadcast')) oh_lead_broadcast($lead, $w);
     if (function_exists('oh_log_activity')) oh_log_activity('kaan', 'Neue ' . $lead['stufe'] . '-Anfrage erfasst: ' . ($lead['name'] ?: ($lead['email'] ?: $lead['id'])));
     return $lead;
+}
+
+/* ==========================================================================
+ * LEAD-BROADCAST: Eine neue Anfrage wird an JEDEN relevanten Agenten verteilt –
+ * als Gedächtnis-Eintrag (taucht im Wissensarchiv, Kontext & in der Runde auf)
+ * und als verbindliche Postfach-Nachricht (Empfänger MUSS reagieren). So
+ * „versteht" das ganze Team, welche Anfrage rein kam, und verbreitet die Daten.
+ * ======================================================================== */
+function oh_lead_broadcast(array $lead, array $w = []): void {
+    if (!function_exists('oh_agent_mem_add')) return;
+    $name    = $lead['name'] ?: ($lead['email'] ?: ($lead['telefon'] ?: 'Anfrage'));
+    $kat     = $lead['kategorie'] ?: '-';
+    $ort     = $lead['ort'] ?? '';
+    $src     = $lead['source'] ?? 'website';
+    $kontakt = trim(($lead['telefon'] ?? '') . ' ' . ($lead['email'] ?? '')) ?: '—';
+    $stufe   = $lead['stufe'] ?? 'WARM';
+    $klasse  = $w['klasse'] ?? ($lead['wert_klasse'] ?? 'mittel');
+    $kurz    = mb_substr((string)($lead['details'] ?? ''), 0, 140);
+    $base    = "Neue $stufe-Anfrage [$klasse]: $name – $kat" . ($ort ? " ($ort)" : '') . ". Kontakt: $kontakt" . ($kurz ? ". Wunsch: $kurz" : '');
+
+    oh_agent_mem_add('kaan',   $base . ' → schnell antworten.', 'fund');
+    oh_agent_mem_add('emre',   "Anfrage $name ($kat, $klasse) → Kalkulation/Angebot vorbereiten.", 'fund');
+    oh_agent_mem_add('dilara', "Anfrage über Quelle '$src' ($kat) – diese Quelle bringt Anfragen, beobachten/skalieren.", 'fund');
+    oh_agent_mem_add('mert',   $base, 'fund');
+    if ($klasse === 'gross') {
+        oh_agent_mem_add('yusuf', "Mögliches Projekt: $name ($kat) – Termin & Material grob vorplanen.", 'fund');
+        oh_agent_mem_add('aylin', "Großauftrag-Chance: $name ($kat) – auf Anzahlung/Abrechnung vorbereiten, sobald gewonnen.", 'fund');
+    }
+    if (function_exists('oh_agent_msg_send')) {
+        oh_agent_msg_send('system', 'kaan', "Neue Anfrage: $name ($kat). Bitte heute antworten. Kontakt: $kontakt");
+        if ($klasse !== 'klein') oh_agent_msg_send('system', 'emre', "Anfrage $name ($kat, $klasse) – Festpreis kalkulieren / Angebot vorbereiten.");
+        if ($klasse === 'gross')  oh_agent_msg_send('system', 'yusuf', "Großprojekt-Anfrage $name ($kat) – Termin/Material grob planen.");
+    }
+    if (function_exists('oh_log_activity')) oh_log_activity('kaan', "Anfrage ans Team verteilt: $name ($stufe/$klasse)");
 }
 
 function oh_get_lead(string $id): ?array {
