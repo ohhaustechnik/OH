@@ -298,8 +298,18 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         echo json_encode($u ? ['ok' => true, 'lead' => $u] : ['ok' => false, 'error' => $perr]);
     } elseif ($a === 'angebot_save') {
         $aerr = null;
-        $u = oh_angebot_save((string)($in['id'] ?? ''), (float)($in['betrag'] ?? 0), (string)($in['text'] ?? ''), $aerr);
+        $pos = is_array($in['positionen'] ?? null) ? $in['positionen'] : [];
+        $u = oh_angebot_save((string)($in['id'] ?? ''), (float)($in['betrag'] ?? 0), (string)($in['text'] ?? ''), $pos, $aerr);
         echo json_encode($u ? ['ok' => true, 'lead' => $u] : ['ok' => false, 'error' => $aerr]);
+    } elseif ($a === 'angebot_vorschlag') {
+        $verr = null;
+        $lead = oh_get_lead((string)($in['id'] ?? ''));
+        $p = ($lead && function_exists('oh_angebot_vorschlag')) ? oh_angebot_vorschlag($lead, $verr) : null;
+        echo json_encode($p !== null ? ['ok' => true, 'positionen' => $p] : ['ok' => false, 'error' => $verr ?: 'nicht gefunden']);
+    } elseif ($a === 'angebot_send') {
+        $serr = null;
+        $u = function_exists('oh_angebot_send') ? oh_angebot_send((string)($in['id'] ?? ''), $serr) : null;
+        echo json_encode($u ? ['ok' => true, 'lead' => $u] : ['ok' => false, 'error' => $serr]);
     } elseif ($a === 'kpi') {
         echo json_encode(['ok' => true, 'kpi' => oh_kpi()]);
     } elseif ($a === 'ads_reco') {
@@ -777,7 +787,7 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .lead-acts button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 11px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
 .lead-acts button:hover{border-color:var(--cyan);}
 .lead-acts button.on{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan);}
-.cockpit{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 16px 0;}
+.cockpit{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 16px 0;}
 .cockpit .ck{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow);}
 .ck .ck-l{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-dim);font-weight:700;}
 .ck .ck-n{font-size:23px;font-weight:800;color:#fff;margin-top:7px;letter-spacing:-.5px;}
@@ -795,6 +805,25 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .pl-card .row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
 .pl-card .row button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
 .pl-card .row button:hover{border-color:var(--cyan);}
+.ag-overlay{position:fixed;inset:0;z-index:70;background:rgba(3,6,12,.72);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;}
+.ag-box{width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;background:var(--glass-2);border:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.5);animation:fadeUp .25s ease both;}
+@media(min-width:640px){.ag-overlay{align-items:center;}.ag-box{border-radius:18px;}}
+.ag-head{display:flex;justify-content:space-between;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line);font-size:15px;font-weight:800;color:#fff;}
+.ag-x{background:none;border:none;color:var(--txt-dim);font-size:26px;line-height:1;cursor:pointer;}
+.ag-body{overflow-y:auto;padding:14px 16px;}
+.ag-row{display:grid;grid-template-columns:1fr 64px 80px 28px;gap:7px;margin-bottom:7px;}
+.ag-rowhead{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--txt-dim);font-weight:700;margin-bottom:3px;}
+.ag-row input{background:var(--card);border:1px solid var(--line);border-radius:9px;color:var(--txt);font-size:13px;padding:9px;font-family:inherit;width:100%;}
+.ag-del{background:none;border:1px solid var(--line);color:var(--red);border-radius:8px;cursor:pointer;font-size:12px;}
+.ag-addbtn,.ag-emre{margin-top:6px;margin-right:8px;background:var(--glass);border:1px solid var(--line);color:var(--cyan);border-radius:10px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+.ag-emre{background:var(--cyan-soft);border-color:var(--cyan);}
+.ag-text{width:100%;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-size:13px;padding:10px;font-family:inherit;resize:vertical;}
+.ag-sumline{margin-top:14px;font-size:14px;color:var(--txt);}
+.ag-sumline b{color:var(--cyan);font-size:18px;}
+.ag-foot{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--line);flex-wrap:wrap;}
+.ag-save,.ag-send{flex:1;min-width:150px;border:none;border-radius:11px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.ag-save{background:var(--glass);border:1px solid var(--line);color:var(--txt);}
+.ag-send{background:linear-gradient(135deg,var(--cyan),var(--cyan-d));color:#031018;}
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
 .ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
@@ -1180,6 +1209,8 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <div class="dash-stats" id="dashStats"></div>
   </div>
   <div id="gfCockpit" class="cockpit"></div>
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">// Auftrags-Pipeline <span class="scan-btn" onclick="openPipeline()" style="text-transform:none">Vollbild ↗</span></div>
+  <div id="dashPipeline"></div>
   <div id="kiAlert" class="ki-alert" style="display:none"></div>
   <div id="martWarn" class="ki-alert warn" style="display:none"></div>
 
@@ -1449,6 +1480,26 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
   </div>
 </div>
 
+<!-- ANGEBOTS-EDITOR (Modal) -->
+<div id="angebotOverlay" class="ag-overlay" style="display:none">
+  <div class="ag-box">
+    <div class="ag-head"><span id="agTitle">Angebot</span><button class="ag-x" onclick="agClose()">&times;</button></div>
+    <div class="ag-body">
+      <div class="ag-row ag-rowhead"><span>Leistung</span><span>Menge</span><span>Einzel €</span><span></span></div>
+      <div id="agRows"></div>
+      <button class="ag-addbtn" onclick="agAddRow('',1,0)">+ Position</button>
+      <button class="ag-emre" onclick="agEmre(this)">🧮 Emre Preise vorschlagen</button>
+      <textarea id="agText" class="ag-text" rows="2" placeholder="Optionaler Hinweis-/Angebotstext"></textarea>
+      <div class="ag-sumline">Festpreis gesamt (ohne MwSt, Kleinunternehmer): <b id="agSum">0 €</b></div>
+      <div id="agMsg" class="msg-ok"></div>
+    </div>
+    <div class="ag-foot">
+      <button class="ag-save" onclick="agSave(false)">💾 Speichern</button>
+      <button class="ag-send" onclick="agSave(true)">✉️ Speichern & per E-Mail senden</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -1602,6 +1653,7 @@ async function loadDashboard(){
   }catch(e){/* offline */}
   renderTeam();
   if(typeof loadCockpit==='function')loadCockpit();
+  if(typeof loadDashPipeline==='function')loadDashPipeline();
   try{serverCfg=await api('config_get');}catch(e){}
   // E-Mails & Website im Hintergrund aktualisieren (blockiert das Öffnen nicht)
   api('scan_now').then(d=>{if(d&&d.ok&&lastDash){lastDash.offen=d.offen;lastDash.erledigt=d.erledigt;lastDash.warnung=d.warnung;lastDash.anzahl=d.anzahl;renderDashboard(lastDash);}}).catch(()=>{});
@@ -2514,26 +2566,35 @@ function renderCockpit(k,el){
   el.innerHTML=
     `<div class="ck ${k.im_plan?'good':'warn'}"><div class="ck-l">Umsatz / Ziel</div><div class="ck-n">${eurK(k.umsatz_ist)}</div><div class="ck-s">Ziel ${eurK(k.ziel)} · Soll heute ${eurK(k.soll)}</div></div>`+
     `<div class="ck"><div class="ck-l">Pipeline-Wert</div><div class="ck-n">${eurK(k.pipeline_wert)}</div><div class="ck-s">offene Angebote/Aufträge</div></div>`+
-    `<div class="ck ${(k.quote||0)>=30?'good':''}"><div class="ck-l">Abschlussquote</div><div class="ck-n">${k.quote||0}%</div><div class="ck-s">${k.gewonnen||0} gewonnen · ${k.verloren||0} verloren</div></div>`;
+    `<div class="ck ${(k.quote||0)>=30?'good':''}"><div class="ck-l">Abschlussquote</div><div class="ck-n">${k.quote||0}%</div><div class="ck-s">${k.gewonnen||0} gewonnen · ${k.verloren||0} verloren</div></div>`+
+    `<div class="ck"><div class="ck-l">Neue Anfragen</div><div class="ck-n">${k.neue_woche||0}</div><div class="ck-s">letzte 7 Tage</div></div>`;
 }
 
-/* --- Pipeline-Board --- */
+/* --- Pipeline-Board (Dashboard + Menü teilen sich dieselbe Darstellung) --- */
 let plPhasen=[];
 function openPipeline(){showSection('pipeline');}
+async function fetchPipeline(){try{return await api('pipeline_get');}catch(e){return null;}}
 async function loadPipeline(){
   const el=gl('pipelineBody'); if(!el)return;
   el.innerHTML='<div class="prio-empty">Lade …</div>';
-  let d={};try{d=await api('pipeline_get');}catch(e){}
+  const d=await fetchPipeline();
   if(!d||!d.ok){el.innerHTML='<div class="prio-empty">Konnte Pipeline nicht laden.</div>';return;}
   plPhasen=d.phasen||[]; window._plLeads=d.leads||[];
   if(d.kpi)renderCockpit(d.kpi,gl('plKpi'));
-  renderPipeline();
+  renderPipelineEl(el,window._plLeads,plPhasen);
 }
-function renderPipeline(){
-  const el=gl('pipelineBody'); if(!el)return; const L=window._plLeads||[];
-  const order=plPhasen.map(p=>p.id);
+async function loadDashPipeline(){
+  const el=gl('dashPipeline'); if(!el)return;
+  const d=await fetchPipeline();
+  if(!d||!d.ok){el.innerHTML='';return;}
+  plPhasen=d.phasen||[]; window._plLeads=d.leads||[];
+  renderPipelineEl(el,window._plLeads,plPhasen);
+}
+function renderPipelineEl(el,L,phasen){
+  if(!el)return; L=L||[]; phasen=phasen||[];
+  const order=phasen.map(p=>p.id);
   let html='<div class="pl-wrap">';
-  plPhasen.forEach((p,pi)=>{
+  phasen.forEach((p,pi)=>{
     const inCol=L.filter(l=>(l.phase||'anfrage')===p.id);
     html+=`<div class="pl-col"><div class="pl-col-h">${p.icon} ${esc(p.label)} <span class="cnt">${inCol.length}</span></div>`;
     inCol.forEach(l=>{
@@ -2545,7 +2606,7 @@ function renderPipeline(){
         ${bt}
         <div class="row">
           ${prev?`<button onclick="plMove('${l.id}','${prev}')">←</button>`:''}
-          ${(next&&p.id!=='verloren')?`<button onclick="plMove('${l.id}','${next}')">→ ${esc(plPhasen[pi+1].label)}</button>`:''}
+          ${(next&&p.id!=='verloren')?`<button onclick="plMove('${l.id}','${next}')">→ ${esc(phasen[pi+1].label)}</button>`:''}
         </div>
         <div class="row">
           <button onclick="plAngebot('${l.id}')">📄 Angebot</button>
@@ -2557,23 +2618,70 @@ function renderPipeline(){
     if(!inCol.length)html+='<div class="prio-empty" style="font-size:11px;padding:6px 2px">—</div>';
     html+='</div>';
   });
-  html+='</div>';
-  el.innerHTML=html;
+  html+='</div>'; el.innerHTML=html;
+}
+function rerenderBoards(){
+  ['pipelineBody','dashPipeline'].forEach(t=>{const el=gl(t); if(el&&/pl-wrap/.test(el.innerHTML))renderPipelineEl(el,window._plLeads,plPhasen);});
 }
 async function plMove(id,phase){
   const r=await api('pipeline_set',{id,phase});
-  if(r&&r.ok){(window._plLeads||[]).forEach(l=>{if(l.id===id)l.phase=phase;});renderPipeline();api('kpi').then(d=>{if(d&&d.ok)renderCockpit(d.kpi,gl('plKpi'));});}
+  if(r&&r.ok){(window._plLeads||[]).forEach(l=>{if(l.id===id)l.phase=phase;});rerenderBoards();
+    api('kpi').then(d=>{if(d&&d.ok){renderCockpit(d.kpi,gl('gfCockpit'));renderCockpit(d.kpi,gl('plKpi'));}});}
   else alert((r&&r.error)||'Fehler');
 }
-async function plAngebot(id){
-  const b=prompt('Angebotssumme in € (Festpreis):'); if(b===null)return;
-  const betrag=parseFloat((b+'').replace(/[^0-9.,]/g,'').replace('.','').replace(',','.'))||0;
-  if(betrag<=0){alert('Bitte gültigen Betrag eingeben.');return;}
-  const text=prompt('Kurzer Angebotstext (Leistung):','')||'';
-  const r=await api('angebot_save',{id,betrag,text});
-  if(r&&r.ok)loadPipeline(); else alert((r&&r.error)||'Fehler');
-}
 function plPrint(id){window.open('angebot-druck.php?id='+encodeURIComponent(id),'_blank');}
+
+/* --- Angebots-Editor (Positionen + Emre) --- */
+let agId=null;
+function plAngebot(id){agOpen(id);}
+function agOpen(id){
+  agId=id;
+  const lead=(window._plLeads||window._leads||[]).find(l=>l.id===id);
+  gl('agTitle').textContent='Angebot · '+((lead&&(lead.name||lead.kategorie))||'Anfrage');
+  gl('agText').value=(lead&&lead.angebot_text)||'';
+  const rows=(lead&&Array.isArray(lead.angebot_positionen)&&lead.angebot_positionen.length)?lead.angebot_positionen:[{pos:'',menge:1,einzel:0}];
+  gl('agRows').innerHTML=''; rows.forEach(r=>agAddRow(r.pos,r.menge,r.einzel));
+  agCalc(); gl('agMsg').textContent='';
+  gl('angebotOverlay').style.display='flex';
+}
+function agClose(){gl('angebotOverlay').style.display='none';agId=null;}
+function agAddRow(pos,menge,einzel){
+  const d=document.createElement('div'); d.className='ag-row';
+  d.innerHTML=`<input class="ag-pos" placeholder="Leistung" value="${esc(pos||'')}">
+    <input class="ag-menge" type="number" step="0.5" value="${menge!=null?menge:1}" oninput="agCalc()">
+    <input class="ag-einzel" type="number" step="1" value="${einzel!=null?einzel:0}" oninput="agCalc()">
+    <button class="ag-del" onclick="this.parentNode.remove();agCalc()">✕</button>`;
+  gl('agRows').appendChild(d);
+}
+function agRows(){return [...document.querySelectorAll('#agRows .ag-row')].map(r=>({
+  pos:r.querySelector('.ag-pos').value.trim(),
+  menge:parseFloat(r.querySelector('.ag-menge').value)||0,
+  einzel:parseFloat(r.querySelector('.ag-einzel').value)||0
+})).filter(p=>p.pos!==''||p.einzel>0);}
+function agCalc(){let s=0;agRows().forEach(p=>s+=p.menge*p.einzel);gl('agSum').textContent=eurK(s);return s;}
+async function agEmre(btn){
+  if(!agId)return; const o=btn.textContent; btn.textContent='🧮 Emre kalkuliert …'; btn.disabled=true;
+  let r={};try{r=await api('angebot_vorschlag',{id:agId});}catch(e){}
+  btn.disabled=false; btn.textContent=o;
+  if(r&&r.ok&&r.positionen&&r.positionen.length){gl('agRows').innerHTML='';r.positionen.forEach(p=>agAddRow(p.pos,p.menge,p.einzel));agCalc();gl('agMsg').textContent='✓ Emres Vorschlag eingefügt – bei Bedarf anpassen.';}
+  else gl('agMsg').textContent='⚠️ '+((r&&r.error)||'Emre konnte gerade nicht kalkulieren.');
+}
+async function agSave(send){
+  if(!agId)return;
+  const positionen=agRows();
+  if(!positionen.length){gl('agMsg').textContent='Bitte mindestens eine Position eingeben.';return;}
+  gl('agMsg').textContent='Speichere …';
+  const s=await api('angebot_save',{id:agId,positionen,text:gl('agText').value.trim()});
+  if(!(s&&s.ok)){gl('agMsg').textContent='⚠️ '+((s&&s.error)||'Speichern fehlgeschlagen');return;}
+  if(send){
+    const r=await api('angebot_send',{id:agId});
+    if(r&&r.ok)gl('agMsg').textContent='✓ Angebot gespeichert & per E-Mail gesendet!';
+    else{gl('agMsg').textContent='Gespeichert, aber Versand: ⚠️ '+((r&&r.error)||'fehlgeschlagen');}
+  } else gl('agMsg').textContent='✓ Angebot gespeichert.';
+  // Boards/KPIs aktualisieren
+  const d=await fetchPipeline(); if(d&&d.ok){window._plLeads=d.leads;plPhasen=d.phasen;rerenderBoards();if(d.kpi){renderCockpit(d.kpi,gl('gfCockpit'));renderCockpit(d.kpi,gl('plKpi'));}}
+  setTimeout(agClose,send?1500:800);
+}
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */
 const PRIO={rot:{t:'🔴 SOFORT übernehmen',c:'rot'},gelb:{t:'🟡 Diese Woche',c:'gelb'},gruen:{t:'🟢 Optional',c:'gruen'}};

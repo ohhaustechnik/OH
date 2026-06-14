@@ -96,10 +96,20 @@ td.r,th.r{text-align:right;white-space:nowrap}
 
   <table>
     <tr><th>Leistung</th><th class="r">Festpreis</th></tr>
-    <tr>
-      <td><b><?= $h($leistung) ?></b><?= $text ? '<br><span style="color:#5b6b80;font-size:13px">' . nl2br($h($text)) . '</span>' : '' ?></td>
-      <td class="r"><?= $h($betragFmt) ?></td>
-    </tr>
+    <?php $pos = $lead['angebot_positionen'] ?? []; if (is_array($pos) && $pos): ?>
+      <?php foreach ($pos as $p): $z = (float)($p['menge'] ?? 1) * (float)($p['einzel'] ?? 0); ?>
+      <tr>
+        <td><b><?= $h($p['pos'] ?? '') ?></b><?php if ((float)($p['menge'] ?? 1) != 1): ?><br><span style="color:#5b6b80;font-size:12px"><?= $h(rtrim(rtrim(number_format((float)($p['menge'] ?? 1), 2, ',', '.'), '0'), ',')) ?> × <?= $h(number_format((float)($p['einzel'] ?? 0), 2, ',', '.')) ?> €</span><?php endif; ?></td>
+        <td class="r"><?= $h(number_format($z, 2, ',', '.')) ?> €</td>
+      </tr>
+      <?php endforeach; ?>
+      <?php if ($text): ?><tr><td colspan="2" style="color:#5b6b80;font-size:13px"><?= nl2br($h($text)) ?></td></tr><?php endif; ?>
+    <?php else: ?>
+      <tr>
+        <td><b><?= $h($leistung) ?></b><?= $text ? '<br><span style="color:#5b6b80;font-size:13px">' . nl2br($h($text)) . '</span>' : '' ?></td>
+        <td class="r"><?= $h($betragFmt) ?></td>
+      </tr>
+    <?php endif; ?>
   </table>
 
   <div class="sum"><div class="box">

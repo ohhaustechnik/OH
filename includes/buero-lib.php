@@ -264,28 +264,89 @@ function oh_lead_set_phase(string $id, string $phase, ?string &$err = null): ?ar
     }
     return $upd;
 }
-function oh_angebot_save(string $id, float $betrag, string $text, ?string &$err = null): ?array {
+function oh_angebot_save(string $id, float $betrag, string $text, array $positionen = [], ?string &$err = null): ?array {
     if (!oh_get_lead($id)) { $err = 'Anfrage nicht gefunden.'; return null; }
-    oh_update_lead($id, ['angebot_betrag' => round($betrag, 2), 'angebot_text' => mb_substr($text, 0, 5000), 'angebot_ts' => time()], 'Angebot erstellt: ' . number_format($betrag, 0, ',', '.') . '€');
+    $pos = [];
+    foreach ($positionen as $p) {
+        if (!is_array($p)) continue;
+        $pos[] = ['pos' => mb_substr((string)($p['pos'] ?? ''), 0, 160), 'menge' => (float)($p['menge'] ?? 1), 'einzel' => (float)($p['einzel'] ?? 0)];
+    }
+    $pos = array_slice($pos, 0, 30);
+    if ($pos) { $betrag = 0; foreach ($pos as $p) $betrag += $p['menge'] * $p['einzel']; }
+    oh_update_lead($id, ['angebot_betrag' => round($betrag, 2), 'angebot_text' => mb_substr($text, 0, 5000), 'angebot_positionen' => $pos, 'angebot_ts' => time()], 'Angebot erstellt: ' . number_format($betrag, 0, ',', '.') . '€');
     return oh_lead_set_phase($id, 'angebot', $err);
+}
+
+/** Emre schlägt aus der Anfrage realistische Angebots-Positionen vor (KI). */
+function oh_angebot_vorschlag(array $lead, ?string &$err = null): ?array {
+    $ctx = "Anfrage: " . ($lead['name'] ?: '-') . "\nLeistung/Kategorie: " . ($lead['kategorie'] ?: '-')
+         . "\nObjektgröße: " . ($lead['objektgroesse'] ?? '') . "\nOrt: " . ($lead['ort'] ?? '')
+         . "\nBeschreibung: " . mb_substr((string)($lead['details'] ?? ''), 0, 600);
+    $sys = "Du bist Emre, Kalkulator von OH Haustechnik (Elektriker Nürnberg, Kleinunternehmer, 0% USt, Festpreise). "
+        . "Erstelle aus der Anfrage realistische Angebots-POSITIONEN. Kalkulationslogik: Stundensatz 136€, ca. 1.156€ pro Manntag; "
+        . "Unterputz-Sanierung 100m²≈18.000-20.000€, 150m²≈23.000-26.000€; Aufputz ca. 40% günstiger. Lieber etwas vorsichtig (nicht zu billig). "
+        . "Antworte AUSSCHLIESSLICH mit JSON: <pos>[{\"pos\":\"Leistungsbeschreibung\",\"menge\":1,\"einzel\":0}]</pos> "
+        . "(3-7 Positionen, 'einzel' = Netto-Einzelpreis in €, sinnvolle Mengen/Einheiten in der Bezeichnung).";
+    $resp = oh_ki($sys, $ctx, 1500);
+    if (!$resp) { $err = 'KI nicht verfügbar (Schlüssel/Guthaben).'; return null; }
+    $json = $resp;
+    if (preg_match('/<pos>([\s\S]*?)<\/pos>/', $resp, $m)) $json = $m[1];
+    $json = preg_replace('/```(json)?/i', '', $json);
+    $lb = strpos($json, '['); $rb = strrpos($json, ']');
+    if ($lb !== false && $rb !== false) $json = substr($json, $lb, $rb - $lb + 1);
+    $list = json_decode(trim($json), true);
+    if (!is_array($list) || !count($list)) { $err = 'Emre konnte keine klaren Positionen bilden – nochmal versuchen.'; return null; }
+    $out = [];
+    foreach ($list as $p) { if (is_array($p)) $out[] = ['pos' => mb_substr((string)($p['pos'] ?? ''), 0, 160), 'menge' => (float)($p['menge'] ?? 1), 'einzel' => (float)($p['einzel'] ?? 0)]; }
+    return $out;
+}
+
+/** Sendet das gespeicherte Angebot per E-Mail an den Kunden (und setzt Phase 'angebot'). */
+function oh_angebot_send(string $id, ?string &$err = null): ?array {
+    $lead = oh_get_lead($id); if (!$lead) { $err = 'Anfrage nicht gefunden.'; return null; }
+    $to = $lead['email'] ?? '';
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { $err = 'Keine gültige E-Mail beim Kunden hinterlegt.'; return null; }
+    $betrag = (float)($lead['angebot_betrag'] ?? 0);
+    if ($betrag <= 0) { $err = 'Noch kein Angebot/Betrag vorhanden.'; return null; }
+    $vorname = trim(explode(' ', $lead['name'] ?: '')[0]) ?: 'Kunde';
+    $body = "Hallo $vorname,\n\nvielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Festpreis-Angebot:\n\n";
+    $pos = $lead['angebot_positionen'] ?? [];
+    if ($pos) {
+        foreach ($pos as $p) {
+            $z = (float)($p['menge'] ?? 1) * (float)($p['einzel'] ?? 0);
+            $body .= '• ' . ($p['pos'] ?? '') . '  =  ' . number_format($z, 2, ',', '.') . " €\n";
+        }
+        $body .= "\n";
+    } elseif (!empty($lead['angebot_text'])) {
+        $body .= $lead['angebot_text'] . "\n\n";
+    }
+    $body .= "Gesamt-Festpreis: " . number_format($betrag, 2, ',', '.') . " €\n";
+    $body .= "(Gemäß § 19 UStG keine Umsatzsteuer – Kleinunternehmer.)\n\nDas Angebot ist 30 Tage gültig. Bei Fragen erreichen Sie uns unter 0175 7481006.\n\nViele Grüße\nOH Haustechnik";
+    $res = oh_send_mail($to, 'Ihr Festpreis-Angebot – OH Haustechnik', $body);
+    if (empty($res['ok'])) { $err = $res['info'] ?? 'Versand fehlgeschlagen.'; return null; }
+    $e2 = null; oh_lead_set_phase($id, 'angebot', $e2);
+    oh_update_lead($id, ['angebot_gesendet_ts' => time()], 'Angebot per E-Mail gesendet an ' . $to);
+    if (function_exists('oh_log_activity')) oh_log_activity('emre', 'Angebot per E-Mail gesendet an ' . ($lead['name'] ?: $to));
+    return oh_get_lead($id);
 }
 function oh_kpi(): array {
     $z = function_exists('oh_ziel_status') ? oh_ziel_status() : [];
     $leads = oh_read('leads', []);
-    $pipeline = 0.0; $won = 0; $lost = 0; $offard = 0;
+    $pipeline = 0.0; $won = 0; $lost = 0; $offard = 0; $neu7 = 0; $cut = time() - 7 * 86400;
     foreach ($leads as $l) {
         $ph = oh_lead_phase($l);
         $b = (float)($l['angebot_betrag'] ?? 0);
         if (!in_array($ph, ['bezahlt', 'verloren'], true) && $b > 0) $pipeline += $b;
         if (in_array($ph, ['auftrag', 'baustelle', 'abnahme', 'rechnung', 'bezahlt'], true)) $won++;
         if ($ph === 'verloren') $lost++;
-        if (in_array($ph, ['rechnung'], true)) $offard += $b;
+        if ($ph === 'rechnung') $offard += $b;
+        if ((int)($l['created'] ?? 0) >= $cut) $neu7++;
     }
     return [
         'umsatz_ist' => round($z['ist'] ?? 0), 'ziel' => round($z['betrag'] ?? 1000000),
         'soll' => round($z['soll'] ?? 0), 'im_plan' => $z['im_plan'] ?? false,
         'pipeline_wert' => round($pipeline), 'quote' => ($won + $lost) > 0 ? round($won / ($won + $lost) * 100) : 0,
-        'gewonnen' => $won, 'verloren' => $lost, 'offene_rechnungen' => round($offard),
+        'gewonnen' => $won, 'verloren' => $lost, 'offene_rechnungen' => round($offard), 'neue_woche' => $neu7,
     ];
 }
 
