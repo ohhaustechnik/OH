@@ -127,63 +127,80 @@ if ($appointment !== "") {
         </div>
 
         <style>
+        /* ===== KALKULATOR – PREMIUM-VEREDELUNG (einheitliches Tiefblau) ===== */
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+        .premium-calc{font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif}
+        .premium-calc h1,.premium-calc h2,.premium-calc h3,.premium-calc .wiz-h,
+        .premium-calc .premium-price-card strong,.premium-calc .premium-inline-price strong,
+        .premium-calc .wiz-recap-card strong,.premium-calc .wiz-st .wiz-n{font-family:'Sora',sans-serif;letter-spacing:-.01em}
         .premium-rep-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;color:#2e3b4e;margin:4px 0 14px}
         .premium-rep-bar .prep-stars{color:#f5b301;letter-spacing:2px}
         .premium-rep-bar b{color:#15202f}
         .premium-rep-bar .prep-sep{color:#c3ccd8}
-        .premium-testphase{display:flex;gap:10px;align-items:flex-start;background:#fff8e8;border:1px solid #f0d79a;border-radius:12px;padding:12px 14px;font-size:13.5px;color:#6b5418;line-height:1.5;margin:0 0 18px}
-        .premium-testphase i{color:#cf8a32;margin-top:2px}
-        .premium-service[data-type="grossprojekt"]{border-color:#3f7bf0}
-        .premium-service[data-type="grossprojekt"] span{color:#2a5fc7;font-weight:700}
-        .gp-grid{display:grid;gap:10px;margin-top:8px}
-        .gp-grid label{font-size:13px;font-weight:600;color:#2e3b4e}
-        .gp-grid select,.gp-grid input{width:100%;padding:11px;border:1px solid #d8dee8;border-radius:10px;font-size:14px}
+        /* Vertrauensbildender Hinweis (ersetzt die alte "Testphase"-Box) */
+        .premium-assurance{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(135deg,#f2f7ff,#eaf1ff);border:1px solid #d7e4fb;border-radius:14px;padding:14px 16px;font-size:14px;color:#33425c;line-height:1.55;margin:0 0 20px}
+        .premium-assurance i{color:#2563eb;font-size:1.2rem;margin-top:1px;flex-shrink:0}
+        .premium-assurance b{color:#0f2547}
+        .premium-service[data-type="grossprojekt"]{border-color:#2563eb}
+        .premium-service[data-type="grossprojekt"] span{color:#1e3a8a;font-weight:800}
+        .gp-grid{display:grid;gap:12px;margin-top:8px}
+        .gp-grid label{font-size:13px;font-weight:700;color:#33425c}
+        .gp-grid select,.gp-grid input{width:100%;padding:13px 14px;border:1.5px solid #dbe4f3;border-radius:12px;font-size:14px;font-family:inherit;color:#0f2547;transition:.15s}
+        .gp-grid select:focus,.gp-grid input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
         /* ---- PREMIUM-WIZARD ---- */
-        .wiz-progress{max-width:760px;margin:0 auto 26px}
-        .wiz-track{height:6px;background:#e8edf5;border-radius:6px;overflow:hidden;margin-bottom:13px}
-        .wiz-track>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#3f7bf0,#2a5fc7);border-radius:6px;transition:width .45s cubic-bezier(.4,0,.2,1)}
+        .wiz-progress{max-width:780px;margin:0 auto 30px}
+        .wiz-track{height:7px;background:#e3ebf8;border-radius:7px;overflow:hidden;margin-bottom:14px}
+        .wiz-track>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#1e3a8a);border-radius:7px;transition:width .5s cubic-bezier(.4,0,.2,1)}
         .wiz-steps{display:flex;justify-content:space-between;gap:8px}
-        .wiz-st{flex:1;background:none;border:none;cursor:pointer;font:inherit;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;color:#9aa7b8;padding:4px}
-        .wiz-st .wiz-n{width:27px;height:27px;border-radius:50%;background:#e8edf5;color:#7b8aa0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;transition:.25s;flex-shrink:0}
-        .wiz-st.active{color:#15202f}
-        .wiz-st.active .wiz-n{background:#3f7bf0;color:#fff;box-shadow:0 4px 12px rgba(63,123,240,.4)}
-        .wiz-st.done .wiz-n{background:#34c98a;color:#fff}
+        .wiz-st{flex:1;background:none;border:none;cursor:pointer;font:inherit;display:flex;align-items:center;justify-content:center;gap:9px;font-size:14px;font-weight:700;color:#9aa7b8;padding:4px}
+        .wiz-st .wiz-n{width:30px;height:30px;border-radius:50%;background:#e8eefb;color:#7b8aa0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;transition:.3s;flex-shrink:0}
+        .wiz-st.active{color:#0f2547}
+        .wiz-st.active .wiz-n{background:linear-gradient(135deg,#2563eb,#1e3a8a);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.42);transform:scale(1.08)}
+        .wiz-st.done .wiz-n{background:#1aa86a;color:#fff}
         .wiz-panel{display:none}
-        .wiz-panel.active{display:block;animation:wizIn .4s ease both}
-        @keyframes wizIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-        .wiz-h{font-size:clamp(21px,3vw,27px);font-weight:800;color:#15202f;margin:0 0 6px;text-align:center}
-        .wiz-sub{text-align:center;color:#5b6b80;margin:0 auto 24px;max-width:48ch;font-size:15px}
-        .wiz-grid{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start}
-        .wiz-side{position:sticky;top:90px;display:flex;flex-direction:column;gap:12px}
-        .wiz-recap{margin-bottom:18px}
-        .wiz-recap-card{display:flex;justify-content:space-between;align-items:center;gap:14px;background:#f4f8ff;border:1px solid #d6e2fb;border-radius:14px;padding:16px 18px}
-        .wiz-recap-card small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#7b8aa0;margin-bottom:2px}
-        .wiz-recap-card strong{display:block;font-size:16px;color:#15202f}
+        .wiz-panel.active{display:block;animation:wizIn .45s cubic-bezier(.2,.7,.3,1) both}
+        @keyframes wizIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+        .wiz-h{font-size:clamp(22px,3vw,30px);font-weight:800;color:#0f2547;margin:0 0 8px;text-align:center}
+        .wiz-sub{text-align:center;color:#5b6b80;margin:0 auto 26px;max-width:50ch;font-size:15.5px;line-height:1.6}
+        .wiz-grid{display:grid;grid-template-columns:1fr 330px;gap:24px;align-items:start}
+        .wiz-side{position:sticky;top:90px;display:flex;flex-direction:column;gap:14px}
+        .wiz-recap{margin-bottom:20px}
+        .wiz-recap-card{display:flex;justify-content:space-between;align-items:center;gap:14px;background:linear-gradient(135deg,#f2f7ff,#e9f1ff);border:1px solid #d6e2fb;border-radius:16px;padding:18px 20px}
+        .wiz-recap-card small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#7b8aa0;margin-bottom:3px}
+        .wiz-recap-card strong{display:block;font-size:16px;color:#0f2547}
         .wiz-recap-card span{font-size:13px;color:#5b6b80}
         .wiz-recap-price{text-align:right;white-space:nowrap}
-        .wiz-recap-price strong{color:#2a5fc7;font-size:21px}
-        .wiz-nav{display:flex;justify-content:space-between;gap:12px;margin-top:26px;max-width:760px;margin-left:auto;margin-right:auto}
-        .wiz-back,.wiz-next{border:none;cursor:pointer;font:inherit;font-weight:700;font-size:15px;border-radius:13px;padding:15px 28px;display:inline-flex;align-items:center;gap:9px;transition:transform .15s,box-shadow .15s,background .15s}
-        .wiz-back{background:#eef2f8;color:#42536b}
-        .wiz-back:hover{background:#e2e8f1}
-        .wiz-next{background:linear-gradient(135deg,#3f7bf0,#2a5fc7);color:#fff;box-shadow:0 10px 26px rgba(63,123,240,.32);margin-left:auto}
-        .wiz-next:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(63,123,240,.42)}
+        .wiz-recap-price strong{color:#1e3a8a;font-size:22px}
+        .wiz-nav{display:flex;justify-content:space-between;gap:12px;margin-top:28px;max-width:780px;margin-left:auto;margin-right:auto}
+        .wiz-back,.wiz-next{border:none;cursor:pointer;font:inherit;font-weight:700;font-size:15px;border-radius:14px;padding:16px 30px;display:inline-flex;align-items:center;gap:10px;transition:transform .15s,box-shadow .15s,background .15s}
+        .wiz-back{background:#eef2f9;color:#42536b}
+        .wiz-back:hover{background:#e2e9f4}
+        .wiz-next{background:linear-gradient(135deg,#2563eb,#1e3a8a);color:#fff;box-shadow:0 12px 28px rgba(37,99,235,.34);margin-left:auto}
+        .wiz-next:hover{transform:translateY(-2px);box-shadow:0 18px 38px rgba(37,99,235,.44)}
+        /* ---- Premium-Veredelung der Kernelemente ---- */
+        .premium-service{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+        .premium-service:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(19,36,63,.13)}
+        .premium-service.active{background:linear-gradient(135deg,#f2f7ff,#e9f1ff);border-color:#2563eb;box-shadow:0 14px 32px rgba(37,99,235,.18)}
+        .premium-price-card{background:linear-gradient(135deg,#2563eb 0%,#1e3a8a 55%,#13294f 100%)}
+        .premium-price-card::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 88% 0%,rgba(255,255,255,.18),transparent 55%);pointer-events:none}
+        .premium-submit{background:linear-gradient(135deg,#2563eb,#1e3a8a)}
         @media(max-width:820px){
           .wiz-grid{grid-template-columns:1fr}
           .wiz-side{position:static}
-          .wiz-st{flex-direction:column;gap:5px;font-size:11px;text-align:center}
-          .wiz-back,.wiz-next{padding:14px 18px;font-size:14px}
+          .wiz-st{flex-direction:column;gap:6px;font-size:11px;text-align:center}
+          .wiz-st .wiz-n{width:34px;height:34px}
+          .wiz-back,.wiz-next{padding:15px 20px;font-size:14px}
         }
         </style>
 
         <div class="premium-rep-bar">
             <span class="prep-stars">★★★★★</span> <b><?= $ohRating ?></b> aus <?= $ohCount ?> Google-Bewertungen
-            <span class="prep-sep">·</span> <i class="fas fa-bolt" style="color:#3f7bf0"></i> Schnelle Rückmeldung
-            <span class="prep-sep">·</span> <i class="fas fa-check-circle" style="color:#3f7bf0"></i> Saubere Ausführung
+            <span class="prep-sep">·</span> <i class="fas fa-bolt" style="color:#2563eb"></i> Schnelle Rückmeldung
+            <span class="prep-sep">·</span> <i class="fas fa-check-circle" style="color:#2563eb"></i> Saubere Ausführung
         </div>
-        <div class="premium-testphase">
-            <i class="fas fa-flask"></i>
-            <span><b>Testphase:</b> Unser Sofort-Kalkulator ist neu. Sollte einmal etwas nicht passen – kein Problem: Wir prüfen jedes Angebot persönlich und melden uns mit dem finalen Festpreis.</span>
+        <div class="premium-assurance">
+            <i class="fas fa-user-check"></i>
+            <span><b>Persönlich geprüft.</b> Jedes Angebot wird von uns persönlich kontrolliert. Ihr Festpreis gilt verbindlich nach kurzer Bestätigung – transparent und ohne versteckte Kosten.</span>
         </div>
 
         <div class="wiz-progress">
@@ -196,8 +213,8 @@ if ($appointment !== "") {
         </div>
 
         <div class="wiz-panel active" id="wiz1">
-        <h2 class="wiz-h">Was kann ich für dich tun?</h2>
-        <p class="wiz-sub">Wähle deine Leistung – du bekommst sofort einen transparenten Festpreis. Bei großen Projekten machen wir dir ein persönliches Angebot.</p>
+        <h2 class="wiz-h">Was können wir für Sie tun?</h2>
+        <p class="wiz-sub">Wählen Sie Ihre Leistung – Sie bekommen sofort einen transparenten Festpreis. Bei großen Projekten erstellen wir Ihnen ein persönliches Angebot.</p>
         <div class="premium-services">
             <button class="premium-service" type="button" data-type="grossprojekt">
                 <i class="fas fa-house-chimney"></i>
@@ -412,13 +429,13 @@ function wizRecap(){
     const g=id=>document.getElementById(id);
     const s=(g("form-service")||{}).value||"",d=(g("form-details")||{}).value||"",p=(g("form-price")||{}).value||"";
     const r=document.getElementById("wizRecap"); if(!r)return;
-    r.innerHTML='<div class="wiz-recap-card"><div><small>Deine Auswahl</small><strong>'+s+'</strong><span>'+d+'</span></div><div class="wiz-recap-price"><small>Preis</small><strong>'+p+'</strong></div></div>';
+    r.innerHTML='<div class="wiz-recap-card"><div><small>Ihre Auswahl</small><strong>'+s+'</strong><span>'+d+'</span></div><div class="wiz-recap-price"><small>Preis</small><strong>'+p+'</strong></div></div>';
 }
 
 /* Großprojekt-/Sanierungs-Pfad: kein Fixpreis, sondern Qualifizierung ->
    persönliches Festpreis-Angebot. Fängt Großaufträge ein statt sie zu verlieren. */
 function showGrossprojekt(){
-    defaultHint = "Bei größeren Projekten erstellen wir ein individuelles Festpreis-Angebot. Je genauer Deine Angaben, desto schneller und passender unser Angebot.";
+    defaultHint = "Bei größeren Projekten erstellen wir ein individuelles Festpreis-Angebot. Je genauer Ihre Angaben, desto schneller und passender unser Angebot.";
     configArea.innerHTML = `
         <div class="premium-config-head">
             <i class="fas fa-house-chimney"></i>
@@ -450,7 +467,7 @@ function showGrossprojekt(){
             <label>Kurz beschreiben (optional)</label>
             <input type="text" id="gp-text" placeholder="z. B. Altbau, alle Leitungen neu, Smart-Home-ready">
         </div>
-        <p class="premium-info-line"><i class="fas fa-info-circle"></i> Du bekommst ein persönliches Festpreis-Angebot – kein Sofortpreis, weil jedes Großprojekt anders ist.</p>
+        <p class="premium-info-line"><i class="fas fa-info-circle"></i> Sie bekommen ein persönliches Festpreis-Angebot – kein Sofortpreis, weil jedes Großprojekt anders ist.</p>
     `;
     function gpUpdate(){
         const art=document.getElementById("gp-art").value;
@@ -458,7 +475,7 @@ function showGrossprojekt(){
         const zeit=document.getElementById("gp-zeit").value;
         const txt=(document.getElementById("gp-text").value||"").trim();
         const details=art+(gr?(" · "+gr):"")+" · "+zeit+(txt?(" · "+txt):"");
-        updateForm("Großprojekt: "+art, details, "Persönliches Angebot", "Wir melden uns mit Deinem individuellen Festpreis.");
+        updateForm("Großprojekt: "+art, details, "Persönliches Angebot", "Wir melden uns mit Ihrem individuellen Festpreis.");
     }
     ["gp-art","gp-groesse","gp-zeit","gp-text"].forEach(id=>{
         const el=document.getElementById(id);
