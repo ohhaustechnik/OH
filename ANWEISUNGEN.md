@@ -21,22 +21,46 @@
 
 ## 👉 Was DU (Adnan) tun musst — nur das bringt jetzt Kunden
 
-### Schritt 1 (HEUTE, 10 Min): Anzeigen auf die richtige Seite schicken
-Du zahlst schon für die Klicks — sie landen falsch und gehen verloren.
-In Google Ads → Keywords → Keyword anklicken → **„Finale URL"** ändern:
+## 🟦 GOOGLE ADS — Schritt für Schritt (Klick für Klick)
 
-| Keyword | Neue Finale URL |
+### A) Anzeigen auf die richtige Seite schicken (HEUTE, ~10 Min — größter Soforteffekt)
+Du zahlst schon für diese Klicks — sie landen auf einer unpassenden Seite und gehen verloren.
+
+**So geht's:** Google Ads öffnen → linke Spalte **„Keywords"** → auf das Keyword klicken →
+Stift/Bearbeiten → Feld **„Finale URL"** → Adresse aus der Tabelle einfügen → **Speichern**.
+
+| Dein Keyword | Neue Finale URL (kopieren) |
 |---|---|
 | altbau elektrik erneuern | `https://oh-haustechnik.de/altbausanierung-nuernberg.php` |
 | altbausanierung elektro | `https://oh-haustechnik.de/altbausanierung-nuernberg.php` |
 | elektriker nürnberg | `https://oh-haustechnik.de/elektroinstallation-nuernberg.php` |
 | sanierung nbg | `https://oh-haustechnik.de/wohnung-elektro-sanieren-nuernberg.php` |
 
-### Schritt 2: Bewertungen sammeln (stärkster kostenloser Hebel)
-Jedem zufriedenen Kunden den Google-Bewertungslink schicken. Ziel: von 21 → 40+.
+💡 **Warum wichtig:** „altbau elektrik erneuern" hat in 6 Monaten **257 € gekostet
+und 0 Anfragen** gebracht — fast sicher, weil die Klicks auf einer unpassenden Seite
+landeten. Mit der dedizierten Altbau-Seite sollte das endlich Anfragen bringen — **ohne
+einen Cent mehr Budget.**
+
+### B) Conversion-Aktionen anlegen (damit Google lernt, was Kunden bringt)
+Google Ads → oben **„Tools"** → **„Conversions"** → **„+ Neue Conversion-Aktion"**:
+
+1. **Lead-Formular:**
+   - Typ **„Website"**, Kategorie **„Lead / Kontaktformular absenden"**
+   - Bei „Wert": **„Für jede Conversion unterschiedliche Werte verwenden"** ⚠️ (Pflicht! sonst wird der Euro-Wert ignoriert)
+   - Zählung: **„Eine"**
+2. **Anruf:** zweite Aktion für **Telefon-Klicks / „Anrufe aus Anzeigen"**.
+3. Beide Aktionen auf **„Primär"** stellen → Scroll/Seitenaufruf auf **„Sekundär"**.
+
+### C) Dein Label holen & unten eintragen
+Bei der **Lead-Aktion** → **„Tag einrichten / Tag selbst hinzufügen"** → dort steht
+`send_to: 'AW-17801418796/XXXX'`. Den Teil **nach dem `/`** unten bei
+**„DEIN LABEL HIER"** eintragen → Claude baut den Rest automatisch ein.
+
+### D) Bewertungen sammeln (kostenlos, stärkster Hebel überhaupt)
+Jedem zufriedenen Kunden den Google-Bewertungslink schicken. Ziel: von 21 → **40+**.
 Bei 10.000-€-Aufträgen entscheidet das oft, wer den Zuschlag bekommt.
 
-### Schritt 3: Conversions in Google Ads sauber einstellen (siehe unten)
+**👉 Reihenfolge:** Erst **A** (heute), dann **B+C**, dann laufend **D**.
 
 ---
 
