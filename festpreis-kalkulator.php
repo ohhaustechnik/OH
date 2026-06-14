@@ -1,5 +1,9 @@
 <?php
 $pageTitle = "Festpreis-Kalkulator | OH Haustechnik";
+require_once __DIR__ . '/includes/buero-lib.php';
+$ohReviews = function_exists('oh_google_reviews') ? oh_google_reviews() : ['rating' => 5.0, 'count' => 21];
+$ohRating  = number_format($ohReviews['rating'], 1, ',', '');
+$ohCount   = (int)$ohReviews['count'];
 include 'includes/header.php';
 
 $sent = false;
@@ -109,7 +113,36 @@ if ($appointment !== "") {
             </div>
         </div>
 
+        <style>
+        .premium-rep-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;color:#2e3b4e;margin:4px 0 14px}
+        .premium-rep-bar .prep-stars{color:#f5b301;letter-spacing:2px}
+        .premium-rep-bar b{color:#15202f}
+        .premium-rep-bar .prep-sep{color:#c3ccd8}
+        .premium-testphase{display:flex;gap:10px;align-items:flex-start;background:#fff8e8;border:1px solid #f0d79a;border-radius:12px;padding:12px 14px;font-size:13.5px;color:#6b5418;line-height:1.5;margin:0 0 18px}
+        .premium-testphase i{color:#cf8a32;margin-top:2px}
+        .premium-service[data-type="grossprojekt"]{border-color:#3f7bf0}
+        .premium-service[data-type="grossprojekt"] span{color:#2a5fc7;font-weight:700}
+        .gp-grid{display:grid;gap:10px;margin-top:8px}
+        .gp-grid label{font-size:13px;font-weight:600;color:#2e3b4e}
+        .gp-grid select,.gp-grid input{width:100%;padding:11px;border:1px solid #d8dee8;border-radius:10px;font-size:14px}
+        </style>
+
+        <div class="premium-rep-bar">
+            <span class="prep-stars">★★★★★</span> <b><?= $ohRating ?></b> aus <?= $ohCount ?> Google-Bewertungen
+            <span class="prep-sep">·</span> <i class="fas fa-bolt" style="color:#3f7bf0"></i> Schnelle Rückmeldung
+            <span class="prep-sep">·</span> <i class="fas fa-check-circle" style="color:#3f7bf0"></i> Saubere Ausführung
+        </div>
+        <div class="premium-testphase">
+            <i class="fas fa-flask"></i>
+            <span><b>Testphase:</b> Unser Sofort-Kalkulator ist neu. Sollte einmal etwas nicht passen – kein Problem: Wir prüfen jedes Angebot persönlich und melden uns mit dem finalen Festpreis.</span>
+        </div>
+
         <div class="premium-services">
+            <button class="premium-service" type="button" data-type="grossprojekt">
+                <i class="fas fa-house-chimney"></i>
+                <strong>Großes Projekt / Sanierung</strong>
+                <span>persönliches Angebot</span>
+            </button>
             <button class="premium-service active" type="button" data-type="lampe">
                 <i class="fas fa-lightbulb"></i>
                 <strong>Lampenmontage</strong>
@@ -284,8 +317,61 @@ function serviceClickEvents(){
             if(btn.dataset.type === "steckdose") showSteckdose();
             if(btn.dataset.type === "fi") showFI();
             if(btn.dataset.type === "fehler") showFehler();
+            if(btn.dataset.type === "grossprojekt") showGrossprojekt();
         });
     });
+}
+
+/* Großprojekt-/Sanierungs-Pfad: kein Fixpreis, sondern Qualifizierung ->
+   persönliches Festpreis-Angebot. Fängt Großaufträge ein statt sie zu verlieren. */
+function showGrossprojekt(){
+    defaultHint = "Bei größeren Projekten erstellen wir ein individuelles Festpreis-Angebot. Je genauer Deine Angaben, desto schneller und passender unser Angebot.";
+    configArea.innerHTML = `
+        <div class="premium-config-head">
+            <i class="fas fa-house-chimney"></i>
+            <div>
+                <h2>Großes Projekt / Sanierung</h2>
+                <p>Kurz beschreiben – wir machen ein persönliches Festpreis-Angebot</p>
+            </div>
+        </div>
+        <div class="premium-step gp-grid">
+            <label>Um welches Projekt geht es?</label>
+            <select id="gp-art">
+                <option>Komplettsanierung Wohnung</option>
+                <option>Komplettsanierung Haus</option>
+                <option>Wohnungsmodernisierung</option>
+                <option>Zählerschrank / Unterverteilung erneuern</option>
+                <option>Smart Home / KNX</option>
+                <option>Netzwerkverkabelung</option>
+                <option>Etwas anderes (Großprojekt)</option>
+            </select>
+            <label>Größe (Wohnfläche oder Zimmerzahl)</label>
+            <input type="text" id="gp-groesse" placeholder="z. B. 95 m² / 4 Zimmer">
+            <label>Wann soll es losgehen?</label>
+            <select id="gp-zeit">
+                <option>So schnell wie möglich</option>
+                <option>In den nächsten 4 Wochen</option>
+                <option>In 1–3 Monaten</option>
+                <option>Zeitpunkt noch offen</option>
+            </select>
+            <label>Kurz beschreiben (optional)</label>
+            <input type="text" id="gp-text" placeholder="z. B. Altbau, alle Leitungen neu, Smart-Home-ready">
+        </div>
+        <p class="premium-info-line"><i class="fas fa-info-circle"></i> Du bekommst ein persönliches Festpreis-Angebot – kein Sofortpreis, weil jedes Großprojekt anders ist.</p>
+    `;
+    function gpUpdate(){
+        const art=document.getElementById("gp-art").value;
+        const gr=(document.getElementById("gp-groesse").value||"").trim();
+        const zeit=document.getElementById("gp-zeit").value;
+        const txt=(document.getElementById("gp-text").value||"").trim();
+        const details=art+(gr?(" · "+gr):"")+" · "+zeit+(txt?(" · "+txt):"");
+        updateForm("Großprojekt: "+art, details, "Persönliches Angebot", "Wir melden uns mit Deinem individuellen Festpreis.");
+    }
+    ["gp-art","gp-groesse","gp-zeit","gp-text"].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){ el.addEventListener("input",gpUpdate); el.addEventListener("change",gpUpdate); }
+    });
+    gpUpdate();
 }
 
 function appointmentEvents(){

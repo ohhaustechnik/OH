@@ -76,7 +76,7 @@ rel="noopener">
                 </button>
              <a href="festpreis-kalkulator.php" class="btn btn--primary btn--lg btn-glow-pulse icon-bounce hero-calc-btn">
     <i class="fas fa-calculator"></i>
-    Sofort-Kalkulation & Termin
+    Sofort-Kalkulation & Termin · Testphase
 </a>
 				<a href="#leistungen" class="btn btn--outline-white btn--lg icon-bounce">
                     <i class="fas fa-bolt"></i>
