@@ -1804,6 +1804,18 @@ function oh_ads_healthcheck(?string &$err = null): array {
     $add('Conversion-Label im Büro', !empty($cfg['ads_conversion_label']) ? 'ok' : 'warn',
         !empty($cfg['ads_conversion_label']) ? 'gespeichert' : 'noch leer → Label speichern (Wert-Tracking inaktiv)');
 
+    // 5) Anzeigentexte – sprechen sie Sanierung/Festpreis an?
+    $ads = oh_ads_search("SELECT ad_group_ad.ad.responsive_search_ad.headlines, ad_group_ad.status "
+        . "FROM ad_group_ad WHERE ad_group_ad.status='ENABLED' AND campaign.advertising_channel_type='SEARCH' AND campaign.status='ENABLED'", $err);
+    $nAds = 0; $sanier = 0;
+    foreach (($ads ?: []) as $ad) {
+        $nAds++; $txt = '';
+        foreach (($ad['adGroupAd']['ad']['responsiveSearchAd']['headlines'] ?? []) as $h) $txt .= ' ' . mb_strtolower($h['text'] ?? '');
+        if (strpos($txt, 'sanier') !== false || strpos($txt, 'altbau') !== false || strpos($txt, 'modernis') !== false || strpos($txt, 'festpreis') !== false) $sanier++;
+    }
+    $add('Anzeigen mit Sanierungs-Botschaft', $nAds ? ($sanier > 0 ? 'ok' : 'warn') : 'bad',
+        $nAds ? ($sanier . ' von ' . $nAds . ' Anzeigen sprechen Sanierung/Festpreis an' . ($sanier === 0 ? ' → „🚀 Alles übernehmen" erstellt eine' : '')) : 'KEINE aktive Anzeige gefunden!');
+
     return $checks;
 }
 
@@ -1847,12 +1859,49 @@ function oh_ads_map_all_keywords_to_lp(?string &$err = null): array {
     return ['gesamt' => count($rows), 'geaendert' => $changed, 'schon_ok' => $okCount, 'fehler' => $err];
 }
 
+/** Erstellt eine starke, sanierungs-fokussierte Responsive Search Ad (falls noch keine da). */
+function oh_ads_create_sanierung_ad(?string &$err = null): array {
+    $cfg = oh_config(); $cid = preg_replace('/\D/', '', $cfg['ads_customer_id'] ?? '');
+    if ($cid === '') return ['ok' => false, 'msg' => 'Keine Ads-Kundennummer'];
+    // Schon vorhanden? (Duplikate vermeiden)
+    $e0 = null;
+    $exist = oh_ads_search("SELECT ad_group_ad.ad.responsive_search_ad.headlines FROM ad_group_ad "
+        . "WHERE ad_group_ad.status!='REMOVED' AND campaign.status='ENABLED' AND campaign.advertising_channel_type='SEARCH'", $e0);
+    foreach (($exist ?: []) as $ad) {
+        foreach (($ad['adGroupAd']['ad']['responsiveSearchAd']['headlines'] ?? []) as $h) {
+            if (($h['text'] ?? '') === 'Festpreis vom Fachbetrieb') return ['ok' => true, 'msg' => 'Sanierungs-Anzeige existiert bereits'];
+        }
+    }
+    $rows = oh_ads_search("SELECT ad_group.id, metrics.impressions FROM ad_group "
+        . "WHERE ad_group.status='ENABLED' AND campaign.status='ENABLED' AND campaign.advertising_channel_type='SEARCH' "
+        . "AND segments.date DURING LAST_30_DAYS ORDER BY metrics.impressions DESC LIMIT 1", $err);
+    $agid = $rows[0]['adGroup']['id'] ?? '';
+    if ($agid === '') return ['ok' => false, 'msg' => 'Keine aktive Anzeigengruppe'];
+    $headlines = ['Elektro-Sanierung Nürnberg','Wohnung & Haus sanieren','Festpreis vom Fachbetrieb',
+        'Altbau Elektrik erneuern','Komplett aus einer Hand','Sanierung zum Festpreis',
+        'Kostenloses Festpreis-Angebot','Elektriker Raum Nürnberg','Sauber & termintreu',
+        'Jetzt Angebot anfordern','Modernisierung Elektrik','Ein Ansprechpartner'];
+    $descs = ['Komplette Elektro-Sanierung für Wohnung & Haus. Klarer Festpreis, sauber, termintreu.',
+        'Fachbetrieb im Raum Nürnberg. Kostenloses Festpreis-Angebot in nur 2 Minuten.',
+        'Altbau, Komplettsanierung, Smart-Home. Ein Ansprechpartner von Anfang bis Abnahme.',
+        'Sanierung zum Festpreis – ohne versteckte Kosten. Jetzt unverbindlich anfragen.'];
+    $ops = [['create' => ['adGroup' => 'customers/' . $cid . '/adGroups/' . $agid, 'status' => 'ENABLED',
+        'ad' => ['finalUrls' => ['https://oh-haustechnik.de/wohnung-elektro-sanieren-nuernberg.php'],
+        'responsiveSearchAd' => [
+            'headlines'    => array_map(fn($t) => ['text' => $t], $headlines),
+            'descriptions' => array_map(fn($t) => ['text' => $t], $descs),
+            'path1' => 'Sanierung', 'path2' => 'Festpreis']]]]];
+    $res = oh_ads_mutate('adGroupAds:mutate', ['operations' => $ops, 'partialFailure' => true], $err);
+    return ['ok' => $res !== null, 'msg' => $res !== null ? 'Sanierungs-Anzeige erstellt' : ('Fehler: ' . $err)];
+}
+
 /** MASTER: übernimmt in einem Klick alles, was die API setzen kann. */
 function oh_ads_optimize_all(?string &$err = null): array {
-    $out = ['keywords_map' => [], 'sanierung' => [], 'conversion' => [], 'fehler' => []];
+    $out = ['keywords_map' => [], 'sanierung' => [], 'conversion' => [], 'anzeige' => [], 'fehler' => []];
     $e = null; $out['keywords_map'] = oh_ads_map_all_keywords_to_lp($e); if ($e) $out['fehler'][] = 'Keyword-URLs: ' . $e;
     $e = null; $out['sanierung']    = oh_ads_optimize_sanierung($e);     if ($e) $out['fehler'][] = 'Sanierung: ' . $e;
     $e = null; $out['conversion']   = oh_ads_setup_lead_conversion($e);  if ($e) $out['fehler'][] = 'Conversion: ' . $e;
+    $e = null; $out['anzeige']      = oh_ads_create_sanierung_ad($e);    if ($e) $out['fehler'][] = 'Anzeige: ' . $e;
     oh_config_set(['ads_optimized_at' => date('Y-m-d H:i')]);
     return $out;
 }

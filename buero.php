@@ -2864,7 +2864,8 @@ async function optimizeAdsAll(){
     html+='<li>🗑️ Schädliche Negative entfernt: <b>'+((sa.entfernte_negative||[]).length)+'</b></li>';
     html+='<li>➕ Sanierungs-Keywords: <b>'+((sa.neue_keywords||[]).length)+'</b> · 🚫 Junk-Negative: <b>'+((sa.neue_negative||[]).length)+'</b></li>';
     html+='<li>🏆 Lead-Conversion: <b>'+esc((b.conversion&&b.conversion.label)?'Label aktiv':'eingerichtet')+'</b></li>';
-    html+='</ul><div style="margin-top:8px">❗ Müll-Conversions (Website-Besuche/Engagements) musst du noch 1× in Google Ads auf „Sekundär" stellen – das kann die API nicht sicher.</div>';
+    html+='<li>📣 Sanierungs-Anzeige: <b>'+esc((b.anzeige&&b.anzeige.msg)?b.anzeige.msg:'-')+'</b></li>';
+    html+='</ul>';
     const fehler=(b.fehler||[]);
     if(fehler.length){ html+='<div style="margin-top:8px;color:#c0392b">⚠️ '+fehler.map(esc).join('<br>')+'</div>'; }
     msg.innerHTML=html;
