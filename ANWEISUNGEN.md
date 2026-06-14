@@ -64,6 +64,33 @@ Bei 10.000-€-Aufträgen entscheidet das oft, wer den Zuschlag bekommt.
 
 ---
 
+## ⚙️ Kann Claude die Google-Ads-Sachen selbst per API einstellen? (ehrlich)
+
+Ja, dein Büro-System hat eine **Google-Ads-API-Verbindung**. Aber sie kann **nicht alles** —
+hier die Wahrheit, damit keine Session etwas Falsches verspricht oder dein Geld riskiert:
+
+**Automatisierbar (sicher, kann Claude bauen/auslösen):**
+- 📖 Kampagnen-Zahlen, Keywords, Kosten, Conversions **lesen**.
+- ➖ **Negative Keywords** hinzufügen, **Budgets** ändern, Keywords anpassen.
+
+**NICHT automatisierbar (heute nicht im Code / zu riskant):**
+- ❌ **Conversion-Aktionen anlegen** — geht per Bot praktisch nicht sauber, und du musst
+  ohnehin einmal im Konto bestätigen. → **Schritt B/C oben machst du in der Oberfläche (5 Min).**
+- ❌ **Final-URLs der Keywords ändern** — diese Funktion ist nicht eingebaut. Sie ließe sich
+  bauen, **aber sie greift in dein Live-Konto ein, das echtes Geld ausgibt.** Solche
+  Eingriffe macht Claude **nur nach deiner ausdrücklichen Freigabe**, nie blind automatisch.
+
+**Regel für jede Claude-Session (WICHTIG):**
+> Niemals automatisch ins Live-Google-Ads-Konto schreiben (URLs, Gebote, Conversions),
+> ohne dass Adnan es ausdrücklich in diesem Dokument oder im Chat freigegeben hat.
+> Lesen/Analysieren ist ok. Schreiben = nur mit Freigabe.
+
+**Wenn du Automatisierung willst:** Claude kann dir im Büro-Dashboard einen **Knopf** bauen,
+mit dem **du** die 4 Final-URLs per Klick setzt (du bleibst in Kontrolle, ein Klick statt
+4× von Hand). Schreib „**ja, URL-Knopf bauen**" unten in den STAND, dann baut Claude es.
+
+---
+
 ## 📊 Conversions — komplett erklärt (was eingestellt werden muss)
 
 **Was ist eine Conversion?** Eine messbare Aktion, die = ein Kunde/Lead.
