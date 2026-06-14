@@ -185,9 +185,14 @@
                 return true;
             }
             case 3: {
+                const typ = document.querySelector('input[name="objekttyp"]:checked');
+                if (!typ) {
+                    showError('Bitte wählen Sie aus, um was für ein Objekt es geht.');
+                    return false;
+                }
                 const size = document.querySelector('input[name="objektgroesse"]:checked');
                 if (!size) {
-                    showError('Bitte wählen Sie die Objektgröße aus.');
+                    showError('Bitte wählen Sie die ungefähre Fläche aus.');
                     return false;
                 }
                 return true;
@@ -324,7 +329,11 @@
             fd.append('lampen_anzahl', lampenCount.value);
         }
 
-        // Step 2
+        // Step 3 – Objekttyp, Zimmer, Fläche
+        const objekttyp = document.querySelector('input[name="objekttyp"]:checked');
+        fd.append('objekttyp', objekttyp ? objekttyp.value : '');
+        const zimmer = document.getElementById('zimmer-anzahl');
+        fd.append('zimmer_anzahl', zimmer && zimmer.value ? zimmer.value : '');
         const size = document.querySelector('input[name="objektgroesse"]:checked');
         fd.append('objektgroesse', size ? size.value : '');
 

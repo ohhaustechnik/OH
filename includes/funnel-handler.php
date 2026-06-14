@@ -41,6 +41,8 @@ $suboptionen = clean($_POST['suboptionen'] ?? '');
 $lampenAnzahl= clean($_POST['lampen_anzahl'] ?? '');
 
 // Schritt 2
+$objekttyp     = clean($_POST['objekttyp'] ?? '');
+$zimmerAnzahl  = clean($_POST['zimmer_anzahl'] ?? '');
 $objektgroesse = clean($_POST['objektgroesse'] ?? '');
 
 // Schritt 3
@@ -174,6 +176,8 @@ if (function_exists('oh_add_lead')) {
         'email'         => $email,
         'telefon'       => $telefon,
         'kategorie'     => $kategorieLabel,
+        'objekttyp'     => $objekttyp,
+        'zimmer'        => $zimmerAnzahl,
         'objektgroesse' => $objektgroesse,
         'zeitraum'      => $ausfuehrungszeit,
         'plz'           => $plz,
@@ -196,9 +200,11 @@ if (!empty($suboptionen)) {
 if (!empty($lampenAnzahl) && $kategorie === 'lampen') {
     $body .= "Lampenanzahl:   ca. {$lampenAnzahl} Stück\n";
 }
-$body .= "\n📐 SCHRITT 2 – OBJEKTGRÖSSE\n";
+$body .= "\n📐 SCHRITT 2 – OBJEKT\n";
 $body .= "-----------------------------------\n";
-$body .= "Objektgröße:    {$objektgroesse}\n";
+$body .= "Objekttyp:      " . ($objekttyp !== '' ? $objekttyp : '–') . "\n";
+$body .= "Anzahl Zimmer:  " . ($zimmerAnzahl !== '' ? $zimmerAnzahl : '–') . "\n";
+$body .= "Fläche:         {$objektgroesse}\n";
 
 $body .= "\n📅 SCHRITT 3 – AUSFÜHRUNGSZEIT\n";
 $body .= "-----------------------------------\n";
@@ -287,7 +293,9 @@ if ($sent) {
     if (!empty($suboptionen)) {
         $confirmBody .= "- Details:       {$suboptionen}\n";
     }
-    $confirmBody .= "- Objektgröße:   {$objektgroesse}\n";
+    if ($objekttyp !== '')    { $confirmBody .= "- Objekt:        {$objekttyp}\n"; }
+    if ($zimmerAnzahl !== '') { $confirmBody .= "- Anzahl Zimmer: {$zimmerAnzahl}\n"; }
+    $confirmBody .= "- Fläche:        {$objektgroesse}\n";
     $confirmBody .= "- Zeitraum:      {$ausfuehrungszeit}\n";
     $confirmBody .= "- Standort:      {$standort}\n\n";
     $confirmBody .= "Bei Fragen erreichen Sie uns unter:\n";

@@ -111,7 +111,8 @@ function oh_classify(array $l): string {
  * Sanierungsanfragen werden als HOT mit Vorrang markiert, Kleinkram fällt ab.
  * ======================================================================== */
 function oh_lead_wert(array $l): array {
-    $txt = mb_strtolower(($l['kategorie'] ?? '') . ' ' . ($l['objektgroesse'] ?? '') . ' ' . ($l['zeitraum'] ?? '') . ' ' . ($l['details'] ?? ''));
+    $zimmerTxt = !empty($l['zimmer']) ? ($l['zimmer'] . ' zimmer') : '';
+    $txt = mb_strtolower(($l['kategorie'] ?? '') . ' ' . ($l['objekttyp'] ?? '') . ' ' . $zimmerTxt . ' ' . ($l['objektgroesse'] ?? '') . ' ' . ($l['zeitraum'] ?? '') . ' ' . ($l['details'] ?? ''));
     $gross = ['komplettsanierung', 'komplett', 'sanierung', 'altbau', 'modernisier', 'kernsanierung', 'entkernung', 'unterverteilung', 'zählerschrank', 'zaehlerschrank', 'zähleranlage', 'knx', 'smart home', 'smarthome', 'smart-home', 'netzwerkverkabelung', 'strukturierte verkabelung', 'neubau', 'rohbau', 'etagen', 'komplette elektro', 'neue leitungen', 'wohnung saniere', 'haus saniere', 'gewerbe', 'mehrfamilien', 'dachgeschoss'];
     $klein = ['lampe', 'leuchte', 'steckdose', 'schalter', 'sicherung', 'fehlersuche', 'reparatur', 'kleinigkeit', 'wackelt', 'anschließen', 'anschliessen', 'dimmer'];
     $score = 0;
@@ -120,6 +121,9 @@ function oh_lead_wert(array $l): array {
     if (preg_match('/\b([89]\d|[1-9]\d{2,})\s?m/u', $txt)) $score += 2;                  // >= 80 m²
     if (preg_match('/\b([4-9]|1\d)\s?(zimmer|räume|raeume)/u', $txt)) $score += 1;        // 4+ Zimmer
     if (mb_strpos($txt, 'ganze wohnung') !== false || mb_strpos($txt, 'ganzes haus') !== false || mb_strpos($txt, 'komplettes haus') !== false) $score += 2;
+    $otyp = mb_strtolower($l['objekttyp'] ?? '');
+    if ($otyp === 'haus')            $score += 1;   // ganzes Haus = größeres Potenzial
+    if ($otyp === 'mehrere objekte') $score += 2;   // mehrere Objekte = klarer Großauftrag
     $klasse = $score >= 3 ? 'gross' : ($score >= 1 ? 'mittel' : 'klein');
     $eur = $klasse === 'gross' ? '5.000–25.000 €' : ($klasse === 'mittel' ? '1.000–5.000 €' : 'bis ~1.000 €');
     return ['klasse' => $klasse, 'score' => $score, 'eur' => $eur];
