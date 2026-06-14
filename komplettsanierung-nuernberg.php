@@ -23,7 +23,6 @@ $LP = [
   ],
   'faq' => [
     ['Was kostet eine komplette Elektro-Sanierung?', 'Das hängt von Größe (m²/Zimmer), Zustand und Ausstattung ab. Sie erhalten vorab ein klares Festpreis-Angebot – ohne böse Überraschungen. Über den Festpreis-Kalkulator bekommen Sie sogar sofort eine erste Einschätzung.'],
-    ['Muss ich während der Sanierung ausziehen?', 'Meist nicht – wir arbeiten abschnittsweise und stimmen jeden Schritt mit Ihnen ab, damit Sie weiter wohnen können.'],
     ['Übernehmt ihr die ganze Wohnung bzw. das ganze Haus?', 'Ja. Genau darauf sind wir spezialisiert: die komplette Elektrik aus einer Hand – Leitungen, Verteilung, Smart-Home-Vorbereitung und Abnahme.'],
     ['Wie schnell könnt ihr starten?', 'Nach einem kurzen Vor-Ort-Termin nennen wir einen verbindlichen Starttermin – bei größeren Projekten planen wir gemeinsam den passenden Zeitrahmen.'],
     ['In welchem Gebiet arbeitet ihr?', 'Nürnberg, Fürth, Erlangen und die ganze Umgebung.'],

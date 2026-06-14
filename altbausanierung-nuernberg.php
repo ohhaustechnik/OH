@@ -19,7 +19,6 @@ $LP = [
     ['fa-house-signal', 'Smart-Home-ready', 'Auf Wunsch gleich vorbereitet für Smart Home, Wallbox und Netzwerk.'],
   ],
   'faq' => [
-    ['Muss ich während der Sanierung ausziehen?', 'In den meisten Fällen nicht – wir arbeiten abschnittsweise und stimmen alles mit Ihnen ab.'],
     ['Was kostet eine Altbau-Elektrosanierung?', 'Das hängt von Größe und Zustand ab. Sie erhalten vorab ein klares Festpreis-Angebot – ohne böse Überraschungen.'],
     ['Wie schnell können Sie starten?', 'Nach dem Vor-Ort-Termin nennen wir Ihnen einen verbindlichen Starttermin, meist innerhalb weniger Wochen.'],
   ],
