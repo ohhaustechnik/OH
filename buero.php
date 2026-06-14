@@ -288,6 +288,20 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         echo json_encode(['ok' => $ok]);
     } elseif ($a === 'leads_get') {
         echo json_encode(['ok' => true, 'leads' => oh_read('leads', [])]);
+    } elseif ($a === 'pipeline_get') {
+        $out = [];
+        foreach (oh_read('leads', []) as $l) { $l['phase'] = oh_lead_phase($l); $out[] = $l; }
+        echo json_encode(['ok' => true, 'leads' => $out, 'phasen' => oh_lead_phasen(), 'kpi' => oh_kpi()]);
+    } elseif ($a === 'pipeline_set') {
+        $perr = null;
+        $u = oh_lead_set_phase((string)($in['id'] ?? ''), (string)($in['phase'] ?? ''), $perr);
+        echo json_encode($u ? ['ok' => true, 'lead' => $u] : ['ok' => false, 'error' => $perr]);
+    } elseif ($a === 'angebot_save') {
+        $aerr = null;
+        $u = oh_angebot_save((string)($in['id'] ?? ''), (float)($in['betrag'] ?? 0), (string)($in['text'] ?? ''), $aerr);
+        echo json_encode($u ? ['ok' => true, 'lead' => $u] : ['ok' => false, 'error' => $aerr]);
+    } elseif ($a === 'kpi') {
+        echo json_encode(['ok' => true, 'kpi' => oh_kpi()]);
     } elseif ($a === 'ads_reco') {
         // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
         echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
@@ -763,6 +777,24 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .lead-acts button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 11px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
 .lead-acts button:hover{border-color:var(--cyan);}
 .lead-acts button.on{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan);}
+.cockpit{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 16px 0;}
+.cockpit .ck{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow);}
+.ck .ck-l{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-dim);font-weight:700;}
+.ck .ck-n{font-size:23px;font-weight:800;color:#fff;margin-top:7px;letter-spacing:-.5px;}
+.ck .ck-s{font-size:11px;color:var(--txt-dim);margin-top:3px;}
+.ck.good .ck-n{color:var(--green);} .ck.warn .ck-n{color:var(--gold);}
+@media(max-width:560px){.cockpit{grid-template-columns:1fr;gap:9px;}}
+.pl-wrap{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 16px;}
+.pl-col{flex:0 0 240px;background:var(--glass-2);border:1px solid var(--line);border-radius:14px;padding:10px;}
+.pl-col-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--cyan);margin-bottom:8px;}
+.pl-col-h .cnt{margin-left:auto;font-size:10px;color:#031018;background:var(--cyan);border-radius:7px;padding:1px 7px;}
+.pl-card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px;}
+.pl-card .nm{font-size:13px;font-weight:700;color:#fff;}
+.pl-card .mt{font-size:11px;color:var(--txt-dim);margin-top:3px;}
+.pl-card .bt{font-size:12px;color:var(--cyan);font-weight:700;margin-top:4px;}
+.pl-card .row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.pl-card .row button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:5px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
+.pl-card .row button:hover{border-color:var(--cyan);}
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
 .ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
@@ -1113,6 +1145,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <div class="sb-group">
       <div class="sb-glabel">Kunden</div>
       <button class="sb-item" data-nav="leads" onclick="nav('leads')"><span class="ic">📥</span>Anfragen</button>
+      <button class="sb-item" data-nav="pipeline" onclick="nav('pipeline')"><span class="ic">📊</span>Pipeline</button>
       <button class="sb-item" data-nav="termine" onclick="nav('termine')"><span class="ic">📅</span>Termine</button>
       <button class="sb-item" data-nav="web" onclick="nav('web')"><span class="ic">🌐</span>Website</button>
       <button class="sb-item" data-nav="kalk" onclick="nav('kalk')"><span class="ic">🧮</span>Kalkulator</button>
@@ -1146,6 +1179,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <div class="dash-hi" id="dashHi">Kommandozentrale</div>
     <div class="dash-stats" id="dashStats"></div>
   </div>
+  <div id="gfCockpit" class="cockpit"></div>
   <div id="kiAlert" class="ki-alert" style="display:none"></div>
   <div id="martWarn" class="ki-alert warn" style="display:none"></div>
 
@@ -1220,6 +1254,17 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     </div>
     <div id="adsplanBody"><div class="prio-empty">Lade …</div></div>
   </div>
+  <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
+</div>
+
+<!-- PIPELINE / AUFTRÄGE -->
+<div id="s-pipeline" style="display:none">
+  <div class="card">
+    <h2>&#128202; Pipeline · Anfrage → Auftrag → Rechnung</h2>
+    <p class="intro">Dein Auftrags-Board: jede Anfrage von der ersten Phase bis zur bezahlten Rechnung. Verschiebe Karten mit den Pfeilen, erstelle Angebote und stelle Rechnungen (Lexware-Entwurf) – alles an einem Ort.</p>
+    <div id="plKpi" class="cockpit" style="margin:6px 0 0"></div>
+  </div>
+  <div id="pipelineBody"><div class="prio-empty">Lade …</div></div>
   <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
 </div>
 
@@ -1556,6 +1601,7 @@ async function loadDashboard(){
     renderDashboard(d);
   }catch(e){/* offline */}
   renderTeam();
+  if(typeof loadCockpit==='function')loadCockpit();
   try{serverCfg=await api('config_get');}catch(e){}
   // E-Mails & Website im Hintergrund aktualisieren (blockiert das Öffnen nicht)
   api('scan_now').then(d=>{if(d&&d.ok&&lastDash){lastDash.offen=d.offen;lastDash.erledigt=d.erledigt;lastDash.warnung=d.warnung;lastDash.anzahl=d.anzahl;renderDashboard(lastDash);}}).catch(()=>{});
@@ -2051,7 +2097,7 @@ let curSection='home', navHist=[];
 let chatReco=null; // aktuell im Chat besprochene Empfehlung (id + kind 'ads'/'web')
 function showSection(s,track){
   if(track!==false&&curSection&&curSection!==s){navHist.push(curSection);if(navHist.length>12)navHist.shift();}
-  ['home','settings','chat','ads','adsplan','termine','leads','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','adsplan','termine','leads','pipeline','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
@@ -2067,6 +2113,7 @@ function refreshSection(s){
   else if(s==='adsplan'){if(typeof loadAdsPlan==='function')loadAdsPlan();}
   else if(s==='termine'){if(typeof loadTermine==='function')loadTermine();}
   else if(s==='leads'){if(typeof loadLeads==='function')loadLeads();}
+  else if(s==='pipeline'){if(typeof loadPipeline==='function')loadPipeline();}
   else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
   else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
@@ -2091,6 +2138,7 @@ function nav(id){
     case 'ads': openAds(); break;
     case 'web': openWeb(); break;
     case 'leads': openLeads(); break;
+    case 'pipeline': openPipeline(); break;
     case 'termine': openTermine(); break;
     case 'kalk': openChat('emre'); break;
     case 'lex': openAgent('aylin'); break;
@@ -2452,6 +2500,80 @@ async function leadStatus(id,status){
   (window._leads||[]).forEach(l=>{if(l.id===id)l.status=status;});
   renderLeads(); if(typeof loadDashboard==='function')loadDashboard();
 }
+
+/* --- GF-Cockpit (KPIs) --- */
+function eurK(n){return (Math.round(+n||0)).toLocaleString('de-DE')+' €';}
+async function loadCockpit(){
+  const el=gl('gfCockpit'); if(!el)return;
+  let d={};try{d=await api('kpi');}catch(e){}
+  if(!d||!d.ok){el.innerHTML='';return;}
+  renderCockpit(d.kpi,el);
+}
+function renderCockpit(k,el){
+  if(!el||!k)return;
+  el.innerHTML=
+    `<div class="ck ${k.im_plan?'good':'warn'}"><div class="ck-l">Umsatz / Ziel</div><div class="ck-n">${eurK(k.umsatz_ist)}</div><div class="ck-s">Ziel ${eurK(k.ziel)} · Soll heute ${eurK(k.soll)}</div></div>`+
+    `<div class="ck"><div class="ck-l">Pipeline-Wert</div><div class="ck-n">${eurK(k.pipeline_wert)}</div><div class="ck-s">offene Angebote/Aufträge</div></div>`+
+    `<div class="ck ${(k.quote||0)>=30?'good':''}"><div class="ck-l">Abschlussquote</div><div class="ck-n">${k.quote||0}%</div><div class="ck-s">${k.gewonnen||0} gewonnen · ${k.verloren||0} verloren</div></div>`;
+}
+
+/* --- Pipeline-Board --- */
+let plPhasen=[];
+function openPipeline(){showSection('pipeline');}
+async function loadPipeline(){
+  const el=gl('pipelineBody'); if(!el)return;
+  el.innerHTML='<div class="prio-empty">Lade …</div>';
+  let d={};try{d=await api('pipeline_get');}catch(e){}
+  if(!d||!d.ok){el.innerHTML='<div class="prio-empty">Konnte Pipeline nicht laden.</div>';return;}
+  plPhasen=d.phasen||[]; window._plLeads=d.leads||[];
+  if(d.kpi)renderCockpit(d.kpi,gl('plKpi'));
+  renderPipeline();
+}
+function renderPipeline(){
+  const el=gl('pipelineBody'); if(!el)return; const L=window._plLeads||[];
+  const order=plPhasen.map(p=>p.id);
+  let html='<div class="pl-wrap">';
+  plPhasen.forEach((p,pi)=>{
+    const inCol=L.filter(l=>(l.phase||'anfrage')===p.id);
+    html+=`<div class="pl-col"><div class="pl-col-h">${p.icon} ${esc(p.label)} <span class="cnt">${inCol.length}</span></div>`;
+    inCol.forEach(l=>{
+      const prev=order[pi-1], next=order[pi+1];
+      const bt=l.angebot_betrag?`<div class="bt">${eurK(l.angebot_betrag)}</div>`:'';
+      html+=`<div class="pl-card">
+        <div class="nm">${esc(l.name||l.email||l.telefon||'Anfrage')}</div>
+        <div class="mt">${esc(l.kategorie||'-')}${l.wert_klasse==='gross'?' · ★ Groß':''}</div>
+        ${bt}
+        <div class="row">
+          ${prev?`<button onclick="plMove('${l.id}','${prev}')">←</button>`:''}
+          ${(next&&p.id!=='verloren')?`<button onclick="plMove('${l.id}','${next}')">→ ${esc(plPhasen[pi+1].label)}</button>`:''}
+        </div>
+        <div class="row">
+          <button onclick="plAngebot('${l.id}')">📄 Angebot</button>
+          <button onclick="plPrint('${l.id}')">🖨️</button>
+          ${p.id!=='verloren'?`<button onclick="plMove('${l.id}','verloren')">✕</button>`:''}
+        </div>
+      </div>`;
+    });
+    if(!inCol.length)html+='<div class="prio-empty" style="font-size:11px;padding:6px 2px">—</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+async function plMove(id,phase){
+  const r=await api('pipeline_set',{id,phase});
+  if(r&&r.ok){(window._plLeads||[]).forEach(l=>{if(l.id===id)l.phase=phase;});renderPipeline();api('kpi').then(d=>{if(d&&d.ok)renderCockpit(d.kpi,gl('plKpi'));});}
+  else alert((r&&r.error)||'Fehler');
+}
+async function plAngebot(id){
+  const b=prompt('Angebotssumme in € (Festpreis):'); if(b===null)return;
+  const betrag=parseFloat((b+'').replace(/[^0-9.,]/g,'').replace('.','').replace(',','.'))||0;
+  if(betrag<=0){alert('Bitte gültigen Betrag eingeben.');return;}
+  const text=prompt('Kurzer Angebotstext (Leistung):','')||'';
+  const r=await api('angebot_save',{id,betrag,text});
+  if(r&&r.ok)loadPipeline(); else alert((r&&r.error)||'Fehler');
+}
+function plPrint(id){window.open('angebot-druck.php?id='+encodeURIComponent(id),'_blank');}
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */
 const PRIO={rot:{t:'🔴 SOFORT übernehmen',c:'rot'},gelb:{t:'🟡 Diese Woche',c:'gelb'},gruen:{t:'🟢 Optional',c:'gruen'}};

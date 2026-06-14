@@ -205,6 +205,90 @@ function oh_lead_broadcast(array $lead, array $w = []): void {
     if (function_exists('oh_log_activity')) oh_log_activity('kaan', "Anfrage ans Team verteilt: $name ($stufe/$klasse)");
 }
 
+/* ==========================================================================
+ * VERKAUFS-PIPELINE (Bau-Standard) + Quote-to-Cash + KPI-Cockpit.
+ * Phasen je Lead; Status/Zeitstempel werden für die bestehenden Automatiken
+ * (Follow-up, Bewertung, Mahnung, Lernen) synchron gehalten.
+ * ======================================================================== */
+function oh_lead_phasen(): array {
+    return [
+        ['id' => 'anfrage',     'label' => 'Anfrage',     'icon' => '📥'],
+        ['id' => 'besichtigung','label' => 'Besichtigung','icon' => '🔎'],
+        ['id' => 'angebot',     'label' => 'Angebot',     'icon' => '📄'],
+        ['id' => 'auftrag',     'label' => 'Auftrag',     'icon' => '✅'],
+        ['id' => 'baustelle',   'label' => 'Baustelle',   'icon' => '🏗️'],
+        ['id' => 'abnahme',     'label' => 'Abnahme',     'icon' => '🤝'],
+        ['id' => 'rechnung',    'label' => 'Rechnung',    'icon' => '🧾'],
+        ['id' => 'bezahlt',     'label' => 'Bezahlt',     'icon' => '💶'],
+        ['id' => 'verloren',    'label' => 'Verloren',    'icon' => '✕'],
+    ];
+}
+function oh_lead_phase(array $l): string {
+    if (!empty($l['phase'])) return $l['phase'];
+    switch ($l['status'] ?? 'neu') {
+        case 'angebot_raus': case 'nachgefasst': return 'angebot';
+        case 'gewonnen': return 'auftrag';
+        case 'abgeschlossen': return 'bezahlt';
+        case 'verloren': return 'verloren';
+        default: return 'anfrage';
+    }
+}
+function oh_lead_set_phase(string $id, string $phase, ?string &$err = null): ?array {
+    if (!in_array($phase, array_column(oh_lead_phasen(), 'id'), true)) { $err = 'Unbekannte Phase.'; return null; }
+    $lead = oh_get_lead($id);
+    if (!$lead) { $err = 'Anfrage nicht gefunden.'; return null; }
+    $now = time();
+    $patch = ['phase' => $phase];
+    switch ($phase) {
+        case 'angebot':   $patch['status'] = 'angebot_raus'; if (empty($lead['angebot_ts'])) $patch['angebot_ts'] = $now; break;
+        case 'auftrag':   $patch['status'] = 'gewonnen'; break;
+        case 'baustelle': $patch['status'] = 'gewonnen'; break;
+        case 'abnahme':   $patch['status'] = 'abgeschlossen'; if (empty($lead['abschluss_ts'])) $patch['abschluss_ts'] = $now; break;
+        case 'rechnung':  $patch['status'] = 'abgeschlossen'; break;
+        case 'bezahlt':   $patch['status'] = 'abgeschlossen'; $patch['bezahlt_ts'] = $now; break;
+        case 'verloren':  $patch['status'] = 'verloren'; break;
+    }
+    $upd = oh_update_lead($id, $patch, 'Pipeline → ' . $phase);
+    if (!$upd) { $err = 'Konnte nicht aktualisieren.'; return null; }
+    $nm = $upd['name'] ?: $id;
+    if (function_exists('oh_agent_mem_add')) {
+        if ($phase === 'baustelle') oh_agent_mem_add('yusuf', "Baustelle aktiv: $nm (" . ($upd['kategorie'] ?? '') . ") – Termin & Material organisieren.", 'fund');
+        if ($phase === 'rechnung')  oh_agent_mem_add('aylin', "Rechnung fällig: $nm – stellen/prüfen.", 'fund');
+        if ($phase === 'auftrag')   oh_agent_mem_add('mert', "Auftrag gewonnen: $nm – sauber abwickeln, Termin sichern.", 'prio');
+    }
+    // Auto-Rechnungsentwurf in Lexware bei Phase 'rechnung'
+    if ($phase === 'rechnung' && empty($upd['lex_invoice_id']) && function_exists('oh_lex_create_invoice') && !empty(oh_config()['lexware_api_key'])) {
+        $lerr = null; $inv = oh_lex_create_invoice($upd, $lerr);
+        if ($inv && !empty($inv['id'])) { $upd = oh_update_lead($id, ['lex_invoice_id' => $inv['id']], 'Lexware-Rechnungsentwurf erstellt'); }
+        elseif ($lerr) { oh_update_lead($id, [], 'Lexware-Rechnung fehlgeschlagen: ' . $lerr); }
+    }
+    return $upd;
+}
+function oh_angebot_save(string $id, float $betrag, string $text, ?string &$err = null): ?array {
+    if (!oh_get_lead($id)) { $err = 'Anfrage nicht gefunden.'; return null; }
+    oh_update_lead($id, ['angebot_betrag' => round($betrag, 2), 'angebot_text' => mb_substr($text, 0, 5000), 'angebot_ts' => time()], 'Angebot erstellt: ' . number_format($betrag, 0, ',', '.') . '€');
+    return oh_lead_set_phase($id, 'angebot', $err);
+}
+function oh_kpi(): array {
+    $z = function_exists('oh_ziel_status') ? oh_ziel_status() : [];
+    $leads = oh_read('leads', []);
+    $pipeline = 0.0; $won = 0; $lost = 0; $offard = 0;
+    foreach ($leads as $l) {
+        $ph = oh_lead_phase($l);
+        $b = (float)($l['angebot_betrag'] ?? 0);
+        if (!in_array($ph, ['bezahlt', 'verloren'], true) && $b > 0) $pipeline += $b;
+        if (in_array($ph, ['auftrag', 'baustelle', 'abnahme', 'rechnung', 'bezahlt'], true)) $won++;
+        if ($ph === 'verloren') $lost++;
+        if (in_array($ph, ['rechnung'], true)) $offard += $b;
+    }
+    return [
+        'umsatz_ist' => round($z['ist'] ?? 0), 'ziel' => round($z['betrag'] ?? 1000000),
+        'soll' => round($z['soll'] ?? 0), 'im_plan' => $z['im_plan'] ?? false,
+        'pipeline_wert' => round($pipeline), 'quote' => ($won + $lost) > 0 ? round($won / ($won + $lost) * 100) : 0,
+        'gewonnen' => $won, 'verloren' => $lost, 'offene_rechnungen' => round($offard),
+    ];
+}
+
 function oh_get_lead(string $id): ?array {
     foreach (oh_read('leads', []) as $l) {
         if (($l['id'] ?? '') === $id) return $l;
@@ -783,6 +867,53 @@ function oh_lex_get(string $path, ?string &$err = null) {
         return null;
     }
     return $d;
+}
+
+/** POST an die Lexware Public API (z.B. Rechnung anlegen). */
+function oh_lex_post(string $path, array $payload, ?string &$err = null) {
+    $key = oh_config()['lexware_api_key'] ?? '';
+    if (!$key) { $err = 'Kein Lexware-API-Schlüssel hinterlegt.'; return null; }
+    $ch = curl_init('https://api.lexoffice.io/v1' . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $key, 'Accept: application/json', 'Content-Type: application/json'],
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $d = json_decode((string)$resp, true);
+    if ($code < 200 || $code >= 300) {
+        $err = is_array($d) ? ($d['message'] ?? ('HTTP ' . $code)) : ('HTTP ' . $code);
+        return null;
+    }
+    return $d;
+}
+
+/** Erstellt in Lexware einen Rechnungs-ENTWURF (finalize=false) aus einem Lead/Angebot.
+ *  Kleinunternehmer (§19 UStG, vatfree). Entwurf = du prüfst/finalisierst in Lexware. */
+function oh_lex_create_invoice(array $lead, ?string &$err = null): ?array {
+    $betrag = (float)($lead['angebot_betrag'] ?? ($lead['rechnung_betrag'] ?? 0));
+    if ($betrag <= 0) { $err = 'Kein Betrag für die Rechnung hinterlegt.'; return null; }
+    $name = trim((string)($lead['name'] ?? '')) ?: 'Kunde';
+    $leistung = trim((string)($lead['kategorie'] ?? 'Elektroarbeiten')) ?: 'Elektroarbeiten';
+    $payload = [
+        'voucherDate' => date('c'),
+        'address' => ['name' => $name],
+        'lineItems' => [[
+            'type' => 'custom', 'name' => $leistung, 'quantity' => 1, 'unitName' => 'Pauschal',
+            'unitPrice' => ['currency' => 'EUR', 'netAmount' => round($betrag, 2), 'taxRatePercentage' => 0],
+        ]],
+        'totalPrice' => ['currency' => 'EUR'],
+        'taxConditions' => ['taxType' => 'vatfree'],
+        'shippingConditions' => ['shippingType' => 'none'],
+        'title' => 'Rechnung',
+        'introduction' => 'Vielen Dank für Ihren Auftrag.',
+        'remark' => 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmer).',
+    ];
+    $d = oh_lex_post('/invoices?finalize=false', $payload, $err);
+    if ($d === null) return null;
+    return ['id' => $d['id'] ?? '', 'resourceUri' => $d['resourceUri'] ?? ''];
 }
 
 /** Gleicht Rechnungen mit Lexware ab und speichert eine Zusammenfassung. */
