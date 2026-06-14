@@ -255,6 +255,13 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         $err = null;
         $p = function_exists('oh_prognose') ? oh_prognose($err) : null;
         echo json_encode($p !== null ? ['ok' => true, 'prognose' => $p] : ['ok' => false, 'error' => $err]);
+    } elseif ($a === 'adsplan_get') {
+        $items = function_exists('oh_ads_plan') ? oh_ads_plan() : [];
+        $done = 0; foreach ($items as $i) if (!empty($i['done'])) $done++;
+        echo json_encode(['ok' => true, 'items' => $items, 'done' => $done, 'gesamt' => count($items)]);
+    } elseif ($a === 'adsplan_toggle') {
+        if (function_exists('oh_ads_plan_toggle')) oh_ads_plan_toggle((string)($in['id'] ?? ''), !empty($in['done']));
+        echo json_encode(['ok' => true]);
     } elseif ($a === 'ads_reco') {
         // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
         echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
@@ -679,6 +686,15 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .prog-top-i:last-child{border-bottom:none;}
 .prog-top-i span{display:inline-block;min-width:62px;color:var(--green);font-weight:800;}
 .prog-foot{font-size:10.5px;color:var(--txt-dim);margin-top:12px;font-style:italic;line-height:1.4;}
+.ap-kat{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--cyan);margin:16px 0 7px;}
+.ap-item{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;margin-bottom:8px;background:var(--glass-2);border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:border-color .15s,opacity .15s;}
+.ap-item:hover{border-color:var(--cyan);}
+.ap-item input{width:20px;height:20px;flex-shrink:0;margin-top:1px;accent-color:var(--green);cursor:pointer;}
+.ap-txt{display:flex;flex-direction:column;gap:3px;}
+.ap-txt b{font-size:13.5px;font-weight:600;color:#fff;line-height:1.4;}
+.ap-nutzen{font-size:11.5px;color:var(--txt-dim);line-height:1.4;}
+.ap-item.done{opacity:.6;}
+.ap-item.done .ap-txt b{text-decoration:line-through;color:var(--txt-dim);}
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
 .ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
@@ -1116,6 +1132,24 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <h2>&#128200; Deine Ads-Zahlen (7 Tage)</h2>
     <div id="adsBody"><div class="spinner-mini">Lade …</div></div>
     <button class="btn btn-ghost" style="margin-top:12px" onclick="loadAds()">↻ Aktualisieren</button>
+  </div>
+  <div class="card" style="border-color:var(--gold)">
+    <h2>&#128203; Google-Ads-Maßnahmenplan</h2>
+    <p class="intro">Der Weg zum Maximum – Schritt für Schritt im Google-Ads-Konto abhaken. Tracking ist bereits erledigt; der Rest hebt Qualität, Großaufträge und Gewinn.</p>
+    <button class="btn btn-cyan" onclick="openAdsPlan()">📋 Maßnahmenplan öffnen</button>
+  </div>
+  <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
+</div>
+
+<!-- GOOGLE-ADS-MASSNAHMENPLAN -->
+<div id="s-adsplan" style="display:none">
+  <div class="card">
+    <h2>&#128203; Google-Ads-Maßnahmenplan</h2>
+    <p class="intro">Elite-Checkliste auf dem Weg zum Maximum. Was Du im Konto erledigt hast, hier abhaken – der Fortschritt wird gespeichert.</p>
+    <div class="prog-grid" style="grid-template-columns:1fr;margin-bottom:6px">
+      <div class="umsatz" style="margin:0"><div class="umsatz-h"><span class="t">Fortschritt</span><span class="v"><b id="apDone">0</b> / <span id="apTotal">0</span></span></div><div class="bar"><i id="apBar" style="width:0%"></i></div></div>
+    </div>
+    <div id="adsplanBody"><div class="prio-empty">Lade …</div></div>
   </div>
   <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
 </div>
@@ -1903,7 +1937,7 @@ let curSection='home', navHist=[];
 let chatReco=null; // aktuell im Chat besprochene Empfehlung (id + kind 'ads'/'web')
 function showSection(s,track){
   if(track!==false&&curSection&&curSection!==s){navHist.push(curSection);if(navHist.length>12)navHist.shift();}
-  ['home','settings','chat','ads','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','adsplan','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
@@ -1916,6 +1950,7 @@ function showSection(s,track){
    damit erledigte Empfehlungen nicht aus altem Cache als offen erscheinen. */
 function refreshSection(s){
   if(s==='ads'){if(typeof loadProg==='function')loadProg();if(typeof loadReco==='function')loadReco();if(typeof loadAds==='function')loadAds();}
+  else if(s==='adsplan'){if(typeof loadAdsPlan==='function')loadAdsPlan();}
   else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
   else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
@@ -2120,6 +2155,38 @@ function renderProg(p){
   }
   html+='<div class="prog-foot">Ehrliche Schätzung – konservativ gerechnet (Erfolgs-Wahrscheinlichkeit eingepreist). Keine geschönten Zahlen.</div>';
   el.innerHTML=html;
+}
+
+/* --- Google-Ads-Maßnahmenplan (Checkliste) --- */
+function openAdsPlan(){showSection('adsplan');}
+async function loadAdsPlan(){
+  const el=gl('adsplanBody'); if(!el)return;
+  el.innerHTML='<div class="prio-empty">Lade …</div>';
+  let d={};try{d=await api('adsplan_get');}catch(e){}
+  if(!d||!d.ok){el.innerHTML='<div class="prio-empty">Konnte den Plan nicht laden.</div>';return;}
+  const pct=d.gesamt?Math.round(d.done/d.gesamt*100):0;
+  gl('apDone').textContent=d.done; gl('apTotal').textContent=d.gesamt;
+  const bar=gl('apBar'); if(bar)bar.style.width=pct+'%';
+  const KAT=['Tracking','Struktur','Gebote','Zielgruppen','Assets','Seite'];
+  const prioT={1:'🔴 sofort',2:'🟡 wichtig',3:'🟢 später'};
+  const items=d.items||[];
+  let html='';
+  KAT.forEach(kat=>{
+    const grp=items.filter(i=>i.kat===kat); if(!grp.length)return;
+    html+=`<div class="ap-kat">${esc(kat)}</div>`;
+    grp.sort((a,b)=>(a.prio||9)-(b.prio||9)).forEach(i=>{
+      html+=`<label class="ap-item${i.done?' done':''}">
+        <input type="checkbox" ${i.done?'checked':''} onchange="toggleAdsPlan('${i.id}',this.checked)">
+        <span class="ap-txt"><b>${esc(i.text)}</b><span class="ap-nutzen">${esc(prioT[i.prio]||'')} · ${esc(i.nutzen||'')}</span></span>
+      </label>`;
+    });
+  });
+  el.innerHTML=html;
+}
+async function toggleAdsPlan(id,done){
+  try{await api('adsplan_toggle',{id,done});}catch(e){}
+  // Fortschritt sofort aktualisieren (ohne komplettes Neuladen-Flackern)
+  loadAdsPlan();
 }
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */

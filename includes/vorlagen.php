@@ -21,7 +21,7 @@ function oh_vorlagen_standard(): array {
 "Leistung: {leistung}\n".
 "Objekt: {objekt}\n".
 "Festpreis: {preis}\n\n".
-"Im Preis enthalten sind Material, Anfahrt und fachgerechte Ausführung durch unseren Meisterbetrieb. ".
+"Im Preis enthalten sind Material, Anfahrt und fachgerechte Ausführung durch unseren Fachbetrieb. ".
 "Gerne stimmen wir einen Termin mit Ihnen ab – wir sind flexibel und arbeiten sauber und termintreu.\n\n".
 "Bei Fragen erreichen Sie uns jederzeit unter 0175 7481006.\n\n{gruss}",
         ],
@@ -50,7 +50,7 @@ function oh_vorlagen_standard(): array {
             'betreff' => 'Zuverlässiger Elektro-Partner für {firma} im Raum Nürnberg',
             'text' =>
 "Sehr geehrte Damen und Herren,\n\n".
-"als Elektro-Meisterbetrieb aus dem Raum Nürnberg unterstützen wir Unternehmen wie {firma} ".
+"als Elektro-Fachbetrieb aus dem Raum Nürnberg unterstützen wir Unternehmen wie {firma} ".
 "bei Elektroinstallation, Sanierung, Zähleranlagen und Netzwerkverkabelung – zuverlässig, termintreu und zu fairen Festpreisen.\n\n".
 "Gerade für {branche} sind ein fester, erreichbarer Ansprechpartner und schnelle Reaktionszeiten entscheidend. ".
 "Genau das bieten wir: kurze Wege, ein eingespieltes Team und saubere Ausführung.\n\n".

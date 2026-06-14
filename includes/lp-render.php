@@ -117,16 +117,26 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
   .sec{padding:52px 0}.hero{padding:24px 0 50px}
   .topbar{padding-bottom:34px}.tb-call span{display:none}
 }
+/* fixe Aktionsleiste mobil – maximaler Direktkontakt */
+.mobar{display:none}
+@media(max-width:820px){
+  .mobar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:90;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(12,21,38,.97);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.1)}
+  .mobar a,.mobar button{flex:1;border:none;cursor:pointer;font-family:'Sora';font-weight:700;font-size:14px;border-radius:12px;padding:13px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+  .mobar .m-call{background:rgba(255,255,255,.1);color:#fff}
+  .mobar .m-offer{background:linear-gradient(135deg,var(--amber),var(--amber-d));color:#1a1206}
+  body{padding-bottom:72px}
+}
 </style>
 </head>
 <body>
 <header class="hero">
   <div class="wrap">
     <div class="topbar">
-      <div class="logo"><span class="dot"></span>OH <small>HAUSTECHNIK · MEISTERBETRIEB</small></div>
+      <div class="logo"><span class="dot"></span>OH <small>HAUSTECHNIK · FACHBETRIEB</small></div>
       <a class="tb-call" href="tel:+491757481006"><i class="fas fa-phone"></i> <span>0175 7481006</span></a>
     </div>
-    <div class="eyebrow">Elektro-Meisterbetrieb · Raum Nürnberg</div>
+    <div class="eyebrow">Elektro-Fachbetrieb · Raum Nürnberg</div>
     <h1><?= $g('h1') ?></h1>
     <p class="sub"><?= htmlspecialchars($g('sub')) ?></p>
     <div class="trust">
@@ -134,6 +144,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
     </div>
     <div class="cta-row">
       <button class="btn-primary" data-open-funnel><i class="fas fa-bolt"></i> <?= htmlspecialchars($g('cta', 'Kostenloses Angebot anfordern')) ?></button>
+      <a class="btn-ghost" href="festpreis-kalkulator.php"><i class="fas fa-calculator"></i> Preis in 2 Min berechnen</a>
       <a class="btn-ghost" href="tel:+491757481006"><i class="fas fa-phone"></i> Jetzt anrufen</a>
     </div>
     <div class="rating"><span class="stars">★★★★★</span> <b>5,0</b> aus 15 Google-Bewertungen · echte Kunden aus der Region</div>
@@ -157,7 +168,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
   <div class="wrap">
     <div class="kicker">Unsere Leistung</div>
     <h2>Das übernehmen wir für Sie</h2>
-    <p class="lead">Sauber, termintreu und zum fairen Festpreis – vom Meisterbetrieb.</p>
+    <p class="lead">Sauber, termintreu und zum fairen Festpreis – vom Fachbetrieb.</p>
     <div class="cards">
       <?php foreach ($g('leistungen', []) as $l): ?>
       <div class="lcard reveal"><div class="ico"><i class="fas <?= htmlspecialchars($l[0]) ?>"></i></div><h3><?= htmlspecialchars($l[1]) ?></h3><p><?= htmlspecialchars($l[2]) ?></p></div>
@@ -193,6 +204,11 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
     <a href="impressum.php">Impressum</a> · <a href="datenschutz.php">Datenschutz</a> · <a href="index.php">Zur Hauptseite</a>
   </div>
 </footer>
+
+<div class="mobar">
+  <a class="m-call" href="tel:+491757481006"><i class="fas fa-phone"></i> Anrufen</a>
+  <button class="m-offer" data-open-funnel><i class="fas fa-bolt"></i> Festpreis-Angebot</button>
+</div>
 
 <img src="besucher.php?q=<?= htmlspecialchars($quelle) ?>" alt="" width="1" height="1" style="position:absolute;left:-9999px" aria-hidden="true">
 <?php include __DIR__ . '/funnel-modal.php'; ?>

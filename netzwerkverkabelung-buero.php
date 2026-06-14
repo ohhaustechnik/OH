@@ -2,12 +2,12 @@
 $LP = [
   'slug'   => 'netzwerkverkabelung-buero.php',
   'quelle' => 'lp-netzwerk',
-  'title'  => 'Netzwerkverkabelung Büro & Gewerbe Nürnberg · Meisterbetrieb | OH Haustechnik',
+  'title'  => 'Netzwerkverkabelung Büro & Gewerbe Nürnberg · Fachbetrieb | OH Haustechnik',
   'meta'   => 'Strukturierte Netzwerkverkabelung für Büro, Praxis und Gewerbe im Raum Nürnberg: LAN, Glasfaser, Serverschrank, Access Points. Kostenloses Festpreis-Angebot in 2 Minuten.',
   'h1'     => 'Netzwerkverkabelung für Büro & Gewerbe im Raum Nürnberg',
-  'sub'    => 'Stabiles, schnelles Netzwerk für Ihren Betrieb – sauber verlegt, normgerecht dokumentiert, ohne Ausfallrisiko. Vom Elektro-Meisterbetrieb.',
+  'sub'    => 'Stabiles, schnelles Netzwerk für Ihren Betrieb – sauber verlegt, normgerecht dokumentiert, ohne Ausfallrisiko. Vom Elektro-Fachbetrieb.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
-  'badges' => ['24 h erreichbar', 'Faire Festpreise', '100 % Meisterbetrieb', 'Für Gewerbe & Praxis'],
+  'badges' => ['24 h erreichbar', 'Faire Festpreise', 'Saubere Ausführung', 'Für Gewerbe & Praxis'],
   'schritte' => [
     ['Anfrage senden', 'In 2 Minuten Eckdaten zu Standort, Arbeitsplätzen und Wunschtermin angeben.'],
     ['Angebot erhalten', 'Sie bekommen schnell ein transparentes Festpreis-Angebot inkl. Plan.'],

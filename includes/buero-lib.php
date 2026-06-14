@@ -105,6 +105,26 @@ function oh_classify(array $l): string {
     return !empty($l['telefon']) ? 'WARM' : 'KALT';
 }
 
+/* ==========================================================================
+ * WERT-EINSTUFUNG eines Leads – erkennt Großauftrag-Potenzial aus Kategorie,
+ * Objektgröße, Zeitraum und Beschreibung. Steuert die Priorisierung: große
+ * Sanierungsanfragen werden als HOT mit Vorrang markiert, Kleinkram fällt ab.
+ * ======================================================================== */
+function oh_lead_wert(array $l): array {
+    $txt = mb_strtolower(($l['kategorie'] ?? '') . ' ' . ($l['objektgroesse'] ?? '') . ' ' . ($l['zeitraum'] ?? '') . ' ' . ($l['details'] ?? ''));
+    $gross = ['komplettsanierung', 'komplett', 'sanierung', 'altbau', 'modernisier', 'kernsanierung', 'entkernung', 'unterverteilung', 'zählerschrank', 'zaehlerschrank', 'zähleranlage', 'knx', 'smart home', 'smarthome', 'smart-home', 'netzwerkverkabelung', 'strukturierte verkabelung', 'neubau', 'rohbau', 'etagen', 'komplette elektro', 'neue leitungen', 'wohnung saniere', 'haus saniere', 'gewerbe', 'mehrfamilien', 'dachgeschoss'];
+    $klein = ['lampe', 'leuchte', 'steckdose', 'schalter', 'sicherung', 'fehlersuche', 'reparatur', 'kleinigkeit', 'wackelt', 'anschließen', 'anschliessen', 'dimmer'];
+    $score = 0;
+    foreach ($gross as $w) if (mb_strpos($txt, $w) !== false) $score += 2;
+    foreach ($klein as $w) if (mb_strpos($txt, $w) !== false) $score -= 1;
+    if (preg_match('/\b([89]\d|[1-9]\d{2,})\s?m/u', $txt)) $score += 2;                  // >= 80 m²
+    if (preg_match('/\b([4-9]|1\d)\s?(zimmer|räume|raeume)/u', $txt)) $score += 1;        // 4+ Zimmer
+    if (mb_strpos($txt, 'ganze wohnung') !== false || mb_strpos($txt, 'ganzes haus') !== false || mb_strpos($txt, 'komplettes haus') !== false) $score += 2;
+    $klasse = $score >= 3 ? 'gross' : ($score >= 1 ? 'mittel' : 'klein');
+    $eur = $klasse === 'gross' ? '5.000–25.000 €' : ($klasse === 'mittel' ? '1.000–5.000 €' : 'bis ~1.000 €');
+    return ['klasse' => $klasse, 'score' => $score, 'eur' => $eur];
+}
+
 /** Fügt einen neuen Lead hinzu und gibt ihn (mit ID) zurück. */
 function oh_add_lead(array $data): array {
     $leads = oh_read('leads', []);
@@ -132,7 +152,19 @@ function oh_add_lead(array $data): array {
     if (empty($lead['stufe'])) {
         $lead['stufe'] = oh_classify($lead);
     }
-    $lead['verlauf'][] = ['ts' => time(), 'text' => 'Lead angelegt (' . $lead['source'] . ', ' . $lead['stufe'] . ')'];
+    // Wert-Einstufung: Großauftrag-Potenzial erkennen und mit Vorrang behandeln
+    $w = oh_lead_wert($lead);
+    $lead['wert_klasse'] = $w['klasse'];
+    $lead['wert_score']  = $w['score'];
+    $lead['wert_eur']    = $w['eur'];
+    if ($w['klasse'] === 'gross') {
+        $lead['stufe'] = 'HOT';
+        $lead['verlauf'][] = ['ts' => time(), 'text' => '★ GROSSAUFTRAG-Potenzial erkannt (' . $w['eur'] . ') – mit Vorrang behandeln, schnell anrufen.'];
+        if (function_exists('oh_agent_mem_add')) {
+            oh_agent_mem_add('mert', 'Großauftrag-Anfrage rein: ' . ($lead['name'] ?: ($lead['email'] ?: $lead['id'])) . ' (' . ($lead['kategorie'] ?: '-') . ', ' . $w['eur'] . ') – Vorrang, schnelle Reaktion sichert den Abschluss.', 'fund');
+        }
+    }
+    $lead['verlauf'][] = ['ts' => time(), 'text' => 'Lead angelegt (' . $lead['source'] . ', ' . $lead['stufe'] . ', Wert: ' . $w['klasse'] . ')'];
 
     array_unshift($leads, $lead);
     oh_write('leads', $leads);
@@ -2103,6 +2135,50 @@ function oh_prognose(?string &$err = null): ?array {
         'top_offen'           => array_slice($topOffen, 0, 4),
         'ziel_auftraege_woche'=> $z['auftraege_woche'] ?? null,
     ];
+}
+
+/* ==========================================================================
+ * GOOGLE-ADS-MASSNAHMENPLAN (Elite-Checkliste) – die Schritte zum Maximum,
+ * im Konto abzuhaken. Conversion-/Anruf-Tracking sind bereits erledigt.
+ * Status wird in daten/ads_plan.json gespeichert (nur id+done).
+ * ======================================================================== */
+function oh_ads_plan_defaults(): array {
+    return [
+        ['id'=>'tracking_conv','kat'=>'Tracking','prio'=>1,'done'=>true, 'text'=>'Getrennte Conversion-Aktionen (Formular, Anruf, Kalkulator) eingerichtet','nutzen'=>'Fundament für richtige Optimierung'],
+        ['id'=>'tracking_call','kat'=>'Tracking','prio'=>1,'done'=>true, 'text'=>'Anruf-Tracking als Conversion (Anruf aus Anzeige + Website-Anruf > 60 Sek.)','nutzen'=>'Telefon-Erfolge zählen jetzt mit'],
+        ['id'=>'conv_value','kat'=>'Tracking','prio'=>1,'done'=>false,'text'=>'Conversion-WERTE vergeben (Großauftrag-Lead > Anruf > kleine Anfrage)','nutzen'=>'GRÖSSTER Hebel: Google optimiert auf Wert statt Menge'],
+        ['id'=>'enhanced','kat'=>'Tracking','prio'=>2,'done'=>false,'text'=>'„Enhanced Conversions for Leads" aktivieren','nutzen'=>'Voraussetzung für den Offline-Import'],
+        ['id'=>'offline_import','kat'=>'Tracking','prio'=>1,'done'=>false,'text'=>'Gewonnenen Großauftrag als Offline-Conversion importieren','nutzen'=>'Google sucht gezielt „Zwillinge" deines besten Kunden'],
+        ['id'=>'struct','kat'=>'Struktur','prio'=>1,'done'=>false,'text'=>'Kampagne nach Services trennen (Altbau · Modernisierung · KNX/Smart-Home · Zähler/Unterverteilung · Netzwerk)','nutzen'=>'Relevanz, Budget-Kontrolle, Qualitätsfaktor'],
+        ['id'=>'keywords_gross','kat'=>'Struktur','prio'=>1,'done'=>false,'text'=>'Großauftrag-Keywords exact/phrase (z. B. „elektro komplettsanierung nürnberg", „altbausanierung elektrik fürth")','nutzen'=>'Hochintent statt Kleinkram'],
+        ['id'=>'negatives','kat'=>'Struktur','prio'=>2,'done'=>false,'text'=>'Negative-Keyword-Liste härten (job, gehalt, kostenlos, selber, anleitung, lampe anschließen, notdienst)','nutzen'=>'Weniger unpassende Klicks, Geld gespart'],
+        ['id'=>'bidding','kat'=>'Gebote','prio'=>1,'done'=>false,'text'=>'Gebot auf „Max. Conversion-Wert" / tROAS umstellen (sobald Wertdaten da)','nutzen'=>'Schaltet von „viele kleine" auf „wenige große"'],
+        ['id'=>'location','kat'=>'Zielgruppen','prio'=>2,'done'=>false,'text'=>'Standort auf „Anwesenheit" stellen + kaufkräftige Gebiete höher bieten','nutzen'=>'Keine Tire-Kicker von außerhalb'],
+        ['id'=>'audiences','kat'=>'Zielgruppen','prio'=>2,'done'=>false,'text'=>'Zielgruppen-Beobachtung: Hauseigentümer, In-Market „Renovierung/Hausbau"','nutzen'=>'Daten für gezieltes Bieten'],
+        ['id'=>'remarketing','kat'=>'Zielgruppen','prio'=>2,'done'=>false,'text'=>'Remarketing auf Website-Besucher + Formular-Abbrecher','nutzen'=>'Große Projekte mit langer Entscheidung zurückholen'],
+        ['id'=>'assets','kat'=>'Assets','prio'=>2,'done'=>false,'text'=>'Assets vervollständigen: Sitelinks, Callouts, Anruf, Standort, Bilder, Preise','nutzen'=>'Mehr Fläche, höhere Klickrate – gratis'],
+        ['id'=>'lp_sanierung','kat'=>'Seite','prio'=>2,'done'=>false,'text'=>'Sanierungs-Landingpage als Anzeigenziel nutzen (statt generischer Startseite)','nutzen'=>'Höhere Conversion-Rate bei Sanierungs-Anzeigen'],
+        ['id'=>'kalkulator_conv','kat'=>'Seite','prio'=>3,'done'=>false,'text'=>'Festpreis-Kalkulator-Abschluss als Conversion tracken + in Anzeigen bewerben','nutzen'=>'Selbst-Selektion großer Projekte'],
+    ];
+}
+function oh_ads_plan(): array {
+    $saved = oh_read('ads_plan', []);
+    $sd = [];
+    foreach ($saved as $s) if (!empty($s['id'])) $sd[$s['id']] = !empty($s['done']);
+    $out = [];
+    foreach (oh_ads_plan_defaults() as $d) {
+        if (array_key_exists($d['id'], $sd)) $d['done'] = $sd[$d['id']];
+        $out[] = $d;
+    }
+    return $out;
+}
+function oh_ads_plan_toggle(string $id, bool $done): void {
+    $save = [];
+    foreach (oh_ads_plan() as $it) {
+        if ($it['id'] === $id) $it['done'] = $done;
+        $save[] = ['id' => $it['id'], 'done' => !empty($it['done'])];
+    }
+    oh_write('ads_plan', $save);
 }
 
 /** Tageslimit für Autopilot-Aktionen (Schutz vor Amok). true = darf noch. */

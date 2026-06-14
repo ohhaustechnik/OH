@@ -2,12 +2,12 @@
 $LP = [
   'slug'   => 'zaehlerschrank-wallbox-nuernberg.php',
   'quelle' => 'lp-wallbox',
-  'title'  => 'Wallbox & Zählerschrank Nürnberg · Festpreis vom Meisterbetrieb | OH Haustechnik',
-  'meta'   => 'Wallbox installieren und Zählerschrank erneuern lassen in Nürnberg: normgerecht, förderfähig, vom Elektro-Meisterbetrieb. Kostenloses Festpreis-Angebot in 2 Minuten.',
-  'h1'     => 'Wallbox & moderner Zählerschrank im Raum Nürnberg – vom Meisterbetrieb',
+  'title'  => 'Wallbox & Zählerschrank Nürnberg · Festpreis vom Fachbetrieb | OH Haustechnik',
+  'meta'   => 'Wallbox installieren und Zählerschrank erneuern lassen in Nürnberg: normgerecht, förderfähig, vom Elektro-Fachbetrieb. Kostenloses Festpreis-Angebot in 2 Minuten.',
+  'h1'     => 'Wallbox & moderner Zählerschrank im Raum Nürnberg – vom Fachbetrieb',
   'sub'    => 'E-Auto laden zu Hause, sicher und schnell? Wir installieren Ihre Wallbox und erneuern bei Bedarf den Zählerschrank – normgerecht, sauber, zum Festpreis.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
-  'badges' => ['24 h erreichbar', 'Faire Festpreise', '100 % Meisterbetrieb', 'Anmeldung inklusive'],
+  'badges' => ['24 h erreichbar', 'Faire Festpreise', 'Saubere Ausführung', 'Anmeldung inklusive'],
   'schritte' => [
     ['Anfrage senden', 'In 2 Minuten Eckdaten zu Wallbox oder Zählerschrank angeben – unverbindlich.'],
     ['Angebot erhalten', 'Sie bekommen schnell ein transparentes Festpreis-Angebot inkl. Anmeldung.'],

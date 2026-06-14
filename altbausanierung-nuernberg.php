@@ -2,12 +2,12 @@
 $LP = [
   'slug'   => 'altbausanierung-nuernberg.php',
   'quelle' => 'lp-altbau',
-  'title'  => 'Elektro-Altbausanierung Nürnberg · Festpreis vom Meisterbetrieb | OH Haustechnik',
+  'title'  => 'Elektro-Altbausanierung Nürnberg · Festpreis vom Fachbetrieb | OH Haustechnik',
   'meta'   => 'Elektrik im Altbau erneuern lassen in Nürnberg und Umgebung: neue Leitungen, Zählerschrank, Sicherheit nach Norm. Kostenloses Festpreis-Angebot in 2 Minuten.',
   'h1'     => 'Elektro-Altbausanierung im Raum Nürnberg – sicher, sauber, zum Festpreis',
   'sub'    => 'Alte Leitungen, zu wenig Steckdosen, kein FI-Schutz? Wir bringen die Elektrik Ihres Altbaus auf den neuesten Stand – ohne Baustellenchaos, mit klarem Festpreis.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
-  'badges' => ['24 h erreichbar', 'Faire Festpreise', '100 % Meisterbetrieb', 'Lokal & persönlich'],
+  'badges' => ['24 h erreichbar', 'Faire Festpreise', 'Saubere Ausführung', 'Lokal & persönlich'],
   'schritte' => [
     ['Anfrage senden', 'In 2 Minuten Eckdaten zu Ihrem Altbau angeben – ganz unverbindlich.'],
     ['Angebot erhalten', 'Sie bekommen schnell ein transparentes Festpreis-Angebot.'],
