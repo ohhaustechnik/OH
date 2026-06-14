@@ -6,6 +6,18 @@
 
 header('Content-Type: application/json; charset=utf-8');
 
+// Robustheit: niemals PHP-Warnungen/Notices ins JSON lecken (sonst „Fehlercode" für den Kunden).
+@ini_set('display_errors', '0');
+ob_start();
+register_shutdown_function(function () {
+    $e = error_get_last();
+    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        while (ob_get_level() > 0) { ob_end_clean(); }
+        if (!headers_sent()) header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => 'Es ist ein technischer Fehler aufgetreten. Bitte rufen Sie uns kurz an – wir sind sofort für Sie da.']);
+    }
+});
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Methode nicht erlaubt.']);
