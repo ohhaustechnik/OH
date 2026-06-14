@@ -275,6 +275,17 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
     } elseif ($a === 'adsplan_toggle') {
         if (function_exists('oh_ads_plan_toggle')) oh_ads_plan_toggle((string)($in['id'] ?? ''), !empty($in['done']));
         echo json_encode(['ok' => true]);
+    } elseif ($a === 'termine_get') {
+        echo json_encode(['ok' => true, 'termine' => function_exists('oh_termine_all') ? oh_termine_all() : []]);
+    } elseif ($a === 'termin_add') {
+        $r = function_exists('oh_termin_add') ? oh_termin_add((string)($in['datum'] ?? ''), (string)($in['uhrzeit'] ?? ''), (string)($in['mitarbeiter'] ?? '')) : null;
+        echo json_encode($r ? ['ok' => true, 'termin' => $r] : ['ok' => false, 'error' => 'Ungültig oder Termin existiert schon (Datum JJJJ-MM-TT, Uhrzeit HH:MM).']);
+    } elseif ($a === 'termin_update') {
+        $ok = function_exists('oh_termin_update') ? oh_termin_update((string)($in['id'] ?? ''), is_array($in['patch'] ?? null) ? $in['patch'] : []) : false;
+        echo json_encode(['ok' => $ok]);
+    } elseif ($a === 'termin_delete') {
+        $ok = function_exists('oh_termin_delete') ? oh_termin_delete((string)($in['id'] ?? '')) : false;
+        echo json_encode(['ok' => $ok]);
     } elseif ($a === 'ads_reco') {
         // gespeicherte Empfehlungen (schnell, ohne neue KI-Analyse)
         echo json_encode(['ok' => true, 'reco' => oh_read('ads_reco', []), 'changes' => array_slice(oh_read('ads_changes', []), 0, 10)]);
@@ -708,6 +719,26 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .ap-nutzen{font-size:11.5px;color:var(--txt-dim);line-height:1.4;}
 .ap-item.done{opacity:.6;}
 .ap-item.done .ap-txt b{text-decoration:line-through;color:var(--txt-dim);}
+.tm-add{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.tm-add input{background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-size:13px;padding:9px 11px;font-family:inherit;}
+.tm-add input[type=text]{flex:1;min-width:120px;}
+.tm-day{margin:14px 16px 0;}
+.tm-day-h{font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--cyan);text-transform:uppercase;margin-bottom:8px;}
+.tm-slot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;}
+.tm-slot.frei{border-left:3px solid var(--green);}
+.tm-slot.gebucht{border-left:3px solid var(--cyan);}
+.tm-slot.gesperrt{border-left:3px solid var(--red);opacity:.75;}
+.tm-time{font-size:15px;font-weight:800;color:#fff;min-width:64px;}
+.tm-state{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 8px;border-radius:7px;}
+.tm-state.frei{background:rgba(52,224,154,.2);color:#7ef0bd;}
+.tm-state.gebucht{background:var(--cyan-soft);color:var(--cyan);}
+.tm-state.gesperrt{background:rgba(255,93,108,.2);color:#ff8b96;}
+.tm-emp{font-size:12px;color:var(--txt-dim);}
+.tm-emp b{color:var(--txt);}
+.tm-acts{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;}
+.tm-acts button{background:var(--glass);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tm-acts button:hover{border-color:var(--cyan);}
+.tm-acts button.del{color:var(--red);border-color:rgba(255,93,108,.4);}
 .ads-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .ads-stat{background:var(--glass-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
 .ads-stat .n{font-size:19px;font-weight:800;color:#fff;}
@@ -1058,6 +1089,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     <div class="sb-group">
       <div class="sb-glabel">Kunden</div>
       <button class="sb-item" data-nav="leads" onclick="nav('leads')"><span class="ic">📥</span>Anfragen</button>
+      <button class="sb-item" data-nav="termine" onclick="nav('termine')"><span class="ic">📅</span>Termine</button>
       <button class="sb-item" data-nav="web" onclick="nav('web')"><span class="ic">🌐</span>Website</button>
       <button class="sb-item" data-nav="kalk" onclick="nav('kalk')"><span class="ic">🧮</span>Kalkulator</button>
     </div>
@@ -1164,6 +1196,23 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
     </div>
     <div id="adsplanBody"><div class="prio-empty">Lade …</div></div>
   </div>
+  <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
+</div>
+
+<!-- TERMINVERWALTUNG -->
+<div id="s-termine" style="display:none">
+  <div class="card">
+    <h2>&#128197; Terminverwaltung</h2>
+    <p class="intro">Zentrale Steuerung aller Termine. Freie Termine erscheinen automatisch im Festpreis-Kalkulator auf der Website. Sperren, verschieben, Mitarbeiter zuweisen – alles hier.</p>
+    <div class="tm-add">
+      <input type="date" id="tmDate">
+      <input type="time" id="tmTime" value="08:00">
+      <input type="text" id="tmEmp" placeholder="Mitarbeiter (optional)">
+      <button class="btn btn-cyan" onclick="addTermin(this)">+ Termin anlegen</button>
+    </div>
+    <div id="tmMsg" class="msg-ok"></div>
+  </div>
+  <div id="termineBody"><div class="prio-empty">Lade …</div></div>
   <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
 </div>
 
@@ -1966,7 +2015,7 @@ let curSection='home', navHist=[];
 let chatReco=null; // aktuell im Chat besprochene Empfehlung (id + kind 'ads'/'web')
 function showSection(s,track){
   if(track!==false&&curSection&&curSection!==s){navHist.push(curSection);if(navHist.length>12)navHist.shift();}
-  ['home','settings','chat','ads','adsplan','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','adsplan','termine','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
@@ -1980,6 +2029,7 @@ function showSection(s,track){
 function refreshSection(s){
   if(s==='ads'){if(typeof loadProg==='function')loadProg();if(typeof loadReco==='function')loadReco();if(typeof loadAds==='function')loadAds();}
   else if(s==='adsplan'){if(typeof loadAdsPlan==='function')loadAdsPlan();}
+  else if(s==='termine'){if(typeof loadTermine==='function')loadTermine();}
   else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
   else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
@@ -2004,6 +2054,7 @@ function nav(id){
     case 'ads': openAds(); break;
     case 'web': openWeb(); break;
     case 'leads': openChat('leads'); break;
+    case 'termine': openTermine(); break;
     case 'kalk': openChat('emre'); break;
     case 'lex': openAgent('aylin'); break;
     case 'team': goHome(); setTimeout(()=>{const t=gl('teamGrid'); if(t)t.scrollIntoView({behavior:'smooth',block:'start'});},150); break;
@@ -2242,6 +2293,71 @@ async function toggleAdsPlan(id,done){
   try{await api('adsplan_toggle',{id,done});}catch(e){}
   // Fortschritt sofort aktualisieren (ohne komplettes Neuladen-Flackern)
   loadAdsPlan();
+}
+
+/* --- Terminverwaltung --- */
+function openTermine(){showSection('termine');}
+function tmLabel(d){
+  try{const dt=new Date(d+'T00:00:00');const wt=['So','Mo','Di','Mi','Do','Fr','Sa'][dt.getDay()];const p=n=>String(n).padStart(2,'0');
+    return wt+', '+p(dt.getDate())+'.'+p(dt.getMonth()+1)+'.'+dt.getFullYear();}catch(e){return d;}
+}
+async function loadTermine(){
+  const el=gl('termineBody'); if(!el)return;
+  el.innerHTML='<div class="prio-empty">Lade …</div>';
+  let d={};try{d=await api('termine_get');}catch(e){}
+  if(!d||!d.ok){el.innerHTML='<div class="prio-empty">Konnte Termine nicht laden.</div>';return;}
+  const list=d.termine||[];
+  const heute=new Date().toISOString().slice(0,10);
+  const kommend=list.filter(t=>(t.datum||'')>=heute);
+  if(!kommend.length){el.innerHTML='<div class="prio-empty">Keine kommenden Termine. Lege oben welche an – sie erscheinen dann im Kalkulator auf der Website.</div>';return;}
+  const days={};
+  kommend.forEach(t=>{(days[t.datum]=days[t.datum]||[]).push(t);});
+  let html='';
+  Object.keys(days).sort().forEach(day=>{
+    html+=`<div class="tm-day"><div class="tm-day-h">${esc(tmLabel(day))}</div>`;
+    days[day].forEach(t=>{
+      const st=t.status||'frei';
+      html+=`<div class="tm-slot ${st}">
+        <span class="tm-time">${esc((t.uhrzeit||'')+' ')}</span>
+        <span class="tm-state ${st}">${st}</span>
+        <span class="tm-emp">${t.mitarbeiter?('👷 <b>'+esc(t.mitarbeiter)+'</b>'):'<span style="opacity:.6">kein Mitarbeiter</span>'}${t.kunde?(' · 👤 '+esc(t.kunde)):''}</span>
+        <span class="tm-acts">
+          ${st!=='frei'?`<button onclick="terminStatus('${t.id}','frei')">✓ Freigeben</button>`:''}
+          ${st==='frei'?`<button onclick="terminStatus('${t.id}','gesperrt')">⛔ Sperren</button>`:''}
+          <button onclick="terminAssign('${t.id}')">👷 Mitarbeiter</button>
+          <button onclick="terminMove('${t.id}','${t.datum}','${t.uhrzeit}')">↪ Verschieben</button>
+          <button class="del" onclick="terminDelete('${t.id}')">✕</button>
+        </span>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+async function addTermin(btn){
+  const datum=gl('tmDate').value, uhrzeit=gl('tmTime').value, mitarbeiter=gl('tmEmp').value.trim();
+  if(!datum||!uhrzeit){gl('tmMsg').textContent='Bitte Datum und Uhrzeit wählen.';return;}
+  btn.disabled=true;
+  let r={};try{r=await api('termin_add',{datum,uhrzeit,mitarbeiter});}catch(e){}
+  btn.disabled=false;
+  gl('tmMsg').textContent=r&&r.ok?'✓ Termin angelegt':('⚠️ '+((r&&r.error)||'Fehler'));
+  setTimeout(()=>gl('tmMsg').textContent='',3000);
+  if(r&&r.ok){gl('tmEmp').value='';loadTermine();}
+}
+async function terminStatus(id,status){await api('termin_update',{id,patch:{status}});loadTermine();}
+async function terminAssign(id){
+  const m=prompt('Mitarbeiter für diesen Termin (leer = entfernen):');
+  if(m===null)return;
+  await api('termin_update',{id,patch:{mitarbeiter:m.trim()}});loadTermine();
+}
+async function terminMove(id,datum,uhrzeit){
+  const nd=prompt('Neues Datum (JJJJ-MM-TT):',datum); if(nd===null)return;
+  const nt=prompt('Neue Uhrzeit (HH:MM):',uhrzeit); if(nt===null)return;
+  await api('termin_update',{id,patch:{datum:nd.trim(),uhrzeit:nt.trim()}});loadTermine();
+}
+async function terminDelete(id){
+  if(!confirm('Diesen Termin wirklich löschen?'))return;
+  await api('termin_delete',{id});loadTermine();
 }
 
 /* --- KI-Empfehlungen ("Chef, ich hab was gefunden") --- */

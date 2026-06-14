@@ -41,7 +41,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $headers .= "Reply-To: " . ($_POST["email"] ?? "website@oh-haustechnik.de") . "\r\n";
 
     mail($to, $subject, $message, $headers);
-    
+
+    // Anfrage als Lead ins Büro übernehmen (Dashboard, HOT-/Großauftrag-Erkennung)
+    if (function_exists('oh_add_lead')) {
+        oh_add_lead([
+            'source'    => 'kalkulator',
+            'name'      => $_POST['name'] ?? '',
+            'email'     => $_POST['email'] ?? '',
+            'telefon'   => $_POST['phone'] ?? '',
+            'kategorie' => $_POST['service'] ?? 'Festpreis-Kalkulator',
+            'ort'       => $_POST['zipcode'] ?? '',
+            'details'   => trim(($_POST['details'] ?? '') . ' | Preis: ' . ($_POST['price'] ?? '') . ' | Wunschtermin: ' . ($_POST['appointment'] ?? '') . ' | Adresse: ' . ($_POST['address'] ?? '')),
+        ]);
+    }
+
 	$appointment = $_POST["appointment"] ?? "";
 
 if ($appointment !== "") {
@@ -175,7 +188,7 @@ if ($appointment !== "") {
                 <div class="premium-price-card">
                     <small>Ihr Preis</small>
                     <strong id="side-price">89 €</strong>
-                    <span id="side-price-sub">inkl. Montage, Anfahrt in Ihrer Zone und MwSt.</span>
+                    <span id="side-price-sub">inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).</span>
                     <i class="fas fa-lightbulb"></i>
                 </div>
 
@@ -304,7 +317,7 @@ function updateForm(service, details, price, subtitle){
     document.getElementById("form-details").value = details;
     document.getElementById("form-price").value = price;
     sidePrice.textContent = price;
-    sidePriceSub.textContent = subtitle || "inkl. Montage, Anfahrt in Ihrer Zone und MwSt.";
+    sidePriceSub.textContent = subtitle || "inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).";
 }
 
 function serviceClickEvents(){
@@ -453,7 +466,7 @@ function showLampe(){
                 <small>Ihr Preis inkl. Montage</small>
                 <strong id="main-price">89 €</strong>
             </div>
-            <span>inkl. Anfahrt in Ihrer Zone und MwSt.</span>
+            <span>inkl. Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).</span>
         </div>
 
         <p class="premium-info-line"><i class="fas fa-info-circle"></i> Standardmontage. Sonderfälle werden individuell kalkuliert.</p>
@@ -477,7 +490,7 @@ function showLampe(){
         const price = 89 + ((lampCount - 1) * 35) + parseInt(zone);
         priceText = price + " €";
         document.getElementById("main-price").textContent = priceText;
-        updateForm("Lampenmontage", lampCount + " Standardlampe(n)", priceText, "inkl. Montage, Anfahrt in Ihrer Zone und MwSt.");
+        updateForm("Lampenmontage", lampCount + " Standardlampe(n)", priceText, "inkl. Montage, Anfahrt in Ihrer Zone – ohne MwSt (Kleinunternehmer).");
     }
 
     document.querySelectorAll("[data-location]").forEach(btn => {

@@ -2226,6 +2226,85 @@ function oh_google_reviews_refresh(?string &$err = null): ?array {
     return $out;
 }
 
+/* ==========================================================================
+ * TERMINVERWALTUNG – zentral im Büro. termine.json liegt im Web-Root (wird
+ * vom öffentlichen Festpreis-Kalkulator gelesen), daher eigene Datei-Helfer.
+ * Status: frei | gebucht | gesperrt. Jeder Termin bekommt eine stabile ID.
+ * ======================================================================== */
+function oh_termine_file(): string { return dirname(__DIR__) . '/termine.json'; }
+
+function oh_termine_all(): array {
+    $f = oh_termine_file();
+    if (!is_file($f)) return [];
+    $d = json_decode((string)@file_get_contents($f), true);
+    if (!is_array($d)) return [];
+    $changed = false;
+    foreach ($d as &$t) {
+        if (empty($t['id'])) { $t['id'] = 'T' . substr(md5(($t['datum'] ?? '') . ($t['uhrzeit'] ?? '') . mt_rand()), 0, 10); $changed = true; }
+        if (!isset($t['status'])) { $t['status'] = 'frei'; $changed = true; }
+        if (!isset($t['mitarbeiter'])) { $t['mitarbeiter'] = ''; }
+    }
+    unset($t);
+    if ($changed) @file_put_contents($f, json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    // chronologisch sortieren
+    usort($d, function ($a, $b) {
+        return strcmp(($a['datum'] ?? '') . ($a['uhrzeit'] ?? ''), ($b['datum'] ?? '') . ($b['uhrzeit'] ?? ''));
+    });
+    return $d;
+}
+
+function oh_termine_save(array $t): bool {
+    return @file_put_contents(oh_termine_file(), json_encode(array_values($t), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) !== false;
+}
+
+function oh_termin_add(string $datum, string $uhrzeit, string $mitarbeiter = ''): ?array {
+    $datum = trim($datum); $uhrzeit = trim($uhrzeit);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum) || !preg_match('/^\d{1,2}:\d{2}$/', $uhrzeit)) return null;
+    $all = oh_termine_all();
+    foreach ($all as $x) { if (($x['datum'] ?? '') === $datum && ($x['uhrzeit'] ?? '') === $uhrzeit) return null; } // kein Duplikat
+    $neu = ['id' => 'T' . substr(md5($datum . $uhrzeit . mt_rand()), 0, 10), 'datum' => $datum, 'uhrzeit' => $uhrzeit, 'status' => 'frei', 'mitarbeiter' => trim($mitarbeiter)];
+    $all[] = $neu;
+    oh_termine_save($all);
+    if (function_exists('oh_log_activity')) oh_log_activity('yusuf', 'Termin angelegt: ' . $datum . ' ' . $uhrzeit);
+    return $neu;
+}
+
+function oh_termin_update(string $id, array $patch): bool {
+    $all = oh_termine_all(); $ok = false;
+    foreach ($all as &$t) {
+        if (($t['id'] ?? '') === $id) {
+            foreach (['status', 'mitarbeiter', 'datum', 'uhrzeit'] as $k) {
+                if (array_key_exists($k, $patch)) $t[$k] = $patch[$k];
+            }
+            $ok = true; break;
+        }
+    }
+    unset($t);
+    if ($ok) oh_termine_save($all);
+    return $ok;
+}
+
+function oh_termin_delete(string $id): bool {
+    $all = oh_termine_all();
+    $neu = array_values(array_filter($all, function ($t) use ($id) { return ($t['id'] ?? '') !== $id; }));
+    if (count($neu) === count($all)) return false;
+    oh_termine_save($neu);
+    return true;
+}
+
+/** Markiert einen freien Termin als gebucht (z.B. wenn ein Kunde ihn im Kalkulator wählt). */
+function oh_termin_buchen(string $datum, string $uhrzeit, string $kunde = ''): bool {
+    $all = oh_termine_all(); $ok = false;
+    foreach ($all as &$t) {
+        if (($t['datum'] ?? '') === $datum && ($t['uhrzeit'] ?? '') === $uhrzeit && ($t['status'] ?? '') === 'frei') {
+            $t['status'] = 'gebucht'; if ($kunde !== '') $t['kunde'] = $kunde; $ok = true; break;
+        }
+    }
+    unset($t);
+    if ($ok) { oh_termine_save($all); if (function_exists('oh_log_activity')) oh_log_activity('yusuf', 'Termin gebucht: ' . $datum . ' ' . $uhrzeit . ($kunde ? ' – ' . $kunde : '')); }
+    return $ok;
+}
+
 /** Tageslimit für Autopilot-Aktionen (Schutz vor Amok). true = darf noch. */
 function oh_autopilot_limit(string $key, int $maxProTag): bool {
     $log = oh_read('autopilot_log', []);
