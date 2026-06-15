@@ -112,6 +112,11 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
 .cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
 .btn-primary{background:linear-gradient(135deg,#2563eb,#1c3e6e);color:#fff;border:none;padding:18px 32px;border-radius:14px;font-family:'Sora';font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 14px 34px rgba(37,99,235,.30);transition:transform .16s,box-shadow .16s;display:inline-flex;align-items:center;gap:10px}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 44px rgba(37,99,235,.42)}
+/* Dauerhafter Aufmerksamkeits-Puls auf dem Haupt-CTA (zieht den Blick → mehr Klicks) */
+@keyframes lpCtaAttract{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}50%{box-shadow:0 0 26px 6px rgba(37,99,235,.45),0 0 0 8px rgba(37,99,235,.10)}}
+.cta-row .btn-primary,.ctablock .btn-primary{animation:lpCtaAttract 2.4s ease-in-out infinite}
+.cta-row .btn-primary:hover,.ctablock .btn-primary:hover{animation:none}
+@media (prefers-reduced-motion: reduce){.cta-row .btn-primary,.ctablock .btn-primary{animation:none}}
 .btn-ghost{color:#13294f;text-decoration:none;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:9px;padding:16px 24px;border:1.5px solid #cdd9ec;border-radius:14px;transition:border-color .16s,background .16s;background:#fff}
 .btn-ghost:hover{border-color:#2563eb;background:#f4f8ff}
 .rating{margin-top:28px;display:flex;align-items:center;gap:11px;font-size:14px;color:#5b6b80}

@@ -2516,8 +2516,19 @@ p { line-height: 1.8; color: var(--text-secondary); }
     50%      { box-shadow: 0 0 25px rgba(46, 95, 163, 0.6), 0 0 40px rgba(46, 95, 163, 0.3); }
 }
 
+/* Dauerhafter Aufmerksamkeits-Puls (zieht den Blick auf den CTA) */
+@keyframes ctaAttract {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(46,95,163,.45); }
+    50%      { box-shadow: 0 0 24px 5px rgba(46,95,163,.45), 0 0 0 7px rgba(46,95,163,.08); }
+}
+.btn-glow-pulse {
+    animation: ctaAttract 2.4s ease-in-out infinite;
+}
 .btn-glow-pulse:hover {
     animation: glowPulse 1.5s ease infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .btn-glow-pulse { animation: none; }
 }
 
 /* Electrical Spark Effect – Technischer Akzent */
