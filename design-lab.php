@@ -134,6 +134,67 @@ h1,h2,h3{font-family:'Sora',sans-serif;letter-spacing:-.02em}
     </div>
   </div>
 
+  <style>
+   /* --- Next-Level-Vorschläge --- */
+   .spot{position:relative;border-radius:22px;overflow:hidden;background:radial-gradient(circle at 50% -10%,#16233e,#0a1120);border:1px solid var(--line);min-height:230px;display:grid;place-items:center;cursor:crosshair}
+   .spot::before{content:"";position:absolute;inset:0;background:radial-gradient(300px circle at var(--sx,50%) var(--sy,40%),rgba(34,211,238,.20),transparent 60%)}
+   .spot-in{position:relative;text-align:center;padding:30px}
+   .spot-kick{font-size:11px;letter-spacing:3px;color:var(--cyan);font-weight:700;margin-bottom:10px}
+   .spot-in h3{font-size:clamp(24px,5vw,38px);margin-bottom:8px}
+   .spot-in p{color:var(--dim)}
+   @property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
+   .aurora{position:relative;border-radius:20px;padding:2px;background:conic-gradient(from var(--ang,0deg),#3f7bf0,#22d3ee,#FFD400,#3f7bf0);animation:spinAng 6s linear infinite}
+   @keyframes spinAng{to{--ang:360deg}}
+   .aurora-in{background:#0f1a2e;border-radius:18px;padding:26px;text-align:center;height:100%}
+   .aurora-in h3{font-size:30px;color:#fff;font-family:'Sora'}
+   .aurora-in p{color:var(--dim);font-size:13px;margin-top:4px}
+   .bento{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+   .bx{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;transition:transform .15s,border-color .2s}
+   .bx:hover{transform:translateY(-3px);border-color:var(--cyan)}
+   .bx.big{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column;justify-content:center}
+   .bx.wide{grid-column:span 2}
+   .bx-k{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim)}
+   .bx-v{font-family:'Sora';font-weight:800;font-size:24px;margin-top:8px}
+   .bx.big .bx-v{font-size:clamp(30px,7vw,44px);color:#fff}
+   @media(max-width:560px){.bento{grid-template-columns:repeat(2,1fr)}.bx.big{grid-column:span 2;grid-row:auto}}
+  </style>
+
+  <div class="sec">
+    <div class="sec-t">Vorschlag 5</div>
+    <h2>Spotlight-Hero (Licht folgt dem Cursor)</h2>
+    <p class="desc">Premium-Begrüßung: ein Lichtkegel folgt Maus/Finger über dunklem Verlauf. Edler Wow-Einstieg fürs Büro.</p>
+    <div class="spot" id="spot">
+      <div class="spot-in">
+        <div class="spot-kick">OH HAUSTECHNIK · SYSTEM ONLINE</div>
+        <h3>Willkommen zurück, Chef.</h3>
+        <p>Alles im Blick. Alles unter Kontrolle.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Vorschlag 6</div>
+    <h2>Aurora-Karten (leuchtender, rotierender Rand)</h2>
+    <p class="desc">Moderner Tech-Look: ein farbiger Rand wandert langsam um die Karte. Wirkt extrem hochwertig.</p>
+    <div class="grid">
+      <div class="aurora"><div class="aurora-in"><h3>1.430</h3><p>Dosen verlegt</p></div></div>
+      <div class="aurora"><div class="aurora-in"><h3>5.225 m</h3><p>Leerrohr</p></div></div>
+      <div class="aurora"><div class="aurora-in"><h3>40.000 €</h3><p>Offener Wert</p></div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Vorschlag 7</div>
+    <h2>Bento-Grid Dashboard</h2>
+    <p class="desc">Der angesagte „Bento"-Look (Apple/Linear-Stil): verschieden große Kacheln, klare Hierarchie, sehr premium.</p>
+    <div class="bento">
+      <div class="bx big"><div class="bx-k">Umsatz-Pipeline</div><div class="bx-v">128.500 €</div></div>
+      <div class="bx"><div class="bx-k">Hot Leads</div><div class="bx-v" style="color:var(--gold)">3</div></div>
+      <div class="bx"><div class="bx-k">Baustellen</div><div class="bx-v">5</div></div>
+      <div class="bx wide"><div class="bx-k">Heute</div><div class="bx-v" style="font-size:18px">13 Klicks · CTR 5,7% · CPC 2,17 €</div></div>
+    </div>
+  </div>
+
   <div class="foot">OH Büro Design-Labor · nur Vorschau · sag Claude, was übernommen werden soll.</div>
 </div>
 
@@ -152,6 +213,9 @@ document.querySelectorAll('.num[data-to]').forEach(el=>{
   const to=+el.dataset.to;let n=0;const step=Math.max(1,Math.round(to/30));
   const t=setInterval(()=>{n+=step;if(n>=to){n=to;clearInterval(t);}el.textContent=n;},40);
 });
+// Spotlight folgt dem Cursor/Finger
+const spot=document.getElementById('spot');
+if(spot){spot.addEventListener('pointermove',e=>{const r=spot.getBoundingClientRect();spot.style.setProperty('--sx',((e.clientX-r.left)/r.width*100)+'%');spot.style.setProperty('--sy',((e.clientY-r.top)/r.height*100)+'%');});}
 </script>
 </body>
 </html>
