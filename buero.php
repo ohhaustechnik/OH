@@ -945,6 +945,12 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .agent-card:hover{border-color:var(--cyan);box-shadow:var(--glow);transform:translateY(-2px);}
 .agent-card:active{transform:scale(.97);}
 .agent-card.chef{grid-column:1 / -1;border-color:var(--cyan);box-shadow:var(--glow);display:flex;align-items:center;gap:14px;text-align:left;}
+.agent-card.offline{filter:grayscale(1);opacity:.5;cursor:default;}
+.agent-card.offline:hover{border-color:var(--line);box-shadow:none;transform:none;}
+.agent-card.offline:active{transform:none;}
+.agent-badge{display:inline-block;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 9px;border-radius:999px;}
+.agent-badge.online{background:rgba(26,168,106,.18);color:#1aa86a;}
+.agent-badge.off{background:rgba(123,138,160,.18);color:#9aa7b8;}
 .agent-card.chef .agent-nm{font-size:17px;}
 .agent-av{width:54px;height:54px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,var(--cyan-d),#0e2c48);box-shadow:0 0 16px rgba(57,214,255,.3);overflow:hidden;flex-shrink:0;}
 .agent-card.chef .agent-av{margin:0;}
@@ -2166,16 +2172,24 @@ function agentAvatar(key,big){
   const a=AGENTS[key];const sz=big?'agent-av big':'agent-av';
   return `<span class="${sz}"><img src="assets/agents/${key}.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><span class="agent-emoji" style="display:none">${a.emoji}</span></span>`;
 }
+/* Online-Status der Agenten – wir bauen das System Schritt für Schritt auf.
+   Online: Mert (Chef) & Dilara (Marketing, ~70%). Rest noch offline. */
+const AGENT_ONLINE={mert:1,dilara:1};
+const AGENT_PCT={dilara:70};
+function agentOffline(){ alert('Dieser Agent ist noch offline.\n\nWir bauen das System Schritt für Schritt auf, damit alles optimal läuft. Dieser Agent wird als Nächstes scharf geschaltet.'); }
 function renderTeam(){
-  gl('teamGrid').innerHTML=AGENT_ORDER.map(key=>{const a=AGENTS[key];
-    return `<div class="agent-card${key==='mert'?' chef':''}" onclick="openAgent('${key}')">
+  gl('teamGrid').innerHTML=AGENT_ORDER.map(key=>{const a=AGENTS[key];const on=!!AGENT_ONLINE[key];const pct=AGENT_PCT[key];
+    const badge=on?`<span class="agent-badge online">● Online${pct?(' · '+pct+'%'):''}</span>`:'<span class="agent-badge off">● Offline</span>';
+    return `<div class="agent-card${key==='mert'?' chef':''}${on?'':' offline'}" onclick="${on?`openAgent('${key}')`:'agentOffline()'}">
       ${agentAvatar(key)}
       <div class="agent-nm">${a.name}</div>
       <div class="agent-rl">${esc(a.rolle)}</div>
+      ${badge}
     </div>`;}).join('');
 }
 let curAgent=null;
 function openAgent(key){
+  if(!AGENT_ONLINE[key]){ agentOffline(); return; }
   curAgent=key;const a=AGENTS[key];
   gl('agentHero').innerHTML=`${agentAvatar(key,true)}
     <div><div class="agent-nm big">${a.name}</div><div class="agent-rl big">${esc(a.rolle)}</div>
@@ -2486,6 +2500,7 @@ function delL(i){const l=getLern();l.splice(i,1);setLernS(l);renderLL();}
 
 /* ============ CHAT ÖFFNEN ============ */
 function openChat(m,prefill,reco){
+  if(typeof AGENTS!=='undefined'&&AGENTS[m]&&typeof AGENT_ONLINE!=='undefined'&&!AGENT_ONLINE[m]){ agentOffline(); return; }
   mode=m; const cfg=MODI[m];
   chatReco=(reco&&reco.id)?reco:null; renderChatReco();
   const _mb=gl('memBtn'); if(_mb)_mb.style.display=(typeof AGENTS!=='undefined'&&AGENTS[m])?'flex':'none';
