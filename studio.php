@@ -65,8 +65,10 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
 /* Sidebar (aufklappbare Navigation – wie im Büro) */
 .sb{position:fixed;left:0;top:0;bottom:0;width:240px;z-index:40;background:rgba(13,14,32,.88);backdrop-filter:blur(18px);
   border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px;transition:transform .35s var(--ease)}
-.sb-brand{font-family:'Montserrat';font-weight:800;letter-spacing:2px;font-size:17px;padding:4px 12px 20px}
-.sb-brand b{color:var(--yellow)}
+.sb-brand{padding:4px 12px 20px}
+.brand-logo{background:#fff;border-radius:11px;padding:5px 8px;display:inline-flex;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.brand-logo img{height:30px;width:auto;display:block}
+.brand-logo.sm{border-radius:8px;padding:3px 5px}.brand-logo.sm img{height:20px}
 .sb nav{display:flex;flex-direction:column;gap:4px;flex:1}
 .sb-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:var(--dim);font:inherit;font-size:14.5px;font-weight:500;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background .2s,color .2s}
 .sb-item .ic{font-size:17px;width:22px;text-align:center}
@@ -95,7 +97,7 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
 <button class="sb-toggle" id="sbToggle" aria-label="Menü">☰</button>
 <div class="sb-back" id="sbBack"></div>
 <aside class="sb" id="sb">
-  <div class="sb-brand">OH <b>BÜRO</b></div>
+  <div class="sb-brand"><span class="brand-logo"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span></div>
   <nav>
     <button class="sb-item active" data-view="cockpit"><span class="ic">📊</span>Cockpit</button>
     <button class="sb-item" data-view="baustellen"><span class="ic">🏗️</span>Baustellen</button>
@@ -106,7 +108,7 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
   <div class="sb-foot"><button class="sb-item" data-view="einstellungen"><span class="ic">⚙️</span>Einstellungen</button></div>
 </aside>
 <div class="shell">
-  <div class="top"><div class="brand">OH <b>BÜRO</b> · Cockpit</div><div class="meta"><span id="today"></span><span class="tag">Vorschau · Beispieldaten</span></div></div>
+  <div class="top"><div class="brand"><span class="brand-logo sm"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span> Cockpit</div><div class="meta"><span id="today"></span><span class="tag">Vorschau · Beispieldaten</span></div></div>
 
   <div class="kpis">
     <div class="card kpi"><div><div class="k-l">Umsatz · Monat</div><div class="k-v num" data-to="38500" data-suf=" €">0</div></div><div class="badge">▲ 12 %</div></div>

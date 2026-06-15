@@ -1149,6 +1149,11 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 .login-logo{font-family:'Sora',sans-serif;font-size:44px;font-weight:800;letter-spacing:8px;color:#fff;
   text-shadow:none;display:flex;align-items:center;justify-content:center;gap:4px;}
 .login-logo .ll-dot{width:11px;height:11px;border-radius:50%;background:var(--amber);box-shadow:0 0 14px rgba(232,162,74,.7);margin-right:8px;}
+/* Echtes OH-Logo als weißes Badge (Logo ist blau auf weiß) */
+.brand-logo{background:#fff;border-radius:11px;padding:5px 7px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+.brand-logo img{height:26px;width:auto;display:block;}
+.brand-logo.lg{border-radius:20px;padding:14px 18px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+.brand-logo.lg img{height:72px;}
 .login-name{font-family:'Manrope',sans-serif;font-size:10px;letter-spacing:6px;font-weight:700;color:var(--txt-dim);margin-top:6px;}
 .login-sub{font-family:'Sora',sans-serif;font-size:12px;letter-spacing:1px;color:var(--cyan);margin:14px 0 26px;font-weight:600;}
 .login-label{display:block;text-align:left;font-size:12px;font-weight:600;color:var(--txt-dim);margin:0 0 7px 4px;letter-spacing:.4px;}
@@ -1182,8 +1187,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
   <div class="login-bgfx"></div>
   <div class="login-card">
     <div class="login-status"><span class="ls-dot"></span> System bereit</div>
-    <div class="login-logo"><span class="ll-dot"></span>OH</div>
-    <div class="login-name">HAUSTECHNIK</div>
+    <div class="login-logo"><span class="brand-logo lg"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span></div>
     <div class="login-sub">Kommandozentrale · Zugang</div>
     <form id="loginForm" method="POST">
       <label class="login-label" for="loginPw">Passwort</label>
@@ -1207,7 +1211,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 <!-- SIDEBAR (Buero-neu Navigation) -->
 <div class="sb-backdrop" id="sbBackdrop" onclick="closeSidebar()"></div>
 <aside class="sidebar" id="sidebar">
-  <div class="sb-brand"><div class="mk">OH</div><div class="sub">BÜRO · ONLINE</div></div>
+  <div class="sb-brand"><span class="brand-logo"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span><div class="sub">BÜRO · ONLINE</div></div>
   <nav class="sb-nav">
     <div class="sb-group">
       <div class="sb-glabel">Übersicht</div>
@@ -1239,7 +1243,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 <header>
   <button class="icobtn backbtn" id="backBtn" onclick="goBack()" title="Zurück" style="display:none">&#8592;</button>
   <button class="hamburger" onclick="toggleSidebar()" title="Menü">&#9776;</button>
-  <div class="brand" onclick="goHome()" style="cursor:pointer"><div><div class="mark">OH</div><div class="sub">SYSTEM ONLINE</div></div></div>
+  <div class="brand" onclick="goHome()" style="cursor:pointer"><div style="display:flex;align-items:center;gap:9px"><span class="brand-logo"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span><div class="sub">SYSTEM ONLINE</div></div></div>
   <div class="hbtns">
     <button class="icobtn" id="muteBtn" onclick="toggleMute()" title="Ton an/aus">&#128266;</button>
     <button class="icobtn" onclick="toggleSettings()" title="Einstellungen">&#9881;</button>
