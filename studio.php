@@ -62,6 +62,28 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
 .pill.run{background:rgba(232,144,42,.18);color:var(--run)}.pill.done{background:rgba(26,168,106,.18);color:var(--ok)}.pill.offen{background:rgba(123,138,160,.18);color:var(--grey)}
 @media(max-width:760px){.bs-row{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.kpis{grid-template-columns:1fr}.bs-row{grid-template-columns:1fr}}
+/* Views + weitere Bereiche */
+.view[hidden]{display:none}.view{animation:vIn .4s var(--ease)}
+@keyframes vIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.page-h{font-size:clamp(22px,4.4vw,30px);margin:2px 0 16px}.sub-h{color:var(--dim);font-size:14px;margin:-8px 0 18px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip-f{padding:9px 14px;border:1px solid var(--line);background:transparent;color:var(--dim);border-radius:999px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.chip-f.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.plan{display:grid;grid-template-columns:1.05fr 1fr;gap:16px}
+.plan-list{display:flex;flex-direction:column;gap:10px}
+.pc{background:var(--glass);border:1px solid var(--line);border-left:4px solid var(--grey);border-radius:14px;padding:14px 16px;cursor:pointer;transition:.2s;overflow:hidden}
+.pc:hover,.pc.sel{border-color:#5b86c4;background:rgba(255,255,255,.07)}.pc.laeuft{border-left-color:var(--run)}.pc.fertig{border-left-color:var(--ok)}.pc.offen{border-left-color:var(--grey)}
+.pc h4{font-size:15px}.pc .pm{font-size:12px;color:var(--dim);margin-top:3px}.pc .pp{float:right;font-weight:700;color:var(--yellow);font-size:14px}
+.detail{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:22px;align-self:start}
+.detail .dt{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:16px}.detail .dv{font-size:15px;margin-top:3px}
+.task{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}.task input{width:20px;height:20px;accent-color:var(--ok)}.task.done span{text-decoration:line-through;color:var(--dim)}
+.tbl{width:100%;border-collapse:collapse}.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:12px 16px;font-weight:600}.tbl td{padding:14px 16px;border-top:1px solid var(--line);font-size:14px}
+.st{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap}.st.ok{background:rgba(26,168,106,.18);color:var(--ok)}.st.no{background:rgba(255,91,110,.16);color:var(--red)}.st.open{background:rgba(232,144,42,.18);color:var(--run)}
+.prog{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:7px}.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bd{display:grid;grid-template-columns:120px 1fr 48px;align-items:center;gap:12px}.bd b{text-align:right}
+@media(max-width:820px){.plan{grid-template-columns:1fr}.detail{order:-1}}
+@media(max-width:760px){.two{grid-template-columns:1fr}.tbl th:nth-child(2),.tbl td:nth-child(2){display:none}.bd{grid-template-columns:90px 1fr 40px}}
 /* Sidebar (aufklappbare Navigation – wie im Büro) */
 .sb{position:fixed;left:0;top:0;bottom:0;width:240px;z-index:40;background:rgba(13,14,32,.88);backdrop-filter:blur(18px);
   border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px;transition:transform .35s var(--ease)}
@@ -108,8 +130,9 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
   <div class="sb-foot"><button class="sb-item" data-view="einstellungen"><span class="ic">⚙️</span>Einstellungen</button></div>
 </aside>
 <div class="shell">
-  <div class="top"><div class="brand"><span class="brand-logo sm"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span> Cockpit</div><div class="meta"><span id="today"></span><span class="tag">Vorschau · Beispieldaten</span></div></div>
+  <div class="top"><div class="brand"><span class="brand-logo sm"><img src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik"></span> <span id="pageTitle">Cockpit</span></div><div class="meta"><span id="today"></span><span class="tag">Vorschau · Beispieldaten</span></div></div>
 
+  <div class="view" id="v-cockpit">
   <div class="kpis">
     <div class="card kpi"><div><div class="k-l">Umsatz · Monat</div><div class="k-v num" data-to="38500" data-suf=" €">0</div></div><div class="badge">▲ 12 %</div></div>
     <div class="card kpi"><div><div class="k-l">Auslastung</div><div class="k-v num" data-to="78" data-suf=" %">0</div></div><div class="ava">⚡</div></div>
@@ -148,6 +171,61 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
       <div class="bs run" data-tilt><h4>Smart Home Erlangen</h4><div class="m">Bauträger Nord · 21.000 €</div><div class="next">➡️ Loxone konfigurieren</div><div class="dl">📅 in 20 Tagen</div><span class="pill run">Läuft</span></div>
       <div class="bs offen" data-tilt><h4>Altbau Fürth</h4><div class="m">Privat · 9.900 €</div><div class="next">➡️ Aufmaß planen</div><div class="dl">📅 in 12 Tagen</div><span class="pill offen">Offen</span></div>
       <div class="bs done" data-tilt><h4>Sanierung Stein</h4><div class="m">Fam. Wagner · 7.200 €</div><div class="next">✓ abgeschlossen</div><div class="dl">📅 erledigt</div><span class="pill done">Fertig</span></div>
+    </div>
+  </div>
+  </div><!-- /v-cockpit -->
+
+  <div class="view" id="v-baustellen" hidden>
+    <h2 class="page-h">Baustellen-Planer</h2>
+    <div class="chips">
+      <button class="chip-f on" data-bf="alle">Alle</button>
+      <button class="chip-f" data-bf="offen">Offen</button>
+      <button class="chip-f" data-bf="laeuft">Läuft</button>
+      <button class="chip-f" data-bf="fertig">Fertig</button>
+    </div>
+    <div class="plan"><div class="plan-list" id="planList"></div><div class="detail" id="planDetail"></div></div>
+  </div>
+
+  <div class="view" id="v-angebote" hidden>
+    <h2 class="page-h">Angebote</h2>
+    <div class="two" style="margin-bottom:16px">
+      <div class="card kpi"><div><div class="k-l">Offene Angebote</div><div class="k-v num">2</div></div><div class="badge flat">~ 28.300 €</div></div>
+      <div class="card kpi"><div><div class="k-l">Annahmequote</div><div class="k-v num">62 %</div></div><div class="ava">📄</div></div>
+    </div>
+    <div class="card"><table class="tbl"><thead><tr><th>Kunde</th><th>Leistung</th><th>Betrag</th><th>Status</th></tr></thead><tbody>
+      <tr><td>Fam. Huber</td><td>Sanierung Wohnung</td><td>8.500 €</td><td><span class="st ok">Angenommen</span></td></tr>
+      <tr><td>Bauträger Nord</td><td>Smart Home</td><td>21.000 €</td><td><span class="st ok">Angenommen</span></td></tr>
+      <tr><td>Privat Fürth</td><td>Altbau-Elektrik</td><td>9.900 €</td><td><span class="st open">Offen</span></td></tr>
+      <tr><td>Müller GmbH</td><td>PV + Speicher</td><td>18.400 €</td><td><span class="st open">Offen</span></td></tr>
+      <tr><td>Fam. Klein</td><td>Lampenmontage</td><td>640 €</td><td><span class="st no">Abgelehnt</span></td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="view" id="v-material" hidden>
+    <h2 class="page-h">Material</h2>
+    <p class="sub-h">Bestellstatus pro Baustelle.</p>
+    <div class="card"><table class="tbl"><thead><tr><th>Baustelle</th><th>Material</th><th>Status</th></tr></thead><tbody>
+      <tr><td>Müllerstr. 5</td><td>Dosen, Leitungen, Unterverteilung</td><td><span class="st ok">Geliefert</span><div class="prog"><i style="width:100%"></i></div></td></tr>
+      <tr><td>Smart Home Erlangen</td><td>Loxone Miniserver, Aktoren</td><td><span class="st open">Bestellt</span><div class="prog"><i style="width:60%"></i></div></td></tr>
+      <tr><td>Altbau Fürth</td><td>Komplett-Elektromaterial</td><td><span class="st no">Noch bestellen</span><div class="prog"><i style="width:8%"></i></div></td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="view" id="v-auswertung" hidden>
+    <h2 class="page-h">Auswertung</h2>
+    <div class="two" style="margin-bottom:16px">
+      <div class="card kpi"><div><div class="k-l">Umsatz · Jahr</div><div class="k-v num acc">214.500 €</div></div><div class="badge">▲ 18 %</div></div>
+      <div class="card kpi"><div><div class="k-l">Ø Auftragswert</div><div class="k-v num">9.300 €</div></div><div class="ava">📈</div></div>
+    </div>
+    <div class="card" style="padding:18px 20px 24px">
+      <h3 style="font-size:14px;margin-bottom:18px">Umsatz nach Leistung</h3>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="bd"><span>Sanierung</span><div class="prog"><i style="width:84%"></i></div><b>38 %</b></div>
+        <div class="bd"><span>Smart Home</span><div class="prog"><i style="width:60%"></i></div><b>27 %</b></div>
+        <div class="bd"><span>Photovoltaik</span><div class="prog"><i style="width:40%"></i></div><b>18 %</b></div>
+        <div class="bd"><span>Installation</span><div class="prog"><i style="width:27%"></i></div><b>12 %</b></div>
+        <div class="bd"><span>Sonstiges</span><div class="prog"><i style="width:11%"></i></div><b>5 %</b></div>
+      </div>
     </div>
   </div>
 </div>
@@ -208,11 +286,37 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
   const openSb=()=>{sb.classList.add('open');sbBack.classList.add('show');};
   const closeSb=()=>{sb.classList.remove('open');sbBack.classList.remove('show');};
   g('sbToggle').addEventListener('click',openSb); sbBack.addEventListener('click',closeSb);
+  const TITLES={cockpit:'Cockpit',baustellen:'Baustellen',angebote:'Angebote',material:'Material',auswertung:'Auswertung'};
+  function showView(v){document.querySelectorAll('.view').forEach(el=>el.hidden=(el.id!=='v-'+v));
+    const pt=g('pageTitle'); if(pt&&TITLES[v])pt.textContent=TITLES[v];
+    if(v==='baustellen')renderPlan(); window.scrollTo({top:0,behavior:'smooth'});}
   document.querySelectorAll('.sb-item[data-view]').forEach(it=>{it.addEventListener('click',()=>{
+    const v=it.dataset.view;
+    if(v==='einstellungen'){toast('Einstellungen — kommt als Nächstes.');closeSb();return;}
     document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));it.classList.add('active');
-    if(it.dataset.view!=='cockpit') toast(it.textContent.trim()+' — kommt als Nächstes in der Vorschau.');
-    closeSb();
+    showView(v);closeSb();
   });});
+  // ---- Baustellen-Planer (Vorschau) ----
+  const BS=[
+    {id:1,name:'Müllerstr. 5',kunde:'Fam. Huber',adr:'Nürnberg',wert:8500,status:'laeuft',deadline:'in 3 Tagen',rot:true,material:'Geliefert',stand:'Leitungen verlegt, Dosen folgen.',auf:[['Aufmaß',1],['Leitungen verlegen',1],['Dosen setzen',0],['Abnahme',0]]},
+    {id:2,name:'Smart Home Erlangen',kunde:'Bauträger Nord',adr:'Erlangen',wert:21000,status:'laeuft',deadline:'in 20 Tagen',rot:false,material:'Bestellt',stand:'Verkabelung läuft, Loxone folgt.',auf:[['Verkabelung',1],['Loxone konfigurieren',0],['Programmierung',0],['Übergabe',0]]},
+    {id:3,name:'Altbau Fürth',kunde:'Privat',adr:'Fürth',wert:9900,status:'offen',deadline:'in 12 Tagen',rot:false,material:'Noch bestellen',stand:'Aufmaß-Termin steht aus.',auf:[['Aufmaß planen',0],['Material bestellen',0],['Start',0]]},
+    {id:4,name:'Sanierung Stein',kunde:'Fam. Wagner',adr:'Stein',wert:7200,status:'fertig',deadline:'erledigt',rot:false,material:'Geliefert',stand:'Abgeschlossen, Rechnung gestellt.',auf:[['Sanierung',1],['Abnahme',1],['Rechnung',1]]}
+  ];
+  let bf='alle';
+  function renderPlan(){const list=g('planList'); if(!list)return;
+    const items=BS.filter(b=>bf==='alle'||b.status===bf);
+    list.innerHTML=items.map(b=>`<div class="pc ${b.status}" data-id="${b.id}"><span class="pp">${b.wert.toLocaleString('de-DE')} €</span><h4>${b.name}</h4><div class="pm">${b.kunde} · Material: ${b.material}</div></div>`).join('')||'<div class="pm" style="padding:18px;color:var(--dim)">Keine Baustellen.</div>';
+    list.querySelectorAll('.pc').forEach(c=>c.addEventListener('click',()=>{list.querySelectorAll('.pc').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');selectBs(+c.dataset.id);}));
+    if(items[0]){list.querySelector('.pc').classList.add('sel');selectBs(items[0].id);}else g('planDetail').innerHTML='<div class="pm">Keine Baustelle.</div>';}
+  function selectBs(id){const d=g('planDetail');const b=BS.find(x=>x.id===id);if(!b)return;
+    const stL={offen:'Offen',laeuft:'Läuft',fertig:'Fertig'}[b.status],stC={offen:'',laeuft:'open',fertig:'ok'}[b.status];
+    d.innerHTML=`<h3 style="font-size:20px">${b.name}</h3><div class="pm" style="color:var(--dim);font-size:13px">${b.kunde} · ${b.adr}</div>
+      <div class="two" style="margin-top:14px;gap:14px"><div><div class="dt">Auftragswert</div><div class="dv" style="color:var(--yellow);font-weight:700">${b.wert.toLocaleString('de-DE')} €</div></div><div><div class="dt">Deadline</div><div class="dv" style="${b.rot?'color:var(--red);font-weight:700':''}">📅 ${b.deadline}</div></div></div>
+      <div class="dt">Status &amp; Material</div><div class="dv"><span class="st ${stC}">${stL}</span> · ${b.material}</div>
+      <div class="dt">Aktueller Stand</div><div class="dv">${b.stand}</div>
+      <div class="dt">Aufgaben</div>${b.auf.map(t=>`<label class="task ${t[1]?'done':''}"><input type="checkbox" ${t[1]?'checked':''}><span>${t[0]}</span></label>`).join('')}`;}
+  document.querySelectorAll('.chip-f[data-bf]').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.chip-f').forEach(x=>x.classList.remove('on'));c.classList.add('on');bf=c.dataset.bf;renderPlan();}));
   // ---- 3D-Tilt ----
   if(matchMedia('(hover:hover)').matches){
     document.querySelectorAll('[data-tilt]').forEach(c=>{
