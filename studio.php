@@ -62,11 +62,49 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
 .pill.run{background:rgba(232,144,42,.18);color:var(--run)}.pill.done{background:rgba(26,168,106,.18);color:var(--ok)}.pill.offen{background:rgba(123,138,160,.18);color:var(--grey)}
 @media(max-width:760px){.bs-row{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.kpis{grid-template-columns:1fr}.bs-row{grid-template-columns:1fr}}
+/* Sidebar (aufklappbare Navigation – wie im Büro) */
+.sb{position:fixed;left:0;top:0;bottom:0;width:240px;z-index:40;background:rgba(13,14,32,.88);backdrop-filter:blur(18px);
+  border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 14px;transition:transform .35s var(--ease)}
+.sb-brand{font-family:'Montserrat';font-weight:800;letter-spacing:2px;font-size:17px;padding:4px 12px 20px}
+.sb-brand b{color:var(--yellow)}
+.sb nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.sb-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:var(--dim);font:inherit;font-size:14.5px;font-weight:500;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background .2s,color .2s}
+.sb-item .ic{font-size:17px;width:22px;text-align:center}
+.sb-item:hover{background:rgba(255,255,255,.05);color:var(--white)}
+.sb-item.active{background:linear-gradient(135deg,rgba(63,123,240,.28),rgba(139,92,246,.2));color:#fff}
+.sb-item.active .ic{filter:drop-shadow(0 0 6px rgba(99,102,241,.7))}
+.sb-foot{border-top:1px solid var(--line);padding-top:10px}
+.sb-toggle{display:none}
+.sb-back{display:none;position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.5);opacity:0;transition:opacity .3s}
+.sb-back.show{opacity:1}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(18px);background:#0b0c1c;border:1px solid var(--line);padding:12px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:.3s;z-index:80;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-width:981px){.shell{margin-left:260px}}
+@media(max-width:980px){
+  .sb{transform:translateX(-100%);width:264px}
+  .sb.open{transform:translateX(0);box-shadow:0 0 70px rgba(0,0,0,.7)}
+  .sb-back{display:block}
+  .sb-toggle{display:grid;place-items:center;position:fixed;top:15px;left:15px;z-index:45;width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;font-size:19px;cursor:pointer;backdrop-filter:blur(10px)}
+  .top{padding-left:54px}
+}
 @media (prefers-reduced-motion:reduce){.ambient::before,.ambient::after{animation:none}.top,.kpi,.chart-card,.bs-card{opacity:1!important;transform:none!important}}
 </style>
 </head>
 <body>
 <div class="ambient"></div>
+<button class="sb-toggle" id="sbToggle" aria-label="Menü">☰</button>
+<div class="sb-back" id="sbBack"></div>
+<aside class="sb" id="sb">
+  <div class="sb-brand">OH <b>BÜRO</b></div>
+  <nav>
+    <button class="sb-item active" data-view="cockpit"><span class="ic">📊</span>Cockpit</button>
+    <button class="sb-item" data-view="baustellen"><span class="ic">🏗️</span>Baustellen</button>
+    <button class="sb-item" data-view="angebote"><span class="ic">📄</span>Angebote</button>
+    <button class="sb-item" data-view="material"><span class="ic">📦</span>Material</button>
+    <button class="sb-item" data-view="auswertung"><span class="ic">📈</span>Auswertung</button>
+  </nav>
+  <div class="sb-foot"><button class="sb-item" data-view="einstellungen"><span class="ic">⚙️</span>Einstellungen</button></div>
+</aside>
 <div class="shell">
   <div class="top"><div class="brand">OH <b>BÜRO</b> · Cockpit</div><div class="meta"><span id="today"></span><span class="tag">Vorschau · Beispieldaten</span></div></div>
 
@@ -161,6 +199,18 @@ h1,h2,h3,.num{font-family:'Montserrat',sans-serif;font-weight:800;letter-spacing
       .to('.kpis:last-of-type .kpi',{opacity:1,y:0,duration:.8,stagger:.08},'-=.5')
       .to('.bs-card',{opacity:1,y:0,duration:.8},'-=.5');
   } else { document.querySelectorAll('.top,.kpi,.chart-card,.bs-card').forEach(el=>el.style.opacity=1); counters(); drawLines(); }
+  // ---- Sidebar ----
+  function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);
+    requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),320);},2200);}
+  const sb=g('sb'),sbBack=g('sbBack');
+  const openSb=()=>{sb.classList.add('open');sbBack.classList.add('show');};
+  const closeSb=()=>{sb.classList.remove('open');sbBack.classList.remove('show');};
+  g('sbToggle').addEventListener('click',openSb); sbBack.addEventListener('click',closeSb);
+  document.querySelectorAll('.sb-item[data-view]').forEach(it=>{it.addEventListener('click',()=>{
+    document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));it.classList.add('active');
+    if(it.dataset.view!=='cockpit') toast(it.textContent.trim()+' — kommt als Nächstes in der Vorschau.');
+    closeSb();
+  });});
   // ---- 3D-Tilt ----
   if(matchMedia('(hover:hover)').matches){
     document.querySelectorAll('[data-tilt]').forEach(c=>{
