@@ -948,14 +948,9 @@ h2{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;alig
 .agent-card.offline{filter:grayscale(1);opacity:.5;cursor:default;}
 .agent-card.offline:hover{border-color:var(--line);box-shadow:none;transform:none;}
 .agent-card.offline:active{transform:none;}
-.agent-badge{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 10px;border-radius:999px;}
+.agent-badge{display:inline-block;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 9px;border-radius:999px;}
 .agent-badge.online{background:rgba(26,168,106,.18);color:#1aa86a;}
 .agent-badge.off{background:rgba(123,138,160,.18);color:#9aa7b8;}
-.agent-badge .ab-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
-.agent-badge.online .ab-dot{box-shadow:0 0 8px #1aa86a;animation:abBlink 1.6s infinite;}
-@keyframes abBlink{0%,100%{opacity:1}50%{opacity:.35}}
-.team{perspective:1000px;}
-.agent-card{transform-style:preserve-3d;}
 .agent-card.chef .agent-nm{font-size:17px;}
 .agent-av{width:54px;height:54px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,var(--cyan-d),#0e2c48);box-shadow:0 0 16px rgba(57,214,255,.3);overflow:hidden;flex-shrink:0;}
 .agent-card.chef .agent-av{margin:0;}
@@ -2184,23 +2179,13 @@ const AGENT_PCT={dilara:70};
 function agentOffline(){ alert('Dieser Agent ist noch offline.\n\nWir bauen das System Schritt für Schritt auf, damit alles optimal läuft. Dieser Agent wird als Nächstes scharf geschaltet.'); }
 function renderTeam(){
   gl('teamGrid').innerHTML=AGENT_ORDER.map(key=>{const a=AGENTS[key];const on=!!AGENT_ONLINE[key];const pct=AGENT_PCT[key];
-    const badge=on?`<span class="agent-badge online"><span class="ab-dot"></span>Online${pct?(' · '+pct+'%'):''}</span>`:'<span class="agent-badge off"><span class="ab-dot"></span>Offline</span>';
+    const badge=on?`<span class="agent-badge online">● Online${pct?(' · '+pct+'%'):''}</span>`:'<span class="agent-badge off">● Offline</span>';
     return `<div class="agent-card${key==='mert'?' chef':''}${on?'':' offline'}" onclick="${on?`openAgent('${key}')`:'agentOffline()'}">
       ${agentAvatar(key)}
       <div class="agent-nm">${a.name}</div>
       <div class="agent-rl">${esc(a.rolle)}</div>
       ${badge}
     </div>`;}).join('');
-  attachTilt('#teamGrid .agent-card:not(.chef)');
-}
-/* 3D-Tilt-Effekt (Vorschlag 1): Karten kippen leicht zum Cursor/Finger */
-function attachTilt(sel){
-  document.querySelectorAll(sel).forEach(c=>{
-    if(c.dataset.tilt)return; c.dataset.tilt='1';
-    c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();const x=(e.clientX-r.left)/r.width;const y=(e.clientY-r.top)/r.height;
-      c.style.transform=`perspective(700px) rotateY(${(x-.5)*12}deg) rotateX(${(.5-y)*12}deg) translateY(-2px)`;});
-    c.addEventListener('pointerleave',()=>{c.style.transform='';});
-  });
 }
 let curAgent=null;
 function openAgent(key){
