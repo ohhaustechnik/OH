@@ -82,6 +82,89 @@ function oh_config_set(array $patch): void {
 }
 
 /* --------------------------------------------------------------------------
+ * Baustellen-Planer  (eigener Store: daten/baustellen.json)
+ * NUR der Nutzer schreibt (über die UI-Aktionen). Die KI-Agenten bekommen
+ * ausschliesslich eine read-only Zusammenfassung – kein Schreibpfad.
+ * ------------------------------------------------------------------------ */
+function oh_baustellen(): array {
+    $b = oh_read('baustellen', []);
+    return is_array($b) ? $b : [];
+}
+
+function oh_baustelle_save(array $data): array {
+    $list = oh_baustellen();
+    $id = trim((string)($data['id'] ?? ''));
+    $clean = [
+        'name'     => trim((string)($data['name'] ?? '')),
+        'kunde'    => trim((string)($data['kunde'] ?? '')),
+        'adresse'  => trim((string)($data['adresse'] ?? '')),
+        'wert'     => (float)($data['wert'] ?? 0),
+        'status'   => in_array(($data['status'] ?? ''), ['offen','laeuft','fertig'], true) ? $data['status'] : 'offen',
+        'deadline' => trim((string)($data['deadline'] ?? '')),
+        'material' => in_array(($data['material'] ?? ''), ['bestellen','bestellt','geliefert'], true) ? $data['material'] : 'bestellen',
+        'stand'    => trim((string)($data['stand'] ?? '')),
+        'aufgaben' => [],
+        'notizen'  => trim((string)($data['notizen'] ?? '')),
+    ];
+    foreach (($data['aufgaben'] ?? []) as $t) {
+        if (!is_array($t)) continue;
+        $txt = trim((string)($t['text'] ?? ''));
+        if ($txt !== '') $clean['aufgaben'][] = ['text' => mb_substr($txt, 0, 300), 'done' => !empty($t['done'])];
+    }
+    $saved = null;
+    if ($id !== '') {
+        foreach ($list as &$b) {
+            if (($b['id'] ?? '') === $id) {
+                $clean['id'] = $id;
+                $clean['created'] = $b['created'] ?? time();
+                $clean['updated'] = time();
+                $b = $clean; $saved = $clean; break;
+            }
+        }
+        unset($b);
+    }
+    if ($saved === null) {
+        $clean['id'] = 'B' . date('ymdHis') . substr((string)mt_rand(100, 999), 0, 3);
+        $clean['created'] = time();
+        $clean['updated'] = time();
+        array_unshift($list, $clean);
+        $saved = $clean;
+    }
+    oh_write('baustellen', $list);
+    if (function_exists('oh_log_activity')) oh_log_activity('yusuf', 'Baustelle gespeichert: ' . ($saved['name'] ?: $saved['id']));
+    return $saved;
+}
+
+function oh_baustelle_delete(string $id): bool {
+    $id = trim($id);
+    if ($id === '') return false;
+    $list = oh_baustellen();
+    $new = array_values(array_filter($list, function ($b) use ($id) { return ($b['id'] ?? '') !== $id; }));
+    oh_write('baustellen', $new);
+    return true;
+}
+
+/** Read-only Zusammenfassung der Baustellen für die KI-Agenten (Lernen, KEIN Schreiben). */
+function oh_baustellen_summary(int $max = 12): string {
+    $list = oh_baustellen();
+    if (!$list) return 'BAUSTELLEN: noch keine erfasst.';
+    $n = ['offen' => 0, 'laeuft' => 0, 'fertig' => 0]; $offenWert = 0;
+    foreach ($list as $b) {
+        $st = $b['status'] ?? 'offen'; if (isset($n[$st])) $n[$st]++;
+        if ($st !== 'fertig') $offenWert += (float)($b['wert'] ?? 0);
+    }
+    $c = "BAUSTELLEN (read-only, " . count($list) . " gesamt – offen {$n['offen']}, läuft {$n['laeuft']}, fertig {$n['fertig']}, offener Auftragswert " . number_format($offenWert, 0, ',', '.') . " €):";
+    foreach (array_slice($list, 0, $max) as $b) {
+        $next = '';
+        foreach (($b['aufgaben'] ?? []) as $t) { if (empty($t['done'])) { $next = $t['text']; break; } }
+        $c .= "\n- " . ($b['name'] ?: $b['id']) . ($b['kunde'] ? ' · ' . $b['kunde'] : '') . ' · ' . number_format((float)($b['wert'] ?? 0), 0, ',', '.') . '€ · ' . ($b['status'] ?? '')
+            . ($b['deadline'] ? ' · bis ' . $b['deadline'] : '') . ' · Material: ' . ($b['material'] ?? '')
+            . ($next ? ' · nächstes: ' . mb_substr($next, 0, 50) : '');
+    }
+    return $c;
+}
+
+/* --------------------------------------------------------------------------
  * Lead-Verwaltung
  * ------------------------------------------------------------------------ */
 
@@ -3664,6 +3747,8 @@ function oh_agent_context(string $agent): string {
         }
         $abg = array_filter($leads, function($l){ return ($l['status'] ?? '') === 'abgeschlossen'; });
         $c .= "\nAbgeschlossene Baustellen gesamt: " . count($abg) . ". Wenn der Chef sagt, eine Baustelle ist fertig, wird sie abgeschlossen und Aylin übernimmt die Schlussrechnung.";
+        // Baustellen-Planer (NUR LESEN – du darfst auswerten/lernen, niemals eintragen oder ändern):
+        $c .= "\n\n" . oh_baustellen_summary() . "\nWICHTIG: Du hast NUR Lesezugriff auf die Baustellen. Du darfst daraus lernen und Hinweise geben (Dauer, typische Aufgaben, Auftragswerte, realistische Deadlines), aber nichts anlegen, ändern oder löschen – das macht nur der Chef.";
     } elseif ($agent === 'baran') {
         $c = "DEINE AKTUELLEN DATEN (Personal):\nOffene Anfragen gesamt: " . count($offeneLeads) . " – aktuell Ein-Mann-Betrieb. Prüfe, ob die Auslastung Verstärkung nötig macht.";
     } elseif ($agent === 'mert') {

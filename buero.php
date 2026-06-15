@@ -119,6 +119,12 @@ if (isset($_POST['action']) && !empty($_SESSION['eingeloggt'])) {
         echo json_encode($r !== null ? ['ok' => true, 'agenten' => $r] : ['ok' => false, 'error' => $aerr]);
     } elseif ($a === 'agent_context') {
         echo json_encode(['ctx' => oh_agent_context($in['agent'] ?? '')]);
+    } elseif ($a === 'baustellen_get') {
+        echo json_encode(['ok' => true, 'baustellen' => oh_baustellen()]);
+    } elseif ($a === 'baustelle_save') {
+        echo json_encode(['ok' => true, 'baustelle' => oh_baustelle_save(is_array($in) ? $in : [])]);
+    } elseif ($a === 'baustelle_delete') {
+        echo json_encode(['ok' => oh_baustelle_delete((string)($in['id'] ?? ''))]);
     } elseif ($a === 'chat_load') {
         // Gespraechsgedaechtnis: gespeicherten Chat-Verlauf eines Agenten laden
         $ag = preg_replace('/[^a-z0-9_]/', '', strtolower($in['agent'] ?? ''));
@@ -1208,6 +1214,7 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
       <button class="sb-item" data-nav="leads" onclick="nav('leads')"><span class="ic">📥</span>Anfragen</button>
       <button class="sb-item" data-nav="pipeline" onclick="nav('pipeline')"><span class="ic">📊</span>Pipeline</button>
       <button class="sb-item" data-nav="termine" onclick="nav('termine')"><span class="ic">📅</span>Termine</button>
+      <button class="sb-item" data-nav="baustellen" onclick="nav('baustellen')"><span class="ic">🏗️</span>Baustellen</button>
       <button class="sb-item" data-nav="web" onclick="nav('web')"><span class="ic">🌐</span>Website</button>
       <button class="sb-item" data-nav="kalk" onclick="nav('kalk')"><span class="ic">🧮</span>Kalkulator</button>
     </div>
@@ -1376,6 +1383,112 @@ body{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
   </div>
   <div id="termineBody"><div class="prio-empty">Lade …</div></div>
   <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
+</div>
+
+<!-- YUSUF · BAUSTELLEN-PLANER -->
+<div id="s-baustellen" style="display:none">
+  <style>
+   .bau-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+   .bau-stat{background:var(--card,#142033);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 8px;text-align:center}
+   .bau-stat b{display:block;font-size:1.5rem;color:#fff;line-height:1.1}
+   .bau-stat span{font-size:.68rem;color:#9aa7b8;text-transform:uppercase;letter-spacing:.5px}
+   .bau-stat.wert b{color:#FFD400;font-size:1.15rem}
+   .bau-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+   .bau-fbtn{flex:1;min-width:68px;padding:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#cbd5e1;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+   .bau-fbtn.active{background:#2E5A8C;color:#fff;border-color:#2E5A8C}
+   .bau-card{display:flex;gap:12px;align-items:flex-start;background:var(--card,#142033);border:1px solid rgba(255,255,255,.08);border-left:5px solid #7b8aa0;border-radius:14px;padding:16px;margin-bottom:11px;cursor:pointer}
+   .bau-card.laeuft{border-left-color:#e8902a}
+   .bau-card.fertig{border-left-color:#1aa86a}
+   .bau-card h3{font-size:1.05rem;color:#fff;margin:0 0 3px}
+   .bau-card .meta{font-size:.83rem;color:#9aa7b8}
+   .bau-card .next{font-size:.9rem;color:#cbd5e1;margin-top:6px}
+   .bau-card .right{margin-left:auto;text-align:right;white-space:nowrap}
+   .bau-card .wert{font-weight:800;color:#FFD400}
+   .bau-dl{font-size:.8rem;color:#9aa7b8;margin-top:4px}
+   .bau-dl.rot{color:#ff5b5b;font-weight:700}
+   .bau-pill{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+   .bau-pill.offen{background:rgba(123,138,160,.22);color:#cbd5e1}
+   .bau-pill.laeuft{background:rgba(232,144,42,.22);color:#e8902a}
+   .bau-pill.fertig{background:rgba(26,168,106,.22);color:#1aa86a}
+   .bau-fab{position:fixed;right:18px;bottom:18px;z-index:60;width:62px;height:62px;border-radius:50%;border:none;background:#FFD400;color:#1a2436;font-size:2.1rem;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.45);cursor:pointer;line-height:1}
+   .bau-field{margin-bottom:13px}
+   .bau-field label{display:block;font-size:.82rem;color:#9aa7b8;margin-bottom:5px;font-weight:600}
+   .bau-field input,.bau-field textarea{width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;border-radius:11px;font:inherit}
+   .bau-seg{display:flex;gap:6px}
+   .bau-seg button{flex:1;padding:12px 6px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#cbd5e1;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;font-size:.85rem}
+   .bau-seg button.on-offen{background:#7b8aa0;color:#fff;border-color:#7b8aa0}
+   .bau-seg button.on-laeuft{background:#e8902a;color:#fff;border-color:#e8902a}
+   .bau-seg button.on-fertig{background:#1aa86a;color:#fff;border-color:#1aa86a}
+   .bau-seg button.on-mat{background:#2E5A8C;color:#fff;border-color:#2E5A8C}
+   .bau-task{display:flex;align-items:center;gap:10px;padding:11px;background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:7px}
+   .bau-task input[type=checkbox]{width:24px;height:24px;flex-shrink:0;accent-color:#1aa86a}
+   .bau-task span{flex:1;color:#e5e7eb}
+   .bau-task span.done{text-decoration:line-through;color:#7b8aa0}
+   .bau-task .del{background:none;border:none;color:#ff5b5b;font-size:1.2rem;cursor:pointer;padding:4px 8px}
+   .btn.bau-save{background:#1aa86a;color:#fff} .btn.bau-del{background:transparent;border:1px solid #ff5b5b;color:#ff5b5b}
+   @media(max-width:560px){.bau-stats{grid-template-columns:repeat(2,1fr)}}
+  </style>
+
+  <div id="bauList">
+    <div class="card"><h2>&#127959;&#65039; Baustellen</h2><p class="intro">Alle Baustellen im Überblick – Stand, Deadline, was als Nächstes ansteht.</p></div>
+    <div class="bau-stats">
+      <div class="bau-stat"><b id="bauStOffen">0</b><span>Offen</span></div>
+      <div class="bau-stat"><b id="bauStLaeuft">0</b><span>Läuft</span></div>
+      <div class="bau-stat"><b id="bauStFertig">0</b><span>Fertig</span></div>
+      <div class="bau-stat wert"><b id="bauStWert">0 €</b><span>Offener Wert</span></div>
+    </div>
+    <div class="bau-filter">
+      <button class="bau-fbtn active" data-f="alle" onclick="bauSetFilter('alle',this)">Alle</button>
+      <button class="bau-fbtn" data-f="offen" onclick="bauSetFilter('offen',this)">Offen</button>
+      <button class="bau-fbtn" data-f="laeuft" onclick="bauSetFilter('laeuft',this)">Läuft</button>
+      <button class="bau-fbtn" data-f="fertig" onclick="bauSetFilter('fertig',this)">Fertig</button>
+    </div>
+    <div id="bauListBody"><div class="prio-empty">Lade …</div></div>
+    <button class="zurueck" onclick="goBack()">&larr; Zurück</button>
+    <button class="bau-fab" onclick="bauNew()" title="Neue Baustelle">+</button>
+  </div>
+
+  <div id="bauDetail" style="display:none">
+    <div class="card">
+      <button class="zurueck" style="margin:0 0 12px" onclick="bauBackToList()">&larr; Übersicht</button>
+      <div class="bau-field"><label>Name der Baustelle</label><input type="text" id="bdName" placeholder="z. B. Sanierung Müllerstr. 5" onchange="bauAutoSave()"></div>
+      <div class="bau-field"><label>Kunde</label><input type="text" id="bdKunde" placeholder="Name des Kunden" onchange="bauAutoSave()"></div>
+      <div class="bau-field"><label>Adresse</label><input type="text" id="bdAdresse" placeholder="Straße, Ort" onchange="bauAutoSave()"></div>
+      <div class="bau-field"><label>Auftragswert (€)</label><input type="number" id="bdWert" inputmode="decimal" placeholder="0" onchange="bauAutoSave()"></div>
+      <div class="bau-field"><label>Deadline (fertig bis)</label><input type="date" id="bdDeadline" onchange="bauAutoSave()"></div>
+      <div class="bau-field"><label>Status</label>
+        <div class="bau-seg" id="bdStatus">
+          <button type="button" data-v="offen" onclick="bauPick('status','offen')">Offen</button>
+          <button type="button" data-v="laeuft" onclick="bauPick('status','laeuft')">Läuft</button>
+          <button type="button" data-v="fertig" onclick="bauPick('status','fertig')">Fertig</button>
+        </div>
+      </div>
+      <div class="bau-field"><label>Material</label>
+        <div class="bau-seg" id="bdMaterial">
+          <button type="button" data-v="bestellen" onclick="bauPick('material','bestellen')">Noch bestellen</button>
+          <button type="button" data-v="bestellt" onclick="bauPick('material','bestellt')">Bestellt</button>
+          <button type="button" data-v="geliefert" onclick="bauPick('material','geliefert')">Geliefert</button>
+        </div>
+      </div>
+      <div class="bau-field" style="margin:0"><label>Aktueller Stand</label><textarea id="bdStand" rows="3" placeholder="Wo steht die Baustelle gerade?" onchange="bauAutoSave()"></textarea></div>
+    </div>
+    <div class="card">
+      <h2>&#9989; Als Nächstes zu tun</h2>
+      <div id="bdTasks"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="bdNewTask" placeholder="Neue Aufgabe …" onkeydown="if(event.key==='Enter')bauAddTask()" style="flex:1;padding:13px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;border-radius:10px;font:inherit">
+        <button class="btn btn-cyan" onclick="bauAddTask()">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="bau-field" style="margin:0"><label>Notizen</label><textarea id="bdNotizen" rows="3" placeholder="Notizen …" onchange="bauAutoSave()"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:18px">
+      <button class="btn bau-save" style="flex:1" onclick="bauSaveNow()">💾 Speichern</button>
+      <button class="btn bau-del" onclick="bauDelete()">🗑 Löschen</button>
+    </div>
+    <div id="bdMsg" class="msg-ok" style="text-align:center;min-height:18px"></div>
+  </div>
 </div>
 
 <!-- DILARA · WEBSITE -->
@@ -2199,7 +2312,7 @@ let curSection='home', navHist=[];
 let chatReco=null; // aktuell im Chat besprochene Empfehlung (id + kind 'ads'/'web')
 function showSection(s,track){
   if(track!==false&&curSection&&curSection!==s){navHist.push(curSection);if(navHist.length>12)navHist.shift();}
-  ['home','settings','chat','ads','adsplan','termine','leads','pipeline','agent','web','archiv'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
+  ['home','settings','chat','ads','adsplan','termine','leads','pipeline','agent','web','archiv','baustellen'].forEach(id=>{const el=gl('s-'+id);if(el)el.style.display='none';});
   gl('s-'+s).style.display=(s==='chat')?'flex':'block';
   document.body.classList.toggle('chat-mode',s==='chat');
   curSection=s;
@@ -2217,6 +2330,7 @@ function refreshSection(s){
   else if(s==='leads'){if(typeof loadLeads==='function')loadLeads();}
   else if(s==='pipeline'){if(typeof loadPipeline==='function')loadPipeline();}
   else if(s==='web'){if(typeof loadWeb==='function')loadWeb();}
+  else if(s==='baustellen'){if(typeof bauBackToList==='function')bauBackToList();if(typeof bauLoad==='function')bauLoad();}
   else if(s==='home'){if(typeof loadDashboard==='function')loadDashboard();}
 }
 /* Ein Schritt zurück (Tab/Kontext bleibt erhalten) – statt immer zum Dashboard */
@@ -2242,6 +2356,7 @@ function nav(id){
     case 'leads': openLeads(); break;
     case 'pipeline': openPipeline(); break;
     case 'termine': openTermine(); break;
+    case 'baustellen': openBaustellen(); break;
     case 'kalk': openChat('emre'); break;
     case 'lex': openAgent('aylin'); break;
     case 'team': goHome(); setTimeout(()=>{const t=gl('teamGrid'); if(t)t.scrollIntoView({behavior:'smooth',block:'start'});},150); break;
@@ -2484,6 +2599,88 @@ async function toggleAdsPlan(id,done){
 
 /* --- Terminverwaltung --- */
 function openTermine(){showSection('termine');}
+
+/* ===================== BAUSTELLEN-PLANER ===================== */
+let bauData=[], bauFilter='alle', bauCurrent=null, bauSaveTimer=null;
+function openBaustellen(){ showSection('baustellen'); bauBackToList(); bauLoad(); }
+async function bauLoad(){
+  try{ const d=await api('baustellen_get'); bauData=(d&&d.baustellen)||[]; }catch(e){ bauData=[]; }
+  bauRender();
+}
+function bauFmtDate(d){ if(!d)return''; const p=String(d).split('-'); return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:d; }
+function bauDaysLeft(dl){ if(!dl)return null; const d=new Date(dl+'T00:00:00'); const n=new Date(); n.setHours(0,0,0,0); return Math.round((d-n)/86400000); }
+function bauSetFilter(f,btn){ bauFilter=f; document.querySelectorAll('.bau-fbtn').forEach(b=>b.classList.remove('active')); if(btn)btn.classList.add('active'); bauRender(); }
+function bauRender(){
+  const off=bauData.filter(b=>b.status==='offen').length, lau=bauData.filter(b=>b.status==='laeuft').length, fer=bauData.filter(b=>b.status==='fertig').length;
+  const wert=bauData.filter(b=>b.status!=='fertig').reduce((s,b)=>s+(parseFloat(b.wert)||0),0);
+  gl('bauStOffen').textContent=off; gl('bauStLaeuft').textContent=lau; gl('bauStFertig').textContent=fer;
+  gl('bauStWert').textContent=wert.toLocaleString('de-DE')+' €';
+  let list=bauData.slice(); if(bauFilter!=='alle') list=list.filter(b=>b.status===bauFilter);
+  const rank={laeuft:0,offen:1,fertig:2};
+  list.sort((a,b)=>{ const r=(rank[a.status]??3)-(rank[b.status]??3); if(r)return r; const da=a.deadline||'9999', db=b.deadline||'9999'; return da<db?-1:da>db?1:0; });
+  const body=gl('bauListBody');
+  if(!list.length){ body.innerHTML='<div class="prio-empty">Keine Baustellen. Tippe unten auf <b>+</b> für eine neue.</div>'; return; }
+  body.innerHTML=list.map(b=>{
+    const next=(b.aufgaben||[]).find(t=>!t.done);
+    const dl=bauDaysLeft(b.deadline);
+    let dlH='';
+    if(b.deadline){ const rot=(b.status!=='fertig'&&dl!==null&&dl<7); const suf=(dl!==null&&b.status!=='fertig')?(dl<0?' · überfällig!':dl===0?' · heute!':' · '+dl+' Tage'):''; dlH='<div class="bau-dl'+(rot?' rot':'')+'">📅 '+bauFmtDate(b.deadline)+suf+'</div>'; }
+    const stL={offen:'Offen',laeuft:'Läuft',fertig:'Fertig'}[b.status]||'Offen';
+    return '<div class="bau-card '+(b.status||'offen')+'" onclick="bauOpen(\''+b.id+'\')">'
+      +'<div style="flex:1;min-width:0"><h3>'+esc(b.name||'(ohne Name)')+'</h3>'
+      +'<div class="meta">'+(b.kunde?esc(b.kunde):'')+(b.adresse?' · '+esc(b.adresse):'')+'</div>'
+      +(next?'<div class="next">➡️ '+esc(next.text)+'</div>':'')+'</div>'
+      +'<div class="right"><span class="bau-pill '+(b.status||'offen')+'">'+stL+'</span>'
+      +(b.wert?'<div class="wert" style="margin-top:6px">'+(parseFloat(b.wert)||0).toLocaleString('de-DE')+' €</div>':'')+dlH+'</div></div>';
+  }).join('');
+}
+function bauBackToList(){ gl('bauDetail').style.display='none'; gl('bauList').style.display='block'; }
+function bauNew(){ bauCurrent={id:'',name:'',kunde:'',adresse:'',wert:'',status:'offen',deadline:'',material:'bestellen',stand:'',aufgaben:[],notizen:''}; bauFillDetail(); gl('bauList').style.display='none'; gl('bauDetail').style.display='block'; gl('bdMsg').textContent=''; window.scrollTo({top:0}); }
+function bauOpen(id){ const b=bauData.find(x=>x.id===id); if(!b)return; bauCurrent=JSON.parse(JSON.stringify(b)); if(!bauCurrent.aufgaben)bauCurrent.aufgaben=[]; bauFillDetail(); gl('bauList').style.display='none'; gl('bauDetail').style.display='block'; gl('bdMsg').textContent=''; window.scrollTo({top:0}); }
+function bauFillDetail(){
+  const b=bauCurrent;
+  gl('bdName').value=b.name||''; gl('bdKunde').value=b.kunde||''; gl('bdAdresse').value=b.adresse||'';
+  gl('bdWert').value=b.wert||''; gl('bdDeadline').value=b.deadline||''; gl('bdStand').value=b.stand||''; gl('bdNotizen').value=b.notizen||'';
+  bauPickUI('status',b.status||'offen'); bauPickUI('material',b.material||'bestellen'); bauRenderTasks();
+}
+function bauPickUI(field,val){
+  const wrap=gl(field==='status'?'bdStatus':'bdMaterial');
+  wrap.querySelectorAll('button').forEach(btn=>{ btn.className=''; if(btn.dataset.v===val) btn.classList.add(field==='material'?'on-mat':('on-'+val)); });
+}
+function bauPick(field,val){ bauCurrent[field]=val; bauPickUI(field,val); bauAutoSave(); }
+function bauRenderTasks(){
+  const el=gl('bdTasks'); const ts=bauCurrent.aufgaben||[];
+  el.innerHTML=ts.length?ts.map((t,i)=>'<div class="bau-task"><input type="checkbox" '+(t.done?'checked':'')+' onchange="bauToggleTask('+i+')"><span class="'+(t.done?'done':'')+'">'+esc(t.text)+'</span><button class="del" onclick="bauDelTask('+i+')">✕</button></div>').join(''):'<div class="prio-empty" style="margin:4px 0">Noch keine Aufgaben.</div>';
+}
+function bauAddTask(){ const inp=gl('bdNewTask'); const v=inp.value.trim(); if(!v)return; bauCurrent.aufgaben=bauCurrent.aufgaben||[]; bauCurrent.aufgaben.push({text:v,done:false}); inp.value=''; bauRenderTasks(); bauAutoSave(); }
+function bauToggleTask(i){ bauCurrent.aufgaben[i].done=!bauCurrent.aufgaben[i].done; bauRenderTasks(); bauAutoSave(); }
+function bauDelTask(i){ bauCurrent.aufgaben.splice(i,1); bauRenderTasks(); bauAutoSave(); }
+function bauCollect(){
+  bauCurrent.name=gl('bdName').value.trim(); bauCurrent.kunde=gl('bdKunde').value.trim(); bauCurrent.adresse=gl('bdAdresse').value.trim();
+  bauCurrent.wert=parseFloat(gl('bdWert').value)||0; bauCurrent.deadline=gl('bdDeadline').value; bauCurrent.stand=gl('bdStand').value.trim(); bauCurrent.notizen=gl('bdNotizen').value.trim();
+  return bauCurrent;
+}
+async function bauPersist(){
+  if(!bauCurrent)return;
+  const payload=bauCollect();
+  try{
+    const d=await api('baustelle_save',payload);
+    if(d&&d.baustelle){
+      bauCurrent.id=d.baustelle.id;
+      const i=bauData.findIndex(x=>x.id===d.baustelle.id);
+      if(i>=0)bauData[i]=d.baustelle; else bauData.unshift(d.baustelle);
+      const m=gl('bdMsg'); if(m){ m.textContent='✓ gespeichert'; setTimeout(()=>{const mm=gl('bdMsg'); if(mm&&mm.textContent==='✓ gespeichert')mm.textContent='';},1500); }
+    }
+  }catch(e){ const m=gl('bdMsg'); if(m)m.textContent='Fehler beim Speichern'; }
+}
+function bauAutoSave(){ clearTimeout(bauSaveTimer); bauSaveTimer=setTimeout(bauPersist,500); }
+function bauSaveNow(){ clearTimeout(bauSaveTimer); bauPersist(); }
+async function bauDelete(){
+  if(!bauCurrent||!bauCurrent.id){ bauBackToList(); return; }
+  if(!confirm('Diese Baustelle wirklich löschen?'))return;
+  try{ await api('baustelle_delete',{id:bauCurrent.id}); }catch(e){}
+  bauData=bauData.filter(x=>x.id!==bauCurrent.id); bauCurrent=null; bauBackToList(); bauRender();
+}
 function tmLabel(d){
   try{const dt=new Date(d+'T00:00:00');const wt=['So','Mo','Di','Mi','Do','Fr','Sa'][dt.getDay()];const p=n=>String(n).padStart(2,'0');
     return wt+', '+p(dt.getDate())+'.'+p(dt.getMonth()+1)+'.'+dt.getFullYear();}catch(e){return d;}
