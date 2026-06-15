@@ -111,68 +111,88 @@ a{color:inherit;text-decoration:none}
   </div>
 </div></section>
 
-<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}</script>
 <script type="module">
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const canvas = document.getElementById('scene');
 if (!reduce && canvas){ try {
   const THREE = await import('three');
+  const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
+  const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
+  const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
+  const { UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js');
+  const { OutputPass } = await import('three/addons/postprocessing/OutputPass.js');
   const mobile = innerWidth < 760;
   const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true, powerPreference:'high-performance'});
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));            // scharf ("4K")
+  renderer.setPixelRatio(Math.min(devicePixelRatio, mobile?1.5:2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
   const scene = new THREE.Scene();
-  const cam = new THREE.PerspectiveCamera(45, 1, .1, 100); cam.position.set(0,0,7);
-  const bulb = new THREE.Group(); bulb.position.x = mobile?0:1.4; scene.add(bulb);
+  const cam = new THREE.PerspectiveCamera(42, 1, .1, 100); cam.position.set(0,0,7.4);
+  // Echte Umgebung -> realistische Reflexionen/Brechung auf Glas & Metall
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+  const bulb = new THREE.Group(); bulb.position.x = mobile?0:1.5; scene.add(bulb);
 
-  // Glas-Kolben (klassische Glühbirnen-Silhouette via Lathe)
-  const prof = [[0.02,1.7],[0.5,1.62],[0.92,1.32],[1.18,0.85],[1.27,0.25],[1.18,-0.3],[0.82,-0.7],[0.52,-0.95],[0.44,-1.15]]
+  // --- Glas-Kolben (echtes Glas: Transmission + IOR + Environment) ---
+  const prof = [[0.02,1.72],[0.46,1.66],[0.9,1.36],[1.16,0.86],[1.27,0.26],[1.18,-0.3],[0.8,-0.72],[0.5,-0.96],[0.44,-1.16]]
     .map(p=>new THREE.Vector2(p[0],p[1]));
-  const glassGeo = new THREE.LatheGeometry(prof, 80);
-  const glassMat = new THREE.MeshPhysicalMaterial({color:0x9fc0ff,roughness:.08,metalness:0,transparent:true,opacity:.16,transmission:.5,thickness:.6,emissive:0xfff4d6,emissiveIntensity:.0,clearcoat:1,side:THREE.DoubleSide});
-  bulb.add(new THREE.Mesh(glassGeo, glassMat));
+  const glassMat = new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:.05,transmission:1,ior:1.46,
+    thickness:.45,transparent:true,opacity:1,envMapIntensity:1.35,emissive:0xffc24d,emissiveIntensity:0,side:THREE.DoubleSide});
+  bulb.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 96), glassMat));
 
-  // Glühfaden (leuchtender Kern)
-  const fil = new THREE.Mesh(new THREE.TorusKnotGeometry(0.24,0.035,90,14,2,3), new THREE.MeshBasicMaterial({color:0xfff0c4}));
-  fil.position.y=.35; bulb.add(fil);
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32), new THREE.MeshBasicMaterial({color:0xfff6e0,transparent:true,opacity:.5,blending:THREE.AdditiveBlending}));
-  core.position.y=.35; bulb.add(core);
+  // --- Glühwendel (echte gewickelte Wolfram-Spirale) ---
+  const fp=[]; const turns=20, fl=0.92, fr=0.05;
+  for(let i=0;i<=turns*12;i++){const u=i/(turns*12),a=u*turns*Math.PI*2;fp.push(new THREE.Vector3(-fl/2+u*fl,0.33+Math.sin(a)*fr,Math.cos(a)*fr));}
+  const filGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(fp),280,0.014,8,false);
+  const filMat = new THREE.MeshStandardMaterial({color:0xffb14d,emissive:0xff9320,emissiveIntensity:2.6,roughness:.5,metalness:.5});
+  const fil = new THREE.Mesh(filGeo, filMat); bulb.add(fil);
+  // Halte-Drähte + Glas-Stiel innen
+  const wireMat = new THREE.MeshStandardMaterial({color:0x767d8c,metalness:1,roughness:.4,envMapIntensity:1});
+  [-fl/2,fl/2].forEach(x=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(0.013,0.013,0.72,8),wireMat);w.position.set(x,-0.03,0);bulb.add(w);});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.16,0.62,20),new THREE.MeshPhysicalMaterial({color:0xffffff,transmission:.85,roughness:.18,ior:1.46,transparent:true,opacity:1,envMapIntensity:1}));
+  stem.position.y=-0.6; bulb.add(stem);
 
-  // Sockel (metallisches Gewinde)
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.5,0.8,40), new THREE.MeshStandardMaterial({color:0x9aa6bd,metalness:.95,roughness:.35}));
-  base.position.y=-1.55; bulb.add(base);
-  for(let i=0;i<4;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(0.46,0.04,12,40),new THREE.MeshStandardMaterial({color:0x808ca6,metalness:1,roughness:.4}));r.rotation.x=Math.PI/2;r.position.y=-1.25-i*0.18;bulb.add(r);}
+  // --- Edison-Sockel (Metallgewinde) ---
+  const metalMat=new THREE.MeshStandardMaterial({color:0xbfc5d0,metalness:1,roughness:.3,envMapIntensity:1.4});
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.48,0.66,48),metalMat); base.position.y=-1.5; bulb.add(base);
+  for(let i=0;i<5;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(0.45,0.035,16,48),metalMat);r.rotation.x=Math.PI/2;r.position.y=-1.18-i*0.155;bulb.add(r);}
+  const ins=new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.34,0.2,32),new THREE.MeshStandardMaterial({color:0x10141c,roughness:.6})); ins.position.y=-1.95; bulb.add(ins);
+  const tip=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,0.09,24),metalMat); tip.position.y=-2.07; bulb.add(tip);
 
-  // Glühen-Sprite hinter der Birne
-  function glowTex(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');const g=x.createRadialGradient(128,128,0,128,128,128);g.addColorStop(0,'rgba(255,245,220,1)');g.addColorStop(.25,'rgba(190,215,255,.55)');g.addColorStop(1,'rgba(190,215,255,0)');x.fillStyle=g;x.fillRect(0,0,256,256);return new THREE.CanvasTexture(c);}
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
-  glow.scale.set(7,7,1); glow.position.y=.35; bulb.add(glow);
+  // weicher Schein hinter der Birne
+  function glowTex(){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');const g=x.createRadialGradient(128,128,0,128,128,128);g.addColorStop(0,'rgba(255,240,205,.9)');g.addColorStop(.3,'rgba(200,220,255,.4)');g.addColorStop(1,'rgba(200,220,255,0)');x.fillStyle=g;x.fillRect(0,0,256,256);return new THREE.CanvasTexture(c);}
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); glow.scale.set(6,6,1); glow.position.y=.33; bulb.add(glow);
 
-  // Licht + Grundbeleuchtung
-  const light = new THREE.PointLight(0xfff2cc, 2, 60); light.position.set(0,.4,0); bulb.add(light);
-  scene.add(new THREE.AmbientLight(0x24406e, .9));
-  const key = new THREE.DirectionalLight(0xbcd4ff,.5); key.position.set(-3,2,4); scene.add(key);
+  const light=new THREE.PointLight(0xfff0c4,2,60); light.position.set(0,.33,0); bulb.add(light);
+  scene.add(new THREE.AmbientLight(0x2a4a78,.5));
+  const key=new THREE.DirectionalLight(0xbcd4ff,.35); key.position.set(-4,3,5); scene.add(key);
+
+  // --- Bloom (lässt den Glühwendel echt leuchten) ---
+  const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,cam));
+  const bloom=new UnrealBloomPass(new THREE.Vector2(1,1), mobile?.7:.95, .55, .15); composer.addPass(bloom);
+  composer.addPass(new OutputPass());
 
   let mx=0,my=0; addEventListener('pointermove',e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5;});
-  function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+  function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);composer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();}
   addEventListener('resize',resize); resize();
-  const root=document.documentElement; let run=true, f=1, t=0;
-  document.addEventListener('visibilitychange',()=>{run=!document.hidden;});
+  const root=document.documentElement; let run=true,f=1,t=0; document.addEventListener('visibilitychange',()=>run=!document.hidden);
   function tick(){requestAnimationFrame(tick); if(!run)return; t+=.016;
-    // Flackern/Glimmern: ruhiges Glimmen + gelegentliche Aussetzer (an/aus)
-    let g = .8 + Math.sin(t*7)*.05 + Math.sin(t*23)*.03 + (Math.random()-.5)*.04;
-    if (Math.random() < .010) g *= .15;          // kurzer Aussetzer
-    if (Math.random() < .006) g = Math.min(1.25, g*1.6); // heller Blitz
-    f += (g - f)*.5;
-    fil.material.color.setRGB(1, .85+ f*.12, .55+f*.25);
-    core.material.opacity = .25 + f*.55;
-    glassMat.emissiveIntensity = f*.7;
-    light.intensity = f*2.4; glow.material.opacity = .25 + f*.6;
-    root.style.setProperty('--glow', (0.08 + f*.32).toFixed(3));
-    bulb.rotation.y = mx*.5 + t*.05; bulb.rotation.x = my*.25; bulb.position.y = Math.sin(t*.8)*.08;
-    renderer.render(scene,cam);
+    // Flackern: STÄRKER im Licht, gleiche Geschwindigkeit (Frequenzen unverändert)
+    let g=.74+Math.sin(t*7)*.08+Math.sin(t*23)*.06+(Math.random()-.5)*.07;
+    if(Math.random()<.013)g*=.05;            // tiefe Aussetzer (fast aus)
+    if(Math.random()<.008)g=Math.min(1.6,g*2.0); // helle Blitze
+    f+=(g-f)*.5;
+    filMat.emissiveIntensity=.4+f*4.2; filMat.color.setRGB(1,.78+f*.18,.45+f*.3);
+    glassMat.emissiveIntensity=f*.22; light.intensity=f*4.6; glow.material.opacity=.16+f*.7; bloom.strength=(mobile?.5:.7)+f*.8;
+    root.style.setProperty('--glow',(0.1+f*.5).toFixed(3));
+    bulb.rotation.y=mx*.5+t*.05; bulb.rotation.x=my*.22; bulb.position.y=(mobile?0:Math.sin(t*.8)*.07);
+    composer.render();
   }
   tick();
-} catch(e){ document.querySelector('.hero-fallback').style.display='block'; canvas.style.display='none'; document.documentElement.style.setProperty('--glow','.28'); } }
+} catch(e){ document.querySelector('.hero-fallback').style.display='block'; canvas.style.display='none'; document.documentElement.style.setProperty('--glow','.3'); } }
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
