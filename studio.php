@@ -1,4 +1,4 @@
-<?php /* OH Büro – Cockpit-Vorschau (NEU, fliessender Analytics-Look). Beispieldaten, NICHT Live-Büro. */ ?>
+<?php header('X-Robots-Tag: noindex, nofollow, noarchive'); /* OH Büro – Cockpit-Vorschau (NEU). Beispieldaten, NICHT Live-Büro. Fuer Suchmaschinen gesperrt. */ ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
