@@ -6,6 +6,8 @@ Disallow: /lernkatalog-gp2-x7k9/
 Disallow: /buero.php
 Disallow: /studio.php
 Disallow: /design-lab.php
+Disallow: /kabelliste.php
+Disallow: /weihs/
 Disallow: /buero-neu/
 Disallow: /buero-cron.php
 Disallow: /buerocron.php
