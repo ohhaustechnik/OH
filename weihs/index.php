@@ -69,6 +69,13 @@ $TYP = [
   'TN'   =>['Tree-Bus-Komponente', true],
 ];
 function typname($t, $TYP){ return $TYP[$t] ?? [$t, false]; }
+// Bauteil-Bezeichnung (Code wie auf dem Plan, z.B. S00.02.05) fuer JEDES Bauteil
+function bauteilcode($c){
+  $aa=['-01'=>'01','00'=>'00','01'=>'01','02'=>'02','03'=>'03'];
+  $code=$c['typ'].($aa[$c['etage']] ?? '00').'.'.sprintf('%02d',(int)$c['raum']);
+  if(trim((string)$c['nr'])!=='') $code.='.'.$c['nr'];
+  return $code;
+}
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
@@ -130,7 +137,8 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 .typ-full{ font-weight:800; font-size:12px; line-height:1.2; }
 .typ-full.uncertain{ color:#9a6b00; }
 .typ-full span[title]{ cursor:help; }
-.bez-sub{ margin-top:3px; font-weight:600; font-size:10.5px; color:var(--muted); white-space:nowrap; }
+.bez-sub{ margin-top:4px; }
+.code-pill{ display:inline-block; font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:800; font-size:11px; background:#13142a; color:#fff; border-radius:5px; padding:2px 7px; letter-spacing:.3px; }
 .typ-pill{ display:inline-block; min-width:22px; text-align:center; background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:1px 5px; font-weight:800; font-size:10.5px; color:var(--ink); }
 /* Legende */
 .legend{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:22px; }
@@ -335,7 +343,7 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
                     <td rowspan="<?= $n ?>" class="col-chk"><input type="checkbox" class="chk" data-cid="<?= h($cid) ?>"></td>
                     <td rowspan="<?= $n ?>" class="cell-bez"><?php $tn=typname($c['typ'],$TYP); ?>
                       <div class="typ-full<?= $tn[1]?' uncertain':'' ?>"><?= h($tn[0]) ?><?= $tn[1]?' <span title="Genaue Tree-Bus-Gerätebezeichnung noch zu klären">⚠</span>':'' ?></div>
-                      <div class="bez-sub"><span class="typ-pill"><?= h($c['typ']) ?></span> Nr.&nbsp;<?= h($c['nr']) ?></div>
+                      <div class="bez-sub"><span class="code-pill"><?= h(bauteilcode($c)) ?></span></div>
                     </td>
                     <td rowspan="<?= $n ?>">
                       <div class="bauteil"><?= h($c['desc'])!==''? h($c['desc']) : '<span class="empty">–</span>' ?></div>

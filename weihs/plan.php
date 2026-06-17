@@ -5,6 +5,8 @@ function h($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 $FLOORAA=['-01'=>'01','00'=>'00','01'=>'01','02'=>'02','03'=>'03'];
 function owncode($c){ global $FLOORAA; return $c['typ'].'-'.$FLOORAA[$c['etage']].'.'.sprintf('%02d',(int)$c['raum']).'.'.$c['nr']; }
+// Anzeige-Code wie auf dem Plan (z.B. S00.02.05) – fuer JEDES Bauteil
+function plancode($c){ global $FLOORAA; $code=$c['typ'].($FLOORAA[$c['etage']]??'00').'.'.sprintf('%02d',(int)$c['raum']); if(trim((string)$c['nr'])!=='') $code.='.'.$c['nr']; return $code; }
 
 // Schaltzeichen (vereinfachte SVG, an Plan angelehnt)
 function sym($typ){
@@ -124,9 +126,9 @@ svg#wires{ position:absolute; inset:0; width:100%; height:100%; pointer-events:n
                data-adern="<?= h($c['anzahl']) ?>"
                data-vonroom="<?= h($c['endp']['von']['room'] ?? '') ?>" data-voncode="<?= h(($c['endp']['von']['code'] ?? '')!=='—'?($c['endp']['von']['code']??''):'') ?>"
                data-nachroom="<?= h($c['endp']['nach']['room'] ?? $r['name']) ?>" data-nachcode="<?= h(($c['endp']['nach']['code'] ?? '')!=='—'?($c['endp']['nach']['code']??''):'') ?>"
-               data-treeflag="<?= $istree?1:0 ?>">
+               data-disp="<?= h(plancode($c)) ?>" data-treeflag="<?= $istree?1:0 ?>">
             <?= sym($c['typ']) ?>
-            <span class="lab"><b><?= h($c['typ']) ?> <?= h($c['nr']) ?></b><span class="cd"><?= $istree?h($oc):h($short) ?></span></span>
+            <span class="lab"><b><?= h(plancode($c)) ?></b><span class="cd"><?= h($short) ?></span></span>
           </div>
         <?php } ?>
         </div>
@@ -186,20 +188,20 @@ function select(chip){
   clearSel();
   chip.classList.add('sel');
   const info=document.getElementById('info');
+  const nd=s=>(s||'').replace('-','');
   document.getElementById('iSym').innerHTML=chip.querySelector('svg').outerHTML;
-  document.getElementById('iName').textContent=chip.dataset.name;
-  document.getElementById('iMeta').textContent=`${chip.dataset.typ} · ${chip.dataset.kabel||'—'} · ${chip.dataset.adern||''} Adern`;
+  document.getElementById('iName').textContent=chip.dataset.disp;
+  document.getElementById('iMeta').textContent=`${chip.dataset.name} · ${chip.dataset.typ} · ${chip.dataset.kabel||'—'} · ${chip.dataset.adern||''} Adern`;
   const vonRoom=chip.dataset.vonroom, vonCode=chip.dataset.voncode;
   const nachRoom=chip.dataset.nachroom, nachCode=chip.dataset.nachcode;
   if(chip.dataset.treeflag==='1'){
     document.getElementById('iVonRoom').textContent=vonRoom||'Verteilung';
-    document.getElementById('iVonCode').textContent=vonCode||'';
+    document.getElementById('iVonCode').textContent=nd(vonCode);
     document.getElementById('iNachRoom').textContent=nachRoom;
-    document.getElementById('iNachCode').textContent=nachCode||'';
+    document.getElementById('iNachCode').textContent=nd(nachCode);
   }else{
-    document.getElementById('iVonRoom').textContent=chip.dataset.room? nachRoom:'';
     document.getElementById('iVonRoom').textContent=nachRoom;
-    document.getElementById('iVonCode').textContent='';
+    document.getElementById('iVonCode').textContent=chip.dataset.disp;
     document.getElementById('iNachRoom').textContent='Verteilung / Technik (KG)';
     document.getElementById('iNachCode').textContent='Stromkreis';
   }
