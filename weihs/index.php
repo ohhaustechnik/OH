@@ -64,8 +64,8 @@ $TYP = [
   'Pa'   =>['Tree-Bus-Komponente', true],
   'Pe'   =>['Tree-Bus-Komponente', true],
   'TP'   =>['Touch Pure (Tree)', false],
-  'TtA'  =>['Tree-Bus-Komponente', true],
-  'Tta'  =>['Tree-Bus-Komponente', true],
+  'TtA'  =>['Tree-to-Air-Bridge (Tree)', false],
+  'Tta'  =>['Tree-to-Air-Bridge (Tree)', false],
   'TN'   =>['Tree-Bus-Komponente', true],
 ];
 function typname($t, $TYP){ return $TYP[$t] ?? [$t, false]; }
@@ -295,7 +295,7 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
       <div class="row"><span class="k"><?= h($k) ?></span><span class="<?= $v[1]?'u':'' ?>"><?= h($v[0]) ?><?= $v[1]?' ⚠':'' ?></span></div>
     <?php endforeach; ?>
     </div>
-    <div class="hint">⚠ = Tree-Bus-Komponente: das CAT7-Kabel des Loxone-Tree-Bus. Bestätigt aus der Plan-Legende: <b>TP = Touch Pure (Tree)</b>. Noch offen (PR, T, Pa, Pe, TtA, TN) – Symbole sind auf den Plänen, aber ohne Buchstaben-Zuordnung; bitte vom Planer ergänzen.</div>
+    <div class="hint">⚠ = Tree-Bus-Komponente: das CAT7-Kabel des Loxone-Tree-Bus. Aus der Plan-Legende bestätigt: <b>TP = Touch Pure</b>, <b>TtA = Tree-to-Air-Bridge</b>. Noch zu bestätigen (PR, T, Pa, Pe, TN) – starke Hinweise vom Plan (z.&nbsp;B. Pe = Präsenzmelder, T = Touch, TN = Nano Relay), final bitte vom Planer.</div>
   </div>
 
 <?php if(!$data): ?>

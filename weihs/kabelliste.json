@@ -6443,7 +6443,7 @@
    "etage": "01",
    "floor": "1. OG",
    "raum": "02",
-   "name": "Treppenhaus / Galerie 1. OG",
+   "name": "TH DG (Treppenhaus DG)",
    "cables": [
     {
      "page": 20,
@@ -6481,7 +6481,7 @@
        "note": ""
       }
      ],
-     "raumname": "Treppenhaus / Galerie 1. OG",
+     "raumname": "TH DG (Treppenhaus DG)",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -6512,7 +6512,7 @@
        "note": ""
       }
      ],
-     "raumname": "Treppenhaus / Galerie 1. OG",
+     "raumname": "TH DG (Treppenhaus DG)",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -6583,7 +6583,7 @@
        "note": ""
       }
      ],
-     "raumname": "Treppenhaus / Galerie 1. OG",
+     "raumname": "TH DG (Treppenhaus DG)",
      "floor": "1. OG",
      "refs": [
       {
@@ -6598,7 +6598,7 @@
        "code": "Pe-01.01.02"
       },
       "nach": {
-       "room": "Treppenhaus / Galerie 1. OG",
+       "room": "TH DG (Treppenhaus DG)",
        "code": "Pe-01.02.01"
       },
       "kind": "Verbindung"
@@ -7074,13 +7074,13 @@
      "refs": [
       {
        "src": "Pe-01.02.01",
-       "ziel": "Treppenhaus / Galerie 1. OG",
+       "ziel": "TH DG (Treppenhaus DG)",
        "nr": "01"
       }
      ],
      "endp": {
       "von": {
-       "room": "Treppenhaus / Galerie 1. OG",
+       "room": "TH DG (Treppenhaus DG)",
        "code": "Pe-01.02.01"
       },
       "nach": {
