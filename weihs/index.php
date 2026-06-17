@@ -250,7 +250,8 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
   </div>
   <div class="spacer"></div>
   <a class="btn ghost" href="#dateien">📂 Dateien</a>
-  <a class="btn" href="plan.php" style="background:var(--blue);color:#fff;text-decoration:none">🗺️ Interaktiver Plan</a>
+  <a class="btn" href="plan.php" style="background:var(--blue);color:#fff;text-decoration:none">📐 Echter Plan</a>
+  <a class="btn" href="schema.php" style="background:#13142a;color:#fff;text-decoration:none">🧭 Schema (animiert)</a>
   <button class="btn" onclick="window.print()">🖨️ Kabelliste drucken</button>
 </div>
 
