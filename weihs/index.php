@@ -151,6 +151,46 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 .empty{ color:#b9bdcc; }
 .foot{ margin-top:14px; font-size:10px; color:var(--muted); display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:8px; }
 
+/* Accordion */
+.acc-tools{ margin-bottom:12px; }
+.floors{ display:flex; flex-direction:column; gap:12px; }
+.floor{ background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:0 6px 22px rgba(20,20,40,.05); }
+.floor-head{ width:100%; border:0; background:#fff; cursor:pointer; display:flex; align-items:center; gap:12px; padding:16px 18px; text-align:left; }
+.floor-head:hover{ background:var(--soft); }
+.fh-name{ font-size:20px; font-weight:900; }
+.fh-meta{ font-size:12px; color:var(--muted); font-weight:600; }
+.floor .acc-body{ display:none; padding:0 14px 14px; }
+.floor.open > .acc-body{ display:block; }
+
+.room{ border:1px solid var(--line); border-radius:11px; overflow:hidden; margin-top:10px; }
+.room-head{ display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; background:var(--soft); }
+.room-head:hover{ background:#eef1f8; }
+.rh-name{ font-weight:800; font-size:15px; }
+.rh-badge{ font-size:11px; color:var(--muted); font-weight:600; }
+.rh-print{ border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; font-size:15px; padding:4px 9px; line-height:1; }
+.rh-print:hover{ border-color:var(--blue); }
+.room .acc-body{ display:none; padding:0; background:#fff; }
+.room.open > .acc-body{ display:block; }
+.sheet-inner{ padding:16px 16px 18px; }
+.proj-line{ font-size:11px; color:var(--muted); margin-bottom:12px; }
+.room.alldone .room-head{ background:#eafaef; }
+.room.alldone .rh-name::after{ content:' ✓'; color:#2faa48; }
+
+.caret{ display:inline-block; transition:transform .15s; color:var(--muted); font-size:13px; }
+.floor.open > .floor-head .caret, .room.open > .room-head .caret{ transform:rotate(90deg); }
+.prog{ margin-left:auto; font-size:12px; font-weight:800; color:var(--blue); background:#eef3ff; border-radius:999px; padding:3px 10px; min-width:46px; text-align:center; }
+.room-head .prog{ margin-left:auto; }
+.room-head .rh-print{ margin-left:8px; }
+
+/* Checkbox-Spalte + erledigt */
+.col-chk{ width:34px; text-align:center; }
+.col-ad{ width:5%; }
+.chk{ width:18px; height:18px; cursor:pointer; accent-color:var(--blue); }
+tr.done td{ color:#aab; text-decoration:line-through; text-decoration-color:#cfd4e3; }
+tr.done .typ-pill, tr.done .dot{ opacity:.4; }
+.rf-l{ color:var(--muted); font-weight:600; }
+.rf-arrow{ color:var(--blue); font-weight:900; }
+
 /* Viewer */
 .modal{ position:fixed; inset:0; background:rgba(10,12,25,.72); display:none; z-index:100; padding:24px; }
 .modal.on{ display:flex; flex-direction:column; }
@@ -160,14 +200,27 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 .modal iframe{ flex:1; width:100%; border:0; border-radius:12px; background:#fff; }
 
 @media print{
-  @page{ size:A4 portrait; margin:12mm; }
+  @page{ size:A4 portrait; margin:11mm; }
   body{ background:#fff; }
-  .bar,.nav,#dateien,.modal{ display:none !important; }
+  .bar,.nav,#dateien,.modal,.legend,.acc-tools,.floor-head,.caret,.rh-print,.prog,.section-title{ display:none !important; }
   .wrap{ margin:0; padding:0; max-width:none; }
-  .sheet{ border:0; border-radius:0; box-shadow:none; padding:0; margin:0; page-break-after:always; }
-  .sheet:last-child{ page-break-after:auto; }
+  .floors,.floor,.floor .acc-body,.room .acc-body{ display:block !important; }
+  .floor{ border:0; border-radius:0; box-shadow:none; }
+  .floor .acc-body{ padding:0; }
+  .room{ border:0; border-radius:0; margin:0; page-break-after:always; page-break-inside:auto; }
+  .room:last-child{ page-break-after:auto; }
+  .room-head{ background:#fff !important; padding:0 0 6px; border-bottom:3px solid var(--ink); margin-bottom:6px; }
+  .rh-name{ font-size:24px; font-weight:900; }
+  .rh-badge{ font-size:13px; }
+  .sheet-inner{ padding:0; }
   thead{ display:table-header-group; }
   tr{ page-break-inside:avoid; }
+  .col-chk{ width:30px; }
+  .chk{ -webkit-appearance:none; appearance:none; width:14px; height:14px; border:1.5px solid #333; border-radius:3px; }
+  .chk:checked{ background:#333; }
+  /* Nur einen Raum drucken */
+  body.print-one .room{ display:none !important; }
+  body.print-one .room.print-target{ display:block !important; page-break-after:auto; }
 }
 </style>
 </head>
@@ -229,54 +282,80 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 
 <?php if(!$data): ?>
   <p>Die Datei <code>weihs/kabelliste.json</code> fehlt – Kabelliste kann nicht angezeigt werden.</p>
-<?php else: foreach($data['rooms'] as $r): ?>
-  <section class="sheet" id="r-<?= h($r['etage'].'-'.$r['raum']) ?>">
-    <div class="head">
-      <div class="room"><?= h($r['name']) ?></div>
-      <div class="meta">
-        <span class="badge"><?= h($r['floor']) ?></span>
-        <span class="badge y">Raum <?= h($r['raum']) ?></span><br>
-        <?= count($r['cables']) ?> Kabel
-      </div>
-    </div>
-    <p class="proj"><?= h($data['projekt']) ?> &middot; Stand <?= h($data['stand']) ?></p>
-    <table>
-      <thead><tr>
-        <th style="width:16%">Bezeichnung</th><th style="width:25%">Angeschlossenes Bauteil</th>
-        <th style="width:14%">Kabeltyp</th><th style="width:5%">Adern</th>
-        <th style="width:17%">Farbe</th><th style="width:23%">Belegung</th>
-      </tr></thead>
-      <tbody>
-      <?php foreach($r['cables'] as $c): $rows=$c['rows']; $n=max(1,count($rows)); ?>
-        <?php for($i=0;$i<$n;$i++): $w=$rows[$i]??['farbe'=>'','belegung'=>'','note'=>'']; ?>
-        <tr class="<?= $i===0?'cstart':'' ?>">
-          <?php if($i===0): ?>
-            <td rowspan="<?= $n ?>" class="cell-bez"><?php $tn=typname($c['typ'],$TYP); ?>
-              <div class="typ-full<?= $tn[1]?' uncertain':'' ?>"><?= h($tn[0]) ?><?= $tn[1]?' <span title="Genaue Tree-Bus-Gerätebezeichnung noch zu klären">⚠</span>':'' ?></div>
-              <div class="bez-sub"><span class="typ-pill"><?= h($c['typ']) ?></span> Nr.&nbsp;<?= h($c['nr']) ?></div>
-            </td>
-            <td rowspan="<?= $n ?>">
-              <div class="bauteil"><?= h($c['desc'])!==''? h($c['desc']) : '<span class="empty">–</span>' ?></div>
-              <?php foreach($c['refs'] as $rf): if(!empty($rf['ziel'])): ?>
-                <div class="ref">↳ aus <b><?= h($rf['ziel']) ?></b> <span class="note">(<?= h($rf['src']) ?>)</span></div>
-              <?php else: ?><div class="ref note"><?= h($rf['src']) ?></div><?php endif; endforeach; ?>
-            </td>
-            <td rowspan="<?= $n ?>" class="kabel"><?= h($c['kabeltyp'])!==''? h($c['kabeltyp']) : '<span class="empty">–</span>' ?></td>
-            <td rowspan="<?= $n ?>" class="adern"><?= h($c['anzahl']) ?></td>
-          <?php endif; ?>
-          <td class="farbe"><?php $col=oh_color($w['farbe']); if($w['farbe']!==''){ if($col) echo '<span class="dot" style="background:'.h($col).'"></span>'; echo h($w['farbe']); } ?></td>
-          <td class="belegung"><?= h($w['belegung']) ?>
-            <?php if(!empty($w['note']) && stripos($w['note'],'von ')!==0): ?><div class="note"><?= h($w['note']) ?></div><?php endif; ?>
-          </td>
-        </tr>
-        <?php endfor; ?>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-    <div class="foot"><span>OH Haustechnik &middot; Kabelzugliste nach Raum</span><span><?= h($r['floor']) ?> / <?= h($r['name']) ?></span></div>
-  </section>
-<?php endforeach; endif; ?>
+<?php else: ?>
+<div class="acc-tools">
+  <button type="button" class="btn ghost" id="expandAll" onclick="toggleAll()">⊕ Alle aufklappen</button>
 </div>
+<div class="floors">
+<?php foreach($floors as $flname=>$rooms): if(!$rooms) continue;
+  $fcables = array_sum(array_map(function($x){ return count($x['cables']); }, $rooms));
+  $fcode = $rooms[0]['etage'];
+?>
+  <section class="floor" data-floor="<?= h($fcode) ?>">
+    <button type="button" class="floor-head" onclick="toggleAcc(this)">
+      <span class="caret">▸</span>
+      <span class="fh-name"><?= h($flname) ?></span>
+      <span class="fh-meta"><?= count($rooms) ?> Räume · <?= (int)$fcables ?> Kabel</span>
+      <span class="prog" data-floor-prog="<?= h($fcode) ?>"></span>
+    </button>
+    <div class="acc-body">
+    <?php foreach($rooms as $r): $rid=$r['etage'].'-'.$r['raum']; ?>
+      <section class="room" id="r-<?= h($rid) ?>" data-room="<?= h($rid) ?>">
+        <div class="room-head" onclick="toggleAcc(this)">
+          <span class="caret">▸</span>
+          <span class="rh-name"><?= h($r['name']) ?></span>
+          <span class="rh-badge">Raum <?= h($r['raum']) ?> · <?= count($r['cables']) ?> Kabel</span>
+          <span class="prog" data-room-prog="<?= h($rid) ?>"></span>
+          <button type="button" class="rh-print" title="Nur diesen Raum drucken" onclick="printRoom(event,'<?= h($rid) ?>')">🖨️</button>
+        </div>
+        <div class="acc-body room-body">
+          <div class="sheet-inner">
+            <div class="proj-line"><?= h($data['projekt']) ?> · Stand <?= h($data['stand']) ?> · <b><?= h($r['floor']) ?> – <?= h($r['name']) ?></b></div>
+            <table>
+              <thead><tr>
+                <th class="col-chk">✓</th>
+                <th style="width:16%">Bezeichnung</th><th style="width:23%">Angeschlossenes Bauteil</th>
+                <th style="width:14%">Kabeltyp</th><th class="col-ad">Adern</th>
+                <th style="width:16%">Farbe</th><th style="width:21%">Belegung</th>
+              </tr></thead>
+              <tbody>
+              <?php foreach($r['cables'] as $ci=>$c): $rows=$c['rows']; $n=max(1,count($rows)); $cid=$r['etage'].'_'.$r['raum'].'_'.$ci; ?>
+                <?php for($i=0;$i<$n;$i++): $w=$rows[$i]??['farbe'=>'','belegung'=>'','note'=>'']; ?>
+                <tr data-cb="<?= h($cid) ?>" class="<?= $i===0?'cstart':'' ?>">
+                  <?php if($i===0): ?>
+                    <td rowspan="<?= $n ?>" class="col-chk"><input type="checkbox" class="chk" data-cid="<?= h($cid) ?>"></td>
+                    <td rowspan="<?= $n ?>" class="cell-bez"><?php $tn=typname($c['typ'],$TYP); ?>
+                      <div class="typ-full<?= $tn[1]?' uncertain':'' ?>"><?= h($tn[0]) ?><?= $tn[1]?' <span title="Genaue Tree-Bus-Gerätebezeichnung noch zu klären">⚠</span>':'' ?></div>
+                      <div class="bez-sub"><span class="typ-pill"><?= h($c['typ']) ?></span> Nr.&nbsp;<?= h($c['nr']) ?></div>
+                    </td>
+                    <td rowspan="<?= $n ?>">
+                      <div class="bauteil"><?= h($c['desc'])!==''? h($c['desc']) : '<span class="empty">–</span>' ?></div>
+                      <?php foreach($c['refs'] as $rf): if(!empty($rf['ziel'])): ?>
+                        <div class="ref">🔗 <span class="rf-l">von</span> <b><?= h($rf['ziel']) ?></b> <span class="rf-arrow">→</span> <span class="rf-l">nach</span> <b><?= h($r['name']) ?></b> <span class="note">(<?= h($rf['src']) ?>)</span></div>
+                      <?php else: ?><div class="ref note"><?= h($rf['src']) ?></div><?php endif; endforeach; ?>
+                    </td>
+                    <td rowspan="<?= $n ?>" class="kabel"><?= h($c['kabeltyp'])!==''? h($c['kabeltyp']) : '<span class="empty">–</span>' ?></td>
+                    <td rowspan="<?= $n ?>" class="adern"><?= h($c['anzahl']) ?></td>
+                  <?php endif; ?>
+                  <td class="farbe"><?php $col=oh_color($w['farbe']); if($w['farbe']!==''){ if($col) echo '<span class="dot" style="background:'.h($col).'"></span>'; echo h($w['farbe']); } ?></td>
+                  <td class="belegung"><?= h($w['belegung']) ?>
+                    <?php if(!empty($w['note']) && stripos($w['note'],'von ')!==0): ?><div class="note"><?= h($w['note']) ?></div><?php endif; ?>
+                  </td>
+                </tr>
+                <?php endfor; ?>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+            <div class="foot"><span>OH Haustechnik · Kabelzugliste nach Raum</span><span><?= h($r['floor']) ?> / <?= h($r['name']) ?></span></div>
+          </div>
+        </div>
+      </section>
+    <?php endforeach; ?>
+    </div>
+  </section>
+<?php endforeach; ?>
+</div>
+<?php endif; ?>
 
 <div class="modal" id="pdfModal">
   <div class="top"><span class="t" id="pdfTitle"></span>
@@ -300,6 +379,75 @@ function closePdf(){
   document.body.style.overflow='';
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePdf(); });
+
+// ---- Aufklappen ----
+function toggleAcc(el){ el.closest('.floor,.room').classList.toggle('open'); }
+function toggleAll(){
+  const btn=document.getElementById('expandAll');
+  const open = btn.dataset.open!=='1';
+  document.querySelectorAll('.floor,.room').forEach(s=>s.classList.toggle('open',open));
+  btn.dataset.open = open?'1':'0';
+  btn.textContent = open ? '⊖ Alle zuklappen' : '⊕ Alle aufklappen';
+}
+function openTo(id){
+  const room=document.getElementById(id); if(!room) return;
+  const fl=room.closest('.floor'); if(fl) fl.classList.add('open');
+  room.classList.add('open');
+  room.scrollIntoView({behavior:'smooth', block:'start'});
+}
+document.querySelectorAll('.nav a[href^="#r-"]').forEach(a=>{
+  a.addEventListener('click',e=>{ e.preventDefault(); openTo(a.getAttribute('href').slice(1)); history.replaceState(null,'',a.getAttribute('href')); });
+});
+
+// ---- Abhaken (im Browser/App gespeichert) ----
+const CHK_KEY='weihs_kabel_checked_v1';
+let checked = new Set();
+try{ checked = new Set(JSON.parse(localStorage.getItem(CHK_KEY)||'[]')); }catch(e){}
+function rowsFor(cid){ return document.querySelectorAll('[data-cb="'+CSS.escape(cid)+'"]'); }
+function applyChecks(){
+  document.querySelectorAll('.chk').forEach(cb=>{
+    const on=checked.has(cb.dataset.cid);
+    cb.checked=on;
+    rowsFor(cb.dataset.cid).forEach(tr=>tr.classList.toggle('done',on));
+  });
+  updateProgress();
+}
+function updateProgress(){
+  document.querySelectorAll('.room').forEach(room=>{
+    const cbs=room.querySelectorAll('.chk'); const done=[...cbs].filter(c=>c.checked).length;
+    const el=room.querySelector('[data-room-prog]'); if(el) el.textContent=done+'/'+cbs.length;
+    room.classList.toggle('alldone', cbs.length>0 && done===cbs.length);
+  });
+  document.querySelectorAll('.floor').forEach(fl=>{
+    const cbs=fl.querySelectorAll('.chk'); const done=[...cbs].filter(c=>c.checked).length;
+    const el=fl.querySelector('[data-floor-prog]'); if(el) el.textContent=done+'/'+cbs.length;
+  });
+}
+document.addEventListener('change',e=>{
+  if(!e.target.classList.contains('chk')) return;
+  const cb=e.target;
+  if(cb.checked) checked.add(cb.dataset.cid); else checked.delete(cb.dataset.cid);
+  localStorage.setItem(CHK_KEY, JSON.stringify([...checked]));
+  rowsFor(cb.dataset.cid).forEach(tr=>tr.classList.toggle('done',cb.checked));
+  updateProgress();
+});
+
+// ---- Druck pro Raum ----
+function printRoom(ev,id){
+  ev.stopPropagation();
+  document.querySelectorAll('.room.print-target').forEach(r=>r.classList.remove('print-target'));
+  const room=document.getElementById(id); if(!room) return;
+  room.classList.add('print-target');
+  document.body.classList.add('print-one');
+  window.print();
+}
+window.addEventListener('afterprint',()=>{
+  document.body.classList.remove('print-one');
+  document.querySelectorAll('.room.print-target').forEach(r=>r.classList.remove('print-target'));
+});
+
+applyChecks();
+if(location.hash.startsWith('#r-')) openTo(location.hash.slice(1));
 </script>
 </body>
 </html>
