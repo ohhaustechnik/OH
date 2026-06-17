@@ -38,6 +38,37 @@ function oh_color($f){
   foreach($map as $k=>$v){ if(strpos($f,$k)===0) return $v; }
   return '';
 }
+
+// Typ-Kuerzel -> ausgeschriebene Bezeichnung. Eindeutige aus den Beschreibungen
+// abgeleitet (sicher). Reine Tree-Bus-Knoten ohne Klartext => 'unsicher'=>true.
+$TYP = [
+  'L'    =>['Beleuchtung', false],
+  'S'    =>['Steckdose', false],
+  'K'    =>['Fenster-/Türkontakt', false],
+  'N'    =>['Netzwerk', false],
+  'HKV'  =>['Heizkreisverteiler', false],
+  'FL'   =>['Feuchtraumlüfter', false],
+  'W'    =>['Wassermelder', false],
+  'H'    =>['Handtuchheizkörper (Steckdose)', false],
+  'Mo'   =>['Motor / Antrieb', false],
+  'Gong' =>['Türgong', false],
+  'B(a)' =>['Bewegungsmelder außen', false],
+  'Ro'   =>['Rollladen / Beschattung', false],
+  'NFC'  =>['NFC-Zutrittsleser', false],
+  'Alarm'=>['Alarmsirene', false],
+  'Wetter'=>['Wetterstation', false],
+  'So'   =>['Funk-Komponente (kein Kabel)', false],
+  // Tree-Bus-Knoten – exakte Gerätebezeichnung noch ungeklärt (keine Legende im PDF)
+  'PR'   =>['Tree-Bus-Komponente', true],
+  'T'    =>['Tree-Bus-Komponente', true],
+  'Pa'   =>['Tree-Bus-Komponente', true],
+  'Pe'   =>['Tree-Bus-Komponente', true],
+  'TP'   =>['Tree-Bus-Komponente', true],
+  'TtA'  =>['Tree-Bus-Komponente', true],
+  'Tta'  =>['Tree-Bus-Komponente', true],
+  'TN'   =>['Tree-Bus-Komponente', true],
+];
+function typname($t, $TYP){ return $TYP[$t] ?? [$t, false]; }
 ?><!DOCTYPE html>
 <html lang="de">
 <head>
@@ -95,8 +126,20 @@ table{ width:100%; border-collapse:collapse; font-size:11.5px; }
 thead th{ background:var(--ink); color:#fff; font-size:10px; text-transform:uppercase; letter-spacing:.6px; text-align:left; padding:7px 8px; font-weight:700; }
 tbody td{ border-bottom:1px solid var(--line); padding:6px 8px; vertical-align:top; }
 tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
-.cell-bez{ font-weight:800; white-space:nowrap; }
-.typ-pill{ display:inline-block; min-width:26px; text-align:center; background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-weight:800; font-size:11px; }
+.cell-bez{ font-weight:800; }
+.typ-full{ font-weight:800; font-size:12px; line-height:1.2; }
+.typ-full.uncertain{ color:#9a6b00; }
+.typ-full span[title]{ cursor:help; }
+.bez-sub{ margin-top:3px; font-weight:600; font-size:10.5px; color:var(--muted); white-space:nowrap; }
+.typ-pill{ display:inline-block; min-width:22px; text-align:center; background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:1px 5px; font-weight:800; font-size:10.5px; color:var(--ink); }
+/* Legende */
+.legend{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:22px; }
+.legend h3{ margin:0 0 10px; font-size:13px; font-weight:800; }
+.legend .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px 18px; font-size:12px; }
+.legend .row{ display:flex; gap:8px; align-items:baseline; }
+.legend .k{ font-weight:800; min-width:34px; }
+.legend .u{ color:#9a6b00; }
+.legend .hint{ margin-top:10px; font-size:11.5px; color:#9a6b00; background:#fff8e6; border:1px solid #ffe6a3; border-radius:8px; padding:8px 10px; }
 .bauteil{ font-weight:600; }
 .note{ color:var(--muted); font-size:10.5px; font-style:italic; }
 .ref{ color:var(--blue); font-weight:700; font-size:10.5px; }
@@ -173,6 +216,17 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 
   <!-- ========== KABELZUGLISTE NACH RAUM ========== -->
   <div class="section-title" style="margin-top:34px">🔌 Kabelzugliste nach Raum <span style="color:var(--blue)">– ein Blatt pro Raum zum Aushängen</span></div>
+
+  <div class="legend">
+    <h3>Legende – Bezeichnungen</h3>
+    <div class="grid">
+    <?php foreach($TYP as $k=>$v): ?>
+      <div class="row"><span class="k"><?= h($k) ?></span><span class="<?= $v[1]?'u':'' ?>"><?= h($v[0]) ?><?= $v[1]?' ⚠':'' ?></span></div>
+    <?php endforeach; ?>
+    </div>
+    <div class="hint">⚠ = Tree-Bus-Komponente: das CAT7-Kabel des Loxone-Tree-Bus. Die genaue Gerätebezeichnung (PR, T, Pa, Pe, TP, TtA, TN) steht nicht in der Kabelliste – bitte aus der Planlegende ergänzen, dann schreibe ich sie aus.</div>
+  </div>
+
 <?php if(!$data): ?>
   <p>Die Datei <code>weihs/kabelliste.json</code> fehlt – Kabelliste kann nicht angezeigt werden.</p>
 <?php else: foreach($data['rooms'] as $r): ?>
@@ -188,16 +242,19 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
     <p class="proj"><?= h($data['projekt']) ?> &middot; Stand <?= h($data['stand']) ?></p>
     <table>
       <thead><tr>
-        <th style="width:7%">Bez.</th><th style="width:30%">Angeschlossenes Bauteil</th>
-        <th style="width:16%">Kabeltyp</th><th style="width:6%">Adern</th>
-        <th style="width:18%">Farbe</th><th style="width:23%">Belegung</th>
+        <th style="width:16%">Bezeichnung</th><th style="width:25%">Angeschlossenes Bauteil</th>
+        <th style="width:14%">Kabeltyp</th><th style="width:5%">Adern</th>
+        <th style="width:17%">Farbe</th><th style="width:23%">Belegung</th>
       </tr></thead>
       <tbody>
       <?php foreach($r['cables'] as $c): $rows=$c['rows']; $n=max(1,count($rows)); ?>
         <?php for($i=0;$i<$n;$i++): $w=$rows[$i]??['farbe'=>'','belegung'=>'','note'=>'']; ?>
         <tr class="<?= $i===0?'cstart':'' ?>">
           <?php if($i===0): ?>
-            <td rowspan="<?= $n ?>" class="cell-bez"><span class="typ-pill"><?= h($c['typ']) ?></span><br><?= h($c['nr']) ?></td>
+            <td rowspan="<?= $n ?>" class="cell-bez"><?php $tn=typname($c['typ'],$TYP); ?>
+              <div class="typ-full<?= $tn[1]?' uncertain':'' ?>"><?= h($tn[0]) ?><?= $tn[1]?' <span title="Genaue Tree-Bus-Gerätebezeichnung noch zu klären">⚠</span>':'' ?></div>
+              <div class="bez-sub"><span class="typ-pill"><?= h($c['typ']) ?></span> Nr.&nbsp;<?= h($c['nr']) ?></div>
+            </td>
             <td rowspan="<?= $n ?>">
               <div class="bauteil"><?= h($c['desc'])!==''? h($c['desc']) : '<span class="empty">–</span>' ?></div>
               <?php foreach($c['refs'] as $rf): if(!empty($rf['ziel'])): ?>
