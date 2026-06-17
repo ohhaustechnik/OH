@@ -196,6 +196,7 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 .chk{ width:18px; height:18px; cursor:pointer; accent-color:var(--blue); }
 tr.done td{ color:#aab; text-decoration:line-through; text-decoration-color:#cfd4e3; }
 tr.done .typ-pill, tr.done .dot{ opacity:.4; }
+.bridge{ display:inline-block; margin-top:5px; font-size:10.5px; font-weight:700; color:#7a4a00; background:#fff3d6; border:1px solid #f0d693; border-radius:7px; padding:3px 8px; }
 .rf-l{ color:var(--muted); font-weight:600; }
 .rf-arrow{ color:var(--blue); font-weight:900; }
 /* Von -> Nach Endpunkte */
@@ -347,6 +348,9 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
                     </td>
                     <td rowspan="<?= $n ?>">
                       <div class="bauteil"><?= h($c['desc'])!==''? h($c['desc']) : '<span class="empty">–</span>' ?></div>
+                      <?php $bnotes=trim(implode(' ',array_map(function($x){return $x['note'];},$c['rows']))); if(preg_match('/miteinander|verbinden/i',$bnotes)): ?>
+                        <div class="bridge">⛓ durchgeschleift – <b>1 Zuleitung</b>, <?= stripos($c['desc'],'leucht')!==false?'Leuchten':'Steckdosen' ?> gebrückt<?php if(preg_match('/(\d)-adrig/',$bnotes,$mm)): ?> · <?= h($mm[1]) ?>-adrig<?php endif; ?></div>
+                      <?php endif; ?>
                       <?php if(!empty($c['endp'])): $e=$c['endp']; ?>
                         <div class="vn">
                           <div class="vn-kind"><?= h($e['kind']) ?></div>
