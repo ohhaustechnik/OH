@@ -1,0 +1,10 @@
+# weihs/ : Kundendokumente (Baupläne, Kabelliste)
+# Ziel: nur per direktem Link erreichbar, NICHT in Google, KEIN Durchstöbern.
+
+# 1) Kein Verzeichnis-Listing -> niemand kann den Ordner durchblättern
+Options -Indexes
+
+# 2) Aus Suchmaschinen raushalten (Google/Bing zeigen die Dateien nicht an)
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex"
+</IfModule>
