@@ -63,7 +63,7 @@ $TYP = [
   'T'    =>['Tree-Bus-Komponente', true],
   'Pa'   =>['Tree-Bus-Komponente', true],
   'Pe'   =>['Tree-Bus-Komponente', true],
-  'TP'   =>['Tree-Bus-Komponente', true],
+  'TP'   =>['Touch Pure (Tree)', false],
   'TtA'  =>['Tree-Bus-Komponente', true],
   'Tta'  =>['Tree-Bus-Komponente', true],
   'TN'   =>['Tree-Bus-Komponente', true],
@@ -241,6 +241,7 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
   </div>
   <div class="spacer"></div>
   <a class="btn ghost" href="#dateien">📂 Dateien</a>
+  <a class="btn" href="plan.php" style="background:var(--blue);color:#fff;text-decoration:none">🗺️ Interaktiver Plan</a>
   <button class="btn" onclick="window.print()">🖨️ Kabelliste drucken</button>
 </div>
 
@@ -285,7 +286,7 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
       <div class="row"><span class="k"><?= h($k) ?></span><span class="<?= $v[1]?'u':'' ?>"><?= h($v[0]) ?><?= $v[1]?' ⚠':'' ?></span></div>
     <?php endforeach; ?>
     </div>
-    <div class="hint">⚠ = Tree-Bus-Komponente: das CAT7-Kabel des Loxone-Tree-Bus. Die genaue Gerätebezeichnung (PR, T, Pa, Pe, TP, TtA, TN) steht nicht in der Kabelliste – bitte aus der Planlegende ergänzen, dann schreibe ich sie aus.</div>
+    <div class="hint">⚠ = Tree-Bus-Komponente: das CAT7-Kabel des Loxone-Tree-Bus. Bestätigt aus der Plan-Legende: <b>TP = Touch Pure (Tree)</b>. Noch offen (PR, T, Pa, Pe, TtA, TN) – Symbole sind auf den Plänen, aber ohne Buchstaben-Zuordnung; bitte vom Planer ergänzen.</div>
   </div>
 
 <?php if(!$data): ?>
