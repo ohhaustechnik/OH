@@ -190,6 +190,14 @@ tr.done td{ color:#aab; text-decoration:line-through; text-decoration-color:#cfd
 tr.done .typ-pill, tr.done .dot{ opacity:.4; }
 .rf-l{ color:var(--muted); font-weight:600; }
 .rf-arrow{ color:var(--blue); font-weight:900; }
+/* Von -> Nach Endpunkte */
+.vn{ margin-top:7px; border:1px solid #d7e0f5; border-radius:8px; background:#f5f8ff; padding:7px 9px; }
+.vn-kind{ font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.7px; color:var(--blue); margin-bottom:4px; }
+.vn-row{ display:flex; align-items:baseline; gap:7px; font-size:11.5px; padding:1px 0; }
+.vn-k{ font-weight:800; min-width:38px; color:#2faa48; }
+.vn-k.vn-k2{ color:#d83a3a; }
+.vn-room{ font-weight:700; }
+.vn-code{ margin-left:auto; font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:700; font-size:11px; background:#fff; border:1px solid var(--line); border-radius:5px; padding:1px 6px; white-space:nowrap; }
 
 /* Viewer */
 .modal{ position:fixed; inset:0; background:rgba(10,12,25,.72); display:none; z-index:100; padding:24px; }
@@ -330,9 +338,19 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
                     </td>
                     <td rowspan="<?= $n ?>">
                       <div class="bauteil"><?= h($c['desc'])!==''? h($c['desc']) : '<span class="empty">–</span>' ?></div>
-                      <?php foreach($c['refs'] as $rf): if(!empty($rf['ziel'])): ?>
-                        <div class="ref">🔗 <span class="rf-l">von</span> <b><?= h($rf['ziel']) ?></b> <span class="rf-arrow">→</span> <span class="rf-l">nach</span> <b><?= h($r['name']) ?></b> <span class="note">(<?= h($rf['src']) ?>)</span></div>
-                      <?php else: ?><div class="ref note"><?= h($rf['src']) ?></div><?php endif; endforeach; ?>
+                      <?php if(!empty($c['endp'])): $e=$c['endp']; ?>
+                        <div class="vn">
+                          <div class="vn-kind"><?= h($e['kind']) ?></div>
+                          <div class="vn-row"><span class="vn-k">Von</span>
+                            <span class="vn-room"><?= $e['von']? h($e['von']['room']) : '—' ?></span>
+                            <?php if($e['von'] && $e['von']['code']!=='—'): ?><span class="vn-code"><?= h($e['von']['code']) ?></span><?php endif; ?>
+                          </div>
+                          <div class="vn-row"><span class="vn-k vn-k2">Nach</span>
+                            <span class="vn-room"><?= $e['nach']? h($e['nach']['room']) : '—' ?></span>
+                            <?php if($e['nach'] && $e['nach']['code']!=='—'): ?><span class="vn-code"><?= h($e['nach']['code']) ?></span><?php endif; ?>
+                          </div>
+                        </div>
+                      <?php endif; ?>
                     </td>
                     <td rowspan="<?= $n ?>" class="kabel"><?= h($c['kabeltyp'])!==''? h($c['kabeltyp']) : '<span class="empty">–</span>' ?></td>
                     <td rowspan="<?= $n ?>" class="adern"><?= h($c['anzahl']) ?></td>

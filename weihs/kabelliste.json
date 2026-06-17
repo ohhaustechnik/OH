@@ -37,7 +37,8 @@
      ],
      "raumname": "Flur KG",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 1,
@@ -67,7 +68,8 @@
      ],
      "raumname": "Flur KG",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 1,
@@ -133,7 +135,18 @@
        "ziel": "Treppenhaus Keller",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Treppenhaus Keller",
+       "code": "PR-01.07.01"
+      },
+      "nach": {
+       "room": "Flur KG",
+       "code": "PR-01.01.01"
+      },
+      "kind": "Verbindung"
+     }
     }
    ]
   },
@@ -176,7 +189,8 @@
      ],
      "raumname": "Keller 1",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -206,7 +220,8 @@
      ],
      "raumname": "Keller 1",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -272,7 +287,18 @@
        "ziel": "Flur KG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur KG",
+       "code": "PR-01.01.01"
+      },
+      "nach": {
+       "room": "Keller 1",
+       "code": "PR-01.02.01"
+      },
+      "kind": "Verbindung"
+     }
     }
    ]
   },
@@ -320,7 +346,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -350,7 +377,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -380,7 +408,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -410,7 +439,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -440,7 +470,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -460,7 +491,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -480,7 +512,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 3,
@@ -551,7 +584,18 @@
        "ziel": "Waschhaus",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Waschhaus",
+       "code": "T-01.03.01"
+      },
+      "nach": {
+       "room": "Waschhaus",
+       "code": "PR-01.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 4,
@@ -617,7 +661,18 @@
        "ziel": "Flur KG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur KG",
+       "code": "PR-01.01.01"
+      },
+      "nach": {
+       "room": "Waschhaus",
+       "code": "T-01.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 4,
@@ -683,7 +738,18 @@
        "ziel": "Waschhaus",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Waschhaus",
+       "code": "T-01.03.01"
+      },
+      "nach": {
+       "room": "Waschhaus",
+       "code": "TtA-01.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 4,
@@ -728,7 +794,8 @@
      ],
      "raumname": "Waschhaus",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -776,7 +843,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 4,
@@ -811,7 +879,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 5,
@@ -851,7 +920,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 5,
@@ -881,7 +951,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 5,
@@ -911,7 +982,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 5,
@@ -941,7 +1013,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 5,
@@ -971,7 +1044,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 5,
@@ -1037,7 +1111,18 @@
        "ziel": "Technik",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Technik",
+       "code": "T-01.04.01"
+      },
+      "nach": {
+       "room": "Technik",
+       "code": "PR-01.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 5,
@@ -1102,7 +1187,18 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "nach": {
+       "room": "Technik",
+       "code": "PR-01.04.01"
+      },
+      "kind": "Einspeisung"
+     }
     },
     {
      "page": 6,
@@ -1168,7 +1264,18 @@
        "ziel": "Waschhaus",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Waschhaus",
+       "code": "PR-01.03.01"
+      },
+      "nach": {
+       "room": "Technik",
+       "code": "T-01.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 6,
@@ -1213,7 +1320,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 6,
@@ -1233,7 +1341,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 6,
@@ -1253,7 +1362,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 6,
@@ -1273,7 +1383,8 @@
      ],
      "raumname": "Technik",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -1311,7 +1422,8 @@
      ],
      "raumname": "Vorrat",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 6,
@@ -1341,7 +1453,8 @@
      ],
      "raumname": "Vorrat",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 6,
@@ -1401,7 +1514,18 @@
      ],
      "raumname": "Vorrat",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Vorrat",
+       "code": "Pa-01.05.01"
+      },
+      "nach": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "kind": "Ableitung"
+     }
     }
    ]
   },
@@ -1444,7 +1568,8 @@
      ],
      "raumname": "Weinkeller",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 7,
@@ -1474,7 +1599,8 @@
      ],
      "raumname": "Weinkeller",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 7,
@@ -1540,7 +1666,18 @@
        "ziel": "Vorrat",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Vorrat",
+       "code": "Pa-01.05.01"
+      },
+      "nach": {
+       "room": "Weinkeller",
+       "code": "Pa-01.06.01"
+      },
+      "kind": "Verbindung"
+     }
     }
    ]
   },
@@ -1578,7 +1715,8 @@
      ],
      "raumname": "Treppenhaus Keller",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 7,
@@ -1608,7 +1746,8 @@
      ],
      "raumname": "Treppenhaus Keller",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 7,
@@ -1638,7 +1777,8 @@
      ],
      "raumname": "Treppenhaus Keller",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 7,
@@ -1704,7 +1844,18 @@
        "ziel": "Weinkeller",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Weinkeller",
+       "code": "Pa-01.06.01"
+      },
+      "nach": {
+       "room": "Treppenhaus Keller",
+       "code": "PR-01.07.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 7,
@@ -1724,7 +1875,8 @@
      ],
      "raumname": "Treppenhaus Keller",
      "floor": "KG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -1795,7 +1947,18 @@
        "ziel": "Flur EG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur EG",
+       "code": "PR-00.01.01"
+      },
+      "nach": {
+       "room": "Treppenhaus Keller",
+       "code": "Pa-01.07.02"
+      },
+      "kind": "Verbindung"
+     }
     }
    ]
   },
@@ -1848,7 +2011,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -1878,7 +2042,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -1908,7 +2073,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -1938,7 +2104,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -1968,7 +2135,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -2003,7 +2171,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 8,
@@ -2069,7 +2238,18 @@
        "ziel": "Flur EG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur EG",
+       "code": "TP-00.01.01"
+      },
+      "nach": {
+       "room": "Flur EG",
+       "code": "PR-00.01.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 9,
@@ -2135,7 +2315,18 @@
        "ziel": "Küche / Essen",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "Ro-00.02.01"
+      },
+      "nach": {
+       "room": "Flur EG",
+       "code": "Pe-00.01.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 9,
@@ -2201,7 +2392,18 @@
        "ziel": "WC EG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "WC EG",
+       "code": "TP-00.04.01"
+      },
+      "nach": {
+       "room": "Flur EG",
+       "code": "TP-00.01.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 9,
@@ -2241,7 +2443,8 @@
      ],
      "raumname": "Flur EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -2289,7 +2492,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 9,
@@ -2329,7 +2533,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 9,
@@ -2364,7 +2569,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2394,7 +2600,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2424,7 +2631,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2464,7 +2672,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2494,7 +2703,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2524,7 +2734,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2564,7 +2775,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2594,7 +2806,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2624,7 +2837,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2654,7 +2868,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 10,
@@ -2689,7 +2904,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2719,7 +2935,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2749,7 +2966,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2789,7 +3007,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2819,7 +3038,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2849,7 +3069,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2889,7 +3110,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2909,7 +3131,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 11,
@@ -2980,7 +3203,18 @@
        "ziel": "Flur EG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur EG",
+       "code": "PR-00.01.01"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "Pe-00.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 12,
@@ -3046,7 +3280,18 @@
        "ziel": "Küche / Essen",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "Pe-00.02.01"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "Pe-00.02.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 12,
@@ -3112,7 +3357,18 @@
        "ziel": "Küche / Essen",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "Pe-00.02.01"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "Ro-00.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 12,
@@ -3178,7 +3434,18 @@
        "ziel": "Küche / Essen",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "TP-00.02.01"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "Ro-00.02.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 12,
@@ -3244,7 +3511,18 @@
        "ziel": "Küche / Essen",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "TP-00.02.02"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "Ro-00.02.03"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 12,
@@ -3320,7 +3598,18 @@
        "ziel": "Küche / Essen",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "Pe-00.02.01"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "TP-00.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 13,
@@ -3386,7 +3675,18 @@
        "ziel": "Küche / Essen",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "Pe-00.02.02"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "TP-00.02.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 13,
@@ -3446,7 +3746,18 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "TP-00.02.02"
+      },
+      "nach": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "kind": "Ableitung"
+     }
     },
     {
      "page": 13,
@@ -3512,7 +3823,18 @@
        "ziel": "Küche / Essen",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Küche / Essen",
+       "code": "TP-00.02.01"
+      },
+      "nach": {
+       "room": "Küche / Essen",
+       "code": "TtA-00.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 13,
@@ -3552,7 +3874,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3592,7 +3915,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3632,7 +3956,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3672,7 +3997,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3712,7 +4038,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3752,7 +4079,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3792,7 +4120,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3812,7 +4141,8 @@
      ],
      "raumname": "Küche / Essen",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -3860,7 +4190,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 14,
@@ -3895,7 +4226,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -3935,7 +4267,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -3965,7 +4298,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -3995,7 +4329,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -4025,7 +4360,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -4055,7 +4391,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -4085,7 +4422,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -4115,7 +4453,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -4155,7 +4494,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 15,
@@ -4200,7 +4540,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 16,
@@ -4235,7 +4576,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 16,
@@ -4301,7 +4643,18 @@
        "ziel": "Wohnzimmer",
        "nr": "06"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.06"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Mo-00.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 16,
@@ -4367,7 +4720,18 @@
        "ziel": "Wohnzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "TP-00.03.01"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "PR-00.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 16,
@@ -4433,7 +4797,18 @@
        "ziel": "Wohnzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "TP-00.03.01"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 16,
@@ -4504,7 +4879,18 @@
        "ziel": "Wohnzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.01"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 17,
@@ -4570,7 +4956,18 @@
        "ziel": "Wohnzimmer",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.02"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.03"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 17,
@@ -4636,7 +5033,18 @@
        "ziel": "Wohnzimmer",
        "nr": "03"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.03"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.04"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 17,
@@ -4702,7 +5110,18 @@
        "ziel": "Wohnzimmer",
        "nr": "04"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.04"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.05"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 17,
@@ -4773,7 +5192,18 @@
        "ziel": "Wohnzimmer",
        "nr": "04"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "PR-00.03.04"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "Ro-00.03.06"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 18,
@@ -4833,7 +5263,18 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "nach": {
+       "room": "Wohnzimmer",
+       "code": "TP-00.03.01"
+      },
+      "kind": "Einspeisung"
+     }
     },
     {
      "page": 18,
@@ -4873,7 +5314,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 18,
@@ -4913,7 +5355,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 18,
@@ -4953,7 +5396,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 18,
@@ -4993,7 +5437,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 18,
@@ -5013,7 +5458,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 18,
@@ -5033,7 +5479,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 18,
@@ -5053,7 +5500,8 @@
      ],
      "raumname": "Wohnzimmer",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -5096,7 +5544,8 @@
      ],
      "raumname": "WC EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 19,
@@ -5126,7 +5575,8 @@
      ],
      "raumname": "WC EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 19,
@@ -5156,7 +5606,8 @@
      ],
      "raumname": "WC EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 19,
@@ -5222,7 +5673,18 @@
        "ziel": "Wohnzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Wohnzimmer",
+       "code": "Mo-00.03.01"
+      },
+      "nach": {
+       "room": "WC EG",
+       "code": "Pe-00.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 19,
@@ -5288,7 +5750,18 @@
        "ziel": "WC EG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "WC EG",
+       "code": "PR-00.04.01"
+      },
+      "nach": {
+       "room": "WC EG",
+       "code": "TP-00.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 19,
@@ -5328,7 +5801,8 @@
      ],
      "raumname": "WC EG",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -5366,7 +5840,8 @@
      ],
      "raumname": "Terrasse",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 19,
@@ -5401,7 +5876,8 @@
      ],
      "raumname": "Terrasse",
      "floor": "EG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -5449,7 +5925,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 20,
@@ -5479,7 +5956,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 20,
@@ -5519,7 +5997,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 20,
@@ -5549,7 +6028,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 20,
@@ -5579,7 +6059,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 20,
@@ -5650,7 +6131,18 @@
        "ziel": "Flur 1. OG",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur 1. OG",
+       "code": "Pe-01.01.02"
+      },
+      "nach": {
+       "room": "Flur 1. OG",
+       "code": "Pe-01.01.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 21,
@@ -5716,7 +6208,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "T-01.06.01"
+      },
+      "nach": {
+       "room": "Flur 1. OG",
+       "code": "Pe-01.01.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 21,
@@ -5782,7 +6285,18 @@
        "ziel": "Bad 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Bad 1. OG",
+       "code": "T-01.04.01"
+      },
+      "nach": {
+       "room": "Flur 1. OG",
+       "code": "PR-01.01.03"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 21,
@@ -5848,7 +6362,18 @@
        "ziel": "Flur 1. OG",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur 1. OG",
+       "code": "Pe-01.01.02"
+      },
+      "nach": {
+       "room": "Flur 1. OG",
+       "code": "Ro-01.01.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 21,
@@ -5888,7 +6413,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 21,
@@ -5908,7 +6434,8 @@
      ],
      "raumname": "Flur 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -5956,7 +6483,8 @@
      ],
      "raumname": "Treppenhaus / Galerie 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 21,
@@ -5986,7 +6514,8 @@
      ],
      "raumname": "Treppenhaus / Galerie 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 21,
@@ -6062,7 +6591,18 @@
        "ziel": "Flur 1. OG",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur 1. OG",
+       "code": "Pe-01.01.02"
+      },
+      "nach": {
+       "room": "Treppenhaus / Galerie 1. OG",
+       "code": "Pe-01.02.01"
+      },
+      "kind": "Verbindung"
+     }
     }
    ]
   },
@@ -6100,7 +6640,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 22,
@@ -6140,7 +6681,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 22,
@@ -6170,7 +6712,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 22,
@@ -6200,7 +6743,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 22,
@@ -6230,7 +6774,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 22,
@@ -6296,7 +6841,18 @@
        "ziel": "Büro",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro",
+       "code": "T-01.03.01"
+      },
+      "nach": {
+       "room": "Büro",
+       "code": "PR-01.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 22,
@@ -6372,7 +6928,18 @@
        "ziel": "Büro",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro",
+       "code": "PR-01.03.01"
+      },
+      "nach": {
+       "room": "Büro",
+       "code": "Ro-01.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 23,
@@ -6438,7 +7005,18 @@
        "ziel": "Büro",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro",
+       "code": "Ro-01.03.01"
+      },
+      "nach": {
+       "room": "Büro",
+       "code": "Ro-01.03.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 23,
@@ -6499,7 +7077,18 @@
        "ziel": "Treppenhaus / Galerie 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Treppenhaus / Galerie 1. OG",
+       "code": "Pe-01.02.01"
+      },
+      "nach": {
+       "room": "Büro",
+       "code": "T-01.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 23,
@@ -6539,7 +7128,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 23,
@@ -6579,7 +7169,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 23,
@@ -6599,7 +7190,8 @@
      ],
      "raumname": "Büro",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -6642,7 +7234,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6672,7 +7265,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6702,7 +7296,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6732,7 +7327,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6772,7 +7368,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6802,7 +7399,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6832,7 +7430,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 24,
@@ -6898,7 +7497,18 @@
        "ziel": "Bad 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Bad 1. OG",
+       "code": "Ro-01.04.01"
+      },
+      "nach": {
+       "room": "Bad 1. OG",
+       "code": "Pe-01.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 24,
@@ -6969,7 +7579,18 @@
        "ziel": "Büro",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro",
+       "code": "Ro-01.03.02"
+      },
+      "nach": {
+       "room": "Bad 1. OG",
+       "code": "Ro-01.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 25,
@@ -7035,7 +7656,18 @@
        "ziel": "Bad 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Bad 1. OG",
+       "code": "Pe-01.04.01"
+      },
+      "nach": {
+       "room": "Bad 1. OG",
+       "code": "T-01.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 25,
@@ -7075,7 +7707,8 @@
      ],
      "raumname": "Bad 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -7123,7 +7756,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 25,
@@ -7163,7 +7797,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 25,
@@ -7193,7 +7828,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 25,
@@ -7223,7 +7859,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 25,
@@ -7258,7 +7895,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 26,
@@ -7288,7 +7926,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 26,
@@ -7328,7 +7967,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 26,
@@ -7394,7 +8034,18 @@
        "ziel": "Schlafzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "T-01.05.01"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "Pa-01.05.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 26,
@@ -7460,7 +8111,18 @@
        "ziel": "Schlafzimmer",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "Pa-01.05.02"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "Pa-01.05.03"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 26,
@@ -7531,7 +8193,18 @@
        "ziel": "Schlafzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "T-01.05.01"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "PR-01.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 27,
@@ -7597,7 +8270,18 @@
        "ziel": "Schlafzimmer",
        "nr": "03"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "Pa-01.05.03"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "Ro-01.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 27,
@@ -7663,7 +8347,18 @@
        "ziel": "Schlafzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "Ro-01.05.01"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "Ro-01.05.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 27,
@@ -7729,7 +8424,18 @@
        "ziel": "Flur 1. OG",
        "nr": "03"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur 1. OG",
+       "code": "PR-01.01.03"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "T-01.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 27,
@@ -7800,7 +8506,18 @@
        "ziel": "Schlafzimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "T-01.05.01"
+      },
+      "nach": {
+       "room": "Schlafzimmer",
+       "code": "Tta-01.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 28,
@@ -7860,7 +8577,18 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Schlafzimmer",
+       "code": "Tta-01.05.01"
+      },
+      "nach": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "kind": "Ableitung"
+     }
     },
     {
      "page": 28,
@@ -7880,7 +8608,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -7900,7 +8629,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -7940,7 +8670,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -7980,7 +8711,8 @@
      ],
      "raumname": "Schlafzimmer",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -8028,7 +8760,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -8058,7 +8791,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -8088,7 +8822,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -8118,7 +8853,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 28,
@@ -8153,7 +8889,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 29,
@@ -8183,7 +8920,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 29,
@@ -8213,7 +8951,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 29,
@@ -8243,7 +8982,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 29,
@@ -8273,7 +9013,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 29,
@@ -8313,7 +9054,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 29,
@@ -8379,7 +9121,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "T-01.06.01"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "PR-01.06.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 29,
@@ -8450,7 +9203,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "PR-01.06.01"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 30,
@@ -8516,7 +9280,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.01"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 30,
@@ -8582,7 +9357,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.02"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.03"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 30,
@@ -8648,7 +9434,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "03"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.03"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.04"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 30,
@@ -8719,7 +9516,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "04"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.04"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.05"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 31,
@@ -8785,7 +9593,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "05"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.05"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.06"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 31,
@@ -8851,7 +9670,18 @@
        "ziel": "Kinderzimmer 1. OG",
        "nr": "06"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.06"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "Ro-01.06.07"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 31,
@@ -8911,7 +9741,18 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "nach": {
+       "room": "Kinderzimmer 1. OG",
+       "code": "T-01.06.01"
+      },
+      "kind": "Einspeisung"
+     }
     },
     {
      "page": 31,
@@ -8951,7 +9792,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 31,
@@ -8996,7 +9838,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 32,
@@ -9036,7 +9879,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 32,
@@ -9076,7 +9920,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 32,
@@ -9116,7 +9961,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 32,
@@ -9136,7 +9982,8 @@
      ],
      "raumname": "Kinderzimmer 1. OG",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -9174,7 +10021,8 @@
      ],
      "raumname": "Balkon",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 32,
@@ -9204,7 +10052,8 @@
      ],
      "raumname": "Balkon",
      "floor": "1. OG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -9252,7 +10101,8 @@
      ],
      "raumname": "Flur DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 32,
@@ -9287,7 +10137,8 @@
      ],
      "raumname": "Flur DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 33,
@@ -9317,7 +10168,8 @@
      ],
      "raumname": "Flur DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 33,
@@ -9383,7 +10235,18 @@
        "ziel": "Flur DG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur DG",
+       "code": "PR-02.01.01"
+      },
+      "nach": {
+       "room": "Flur DG",
+       "code": "Pe-02.01.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 33,
@@ -9449,7 +10312,18 @@
        "ziel": "Abstellraum",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Abstellraum",
+       "code": "T-02.05.01"
+      },
+      "nach": {
+       "room": "Flur DG",
+       "code": "PR-02.01.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 33,
@@ -9469,7 +10343,8 @@
      ],
      "raumname": "Flur DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -9517,7 +10392,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 33,
@@ -9547,7 +10423,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 33,
@@ -9577,7 +10454,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 33,
@@ -9617,7 +10495,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 33,
@@ -9652,7 +10531,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 34,
@@ -9682,7 +10562,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 34,
@@ -9717,7 +10598,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 34,
@@ -9757,7 +10639,8 @@
      ],
      "raumname": "Bad DG",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 34,
@@ -9823,7 +10706,18 @@
        "ziel": "Bad DG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Bad DG",
+       "code": "T-02.02.01"
+      },
+      "nach": {
+       "room": "Bad DG",
+       "code": "Pa-02.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 34,
@@ -9889,7 +10783,18 @@
        "ziel": "Flur DG",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Flur DG",
+       "code": "Pe-02.01.02"
+      },
+      "nach": {
+       "room": "Bad DG",
+       "code": "T-02.02.01"
+      },
+      "kind": "Verbindung"
+     }
     }
    ]
   },
@@ -9927,7 +10832,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 34,
@@ -9962,7 +10868,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 35,
@@ -9992,7 +10899,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 35,
@@ -10032,7 +10940,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 35,
@@ -10098,7 +11007,18 @@
        "ziel": "Büro Anna",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro Anna",
+       "code": "T-02.03.01"
+      },
+      "nach": {
+       "room": "Büro Anna",
+       "code": "PR-02.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 35,
@@ -10164,7 +11084,18 @@
        "ziel": "Büro Anna",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro Anna",
+       "code": "Ro-02.03.02"
+      },
+      "nach": {
+       "room": "Büro Anna",
+       "code": "Ro-02.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 35,
@@ -10235,7 +11166,18 @@
        "ziel": "Büro Anna",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Büro Anna",
+       "code": "PR-02.03.01"
+      },
+      "nach": {
+       "room": "Büro Anna",
+       "code": "Ro-02.03.02"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 36,
@@ -10301,7 +11243,18 @@
        "ziel": "Bad DG",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Bad DG",
+       "code": "T-02.02.01"
+      },
+      "nach": {
+       "room": "Büro Anna",
+       "code": "T-02.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 36,
@@ -10361,7 +11314,18 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Büro Anna",
+       "code": "T-02.03.01"
+      },
+      "nach": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "kind": "Ableitung"
+     }
     },
     {
      "page": 36,
@@ -10401,7 +11365,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 36,
@@ -10441,7 +11406,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 36,
@@ -10461,7 +11427,8 @@
      ],
      "raumname": "Büro Anna",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -10499,7 +11466,8 @@
      ],
      "raumname": "Gästezimmer",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 36,
@@ -10529,7 +11497,8 @@
      ],
      "raumname": "Gästezimmer",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 36,
@@ -10574,7 +11543,8 @@
      ],
      "raumname": "Gästezimmer",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 37,
@@ -10640,7 +11610,18 @@
        "ziel": "Gästezimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Gästezimmer",
+       "code": "T-02.04.01"
+      },
+      "nach": {
+       "room": "Gästezimmer",
+       "code": "PR-02.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 37,
@@ -10706,7 +11687,18 @@
        "ziel": "Gästezimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Gästezimmer",
+       "code": "T-02.04.01"
+      },
+      "nach": {
+       "room": "Gästezimmer",
+       "code": "Ro-02.04.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 37,
@@ -10766,7 +11758,18 @@
      ],
      "raumname": "Gästezimmer",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": {
+      "von": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "nach": {
+       "room": "Gästezimmer",
+       "code": "T-02.04.01"
+      },
+      "kind": "Einspeisung"
+     }
     },
     {
      "page": 37,
@@ -10806,7 +11809,8 @@
      ],
      "raumname": "Gästezimmer",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 37,
@@ -10831,7 +11835,8 @@
      ],
      "raumname": "Gästezimmer",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -10869,7 +11874,8 @@
      ],
      "raumname": "Abstellraum",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 38,
@@ -10899,7 +11905,8 @@
      ],
      "raumname": "Abstellraum",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 38,
@@ -10924,7 +11931,8 @@
      ],
      "raumname": "Abstellraum",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 38,
@@ -10959,7 +11967,8 @@
      ],
      "raumname": "Abstellraum",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 38,
@@ -10999,7 +12008,8 @@
      ],
      "raumname": "Abstellraum",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 38,
@@ -11065,7 +12075,18 @@
        "ziel": "Gästezimmer",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Gästezimmer",
+       "code": "T-02.04.01"
+      },
+      "nach": {
+       "room": "Abstellraum",
+       "code": "PR-02.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 38,
@@ -11136,7 +12157,18 @@
        "ziel": "Abstellraum",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Abstellraum",
+       "code": "PR-02.05.01"
+      },
+      "nach": {
+       "room": "Abstellraum",
+       "code": "Ro-02.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 39,
@@ -11202,7 +12234,18 @@
        "ziel": "Abstellraum",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Abstellraum",
+       "code": "PR-02.05.01"
+      },
+      "nach": {
+       "room": "Abstellraum",
+       "code": "T-02.05.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 39,
@@ -11242,7 +12285,8 @@
      ],
      "raumname": "Abstellraum",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -11280,7 +12324,8 @@
      ],
      "raumname": "Dachboden",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 39,
@@ -11310,7 +12355,8 @@
      ],
      "raumname": "Dachboden",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 39,
@@ -11350,7 +12396,8 @@
      ],
      "raumname": "Dachboden",
      "floor": "DG",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -11388,7 +12435,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 39,
@@ -11408,7 +12456,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 39,
@@ -11453,7 +12502,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 40,
@@ -11473,7 +12523,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 40,
@@ -11543,7 +12594,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 40,
@@ -11609,7 +12661,18 @@
        "ziel": "Garten West",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Garten West",
+       "code": "Wetter-03.02.01"
+      },
+      "nach": {
+       "room": "Einfahrt",
+       "code": "NFC-03.01.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 40,
@@ -11725,7 +12788,18 @@
        "ziel": "Einfahrt",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Verteilung / Technik (KG)",
+       "code": "—"
+      },
+      "nach": {
+       "room": "Einfahrt",
+       "code": "NFC-03.01.02"
+      },
+      "kind": "Einspeisung"
+     }
     },
     {
      "page": 41,
@@ -11760,7 +12834,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 41,
@@ -11795,7 +12870,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 41,
@@ -11825,7 +12901,8 @@
      ],
      "raumname": "Einfahrt",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -11873,7 +12950,8 @@
      ],
      "raumname": "Garten West",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 41,
@@ -11903,7 +12981,8 @@
      ],
      "raumname": "Garten West",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 41,
@@ -11979,7 +13058,18 @@
        "ziel": "Garten West",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Garten West",
+       "code": "Wetter-03.02.01"
+      },
+      "nach": {
+       "room": "Garten West",
+       "code": "Alarm-03.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 42,
@@ -12045,7 +13135,18 @@
        "ziel": "Einfahrt",
        "nr": "02"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Einfahrt",
+       "code": "NFC-03.01.02"
+      },
+      "nach": {
+       "room": "Garten West",
+       "code": "Wetter-03.02.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 42,
@@ -12075,7 +13176,8 @@
      ],
      "raumname": "Garten West",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -12113,7 +13215,8 @@
      ],
      "raumname": "Garage",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 42,
@@ -12143,7 +13246,8 @@
      ],
      "raumname": "Garage",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 42,
@@ -12173,7 +13277,8 @@
      ],
      "raumname": "Garage",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 42,
@@ -12203,7 +13308,8 @@
      ],
      "raumname": "Garage",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 42,
@@ -12274,7 +13380,18 @@
        "ziel": "Garage",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Garage",
+       "code": "T-03.03.01"
+      },
+      "nach": {
+       "room": "Garage",
+       "code": "Pa-03.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 43,
@@ -12340,7 +13457,18 @@
        "ziel": "Einfahrt",
        "nr": "01"
       }
-     ]
+     ],
+     "endp": {
+      "von": {
+       "room": "Einfahrt",
+       "code": "Wallbox-03.01.01"
+      },
+      "nach": {
+       "room": "Garage",
+       "code": "Pa-03.03.01"
+      },
+      "kind": "Verbindung"
+     }
     },
     {
      "page": 43,
@@ -12360,7 +13488,8 @@
      ],
      "raumname": "Garage",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   },
@@ -12408,7 +13537,8 @@
      ],
      "raumname": "Garten Ost",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 43,
@@ -12438,7 +13568,8 @@
      ],
      "raumname": "Garten Ost",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     },
     {
      "page": 43,
@@ -12468,7 +13599,8 @@
      ],
      "raumname": "Garten Ost",
      "floor": "Außenbereich",
-     "refs": []
+     "refs": [],
+     "endp": null
     }
    ]
   }
