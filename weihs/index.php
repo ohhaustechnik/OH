@@ -197,6 +197,12 @@ tbody tr.cstart td{ border-top:2px solid #cfd4e3; }
 tr.done td{ color:#aab; text-decoration:line-through; text-decoration-color:#cfd4e3; }
 tr.done .typ-pill, tr.done .dot{ opacity:.4; }
 .bridge{ display:inline-block; margin-top:5px; font-size:10.5px; font-weight:700; color:#7a4a00; background:#fff3d6; border:1px solid #f0d693; border-radius:7px; padding:3px 8px; }
+.ziel{ display:inline-block; margin-top:5px; font-size:10.5px; font-weight:700; border-radius:7px; padding:3px 8px; }
+.ziel-v{ color:#1b5e20; background:#e6f6ea; border:1px solid #b6e0c0; }
+.ziel-b{ color:#27408b; background:#eef3ff; border:1px solid #cfddff; }
+.rsum{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+.rsum span{ font-size:11.5px; font-weight:700; color:var(--ink); background:var(--soft); border:1px solid var(--line); border-radius:999px; padding:5px 12px; }
+.rsum b{ font-weight:900; }
 .rf-l{ color:var(--muted); font-weight:600; }
 .rf-arrow{ color:var(--blue); font-weight:900; }
 /* Von -> Nach Endpunkte */
@@ -330,6 +336,17 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
         <div class="acc-body room-body">
           <div class="sheet-inner">
             <div class="proj-line"><?= h($data['projekt']) ?> · Stand <?= h($data['stand']) ?> · <b><?= h($r['floor']) ?> – <?= h($r['name']) ?></b></div>
+            <?php
+              $nVert=0;$nVerb=0;$nBr=0;
+              foreach($r['cables'] as $cc){
+                $bn=trim(implode(' ',array_map(function($x){return $x['note'];},$cc['rows'])));
+                if(preg_match('/miteinander|verbinden/i',$bn)) $nBr++;
+                if(!empty($cc['endp'])) $nVerb++;
+                elseif(stripos($cc['desc'],'Zuleitung')===0) $nVert++;
+                elseif(stripos($cc['desc'],'Verbindung')===0) $nVerb++;
+              }
+            ?>
+            <div class="rsum"><span>🔌 <b><?= $nVert ?></b> zum Verteiler</span><span>🔗 <b><?= $nVerb ?></b> Verbindungen</span><span>⛓ <b><?= $nBr ?></b> gebrückt</span></div>
             <table>
               <thead><tr>
                 <th class="col-chk">✓</th>
@@ -352,6 +369,12 @@ tr.done .typ-pill, tr.done .dot{ opacity:.4; }
                       <?php $bnotes=trim(implode(' ',array_map(function($x){return $x['note'];},$c['rows']))); if(preg_match('/miteinander|verbinden/i',$bnotes)): ?>
                         <div class="bridge">⛓ durchgeschleift – <b>1 Zuleitung</b>, <?= stripos($c['desc'],'leucht')!==false?'Leuchten':'Steckdosen' ?> gebrückt<?php if(preg_match('/(\d)-adrig/',$bnotes,$mm)): ?> · <?= h($mm[1]) ?>-adrig<?php endif; ?></div>
                       <?php endif; ?>
+                      <?php if(empty($c['endp'])): $dd=$c['desc'];
+                        if(stripos($dd,'Zuleitung')===0): ?>
+                        <div class="ziel ziel-v">→ <b>zum Verteiler</b> · Verteilung / Technik (KG)</div>
+                      <?php elseif(stripos($dd,'Verbindung')===0): ?>
+                        <div class="ziel ziel-b">🔗 Verbindung im Raum (Beschattung / Motoranschluss)</div>
+                      <?php endif; endif; ?>
                       <?php if(!empty($c['endp'])): $e=$c['endp']; ?>
                         <div class="vn">
                           <div class="vn-kind"><?= h($e['kind']) ?></div>
