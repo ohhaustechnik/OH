@@ -2318,7 +2318,7 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Ro-00.02.01"
       },
       "nach": {
@@ -2452,7 +2452,7 @@
    "etage": "00",
    "floor": "EG",
    "raum": "02",
-   "name": "Küche / Essen",
+   "name": "Küche, Essen",
    "cables": [
     {
      "page": 8,
@@ -2490,7 +2490,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2531,7 +2531,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2567,7 +2567,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2598,7 +2598,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2629,7 +2629,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2670,7 +2670,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2701,7 +2701,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2732,7 +2732,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2773,7 +2773,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2804,7 +2804,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2835,7 +2835,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2866,7 +2866,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2902,7 +2902,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2933,7 +2933,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -2964,7 +2964,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3005,7 +3005,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3036,7 +3036,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3067,7 +3067,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3108,7 +3108,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3129,7 +3129,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3195,7 +3195,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3210,7 +3210,7 @@
        "code": "PR-00.01.01"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Pe-00.02.01"
       },
       "kind": "Verbindung"
@@ -3272,7 +3272,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3283,11 +3283,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Pe-00.02.01"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Pe-00.02.02"
       },
       "kind": "Verbindung"
@@ -3349,7 +3349,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3360,11 +3360,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Pe-00.02.01"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Ro-00.02.01"
       },
       "kind": "Verbindung"
@@ -3426,7 +3426,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3437,11 +3437,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TP-00.02.01"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Ro-00.02.02"
       },
       "kind": "Verbindung"
@@ -3503,7 +3503,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3514,11 +3514,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TP-00.02.02"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Ro-00.02.03"
       },
       "kind": "Verbindung"
@@ -3590,7 +3590,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3601,11 +3601,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Pe-00.02.01"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TP-00.02.01"
       },
       "kind": "Verbindung"
@@ -3667,7 +3667,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3678,11 +3678,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "Pe-00.02.02"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TP-00.02.02"
       },
       "kind": "Verbindung"
@@ -3744,12 +3744,12 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TP-00.02.02"
       },
       "nach": {
@@ -3815,7 +3815,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [
       {
@@ -3826,11 +3826,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TP-00.02.01"
       },
       "nach": {
-       "room": "Küche / Essen",
+       "room": "Küche, Essen",
        "code": "TtA-00.02.01"
       },
       "kind": "Verbindung"
@@ -3872,7 +3872,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3913,7 +3913,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3954,7 +3954,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -3995,7 +3995,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4036,7 +4036,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4077,7 +4077,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4118,7 +4118,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4139,7 +4139,7 @@
        "note": ""
       }
      ],
-     "raumname": "Küche / Essen",
+     "raumname": "Küche, Essen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4150,7 +4150,7 @@
    "etage": "00",
    "floor": "EG",
    "raum": "03",
-   "name": "Wohnzimmer",
+   "name": "Wohnen",
    "cables": [
     {
      "page": 14,
@@ -4188,7 +4188,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4224,7 +4224,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4265,7 +4265,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4296,7 +4296,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4327,7 +4327,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4358,7 +4358,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4389,7 +4389,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4420,7 +4420,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4451,7 +4451,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4492,7 +4492,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4538,7 +4538,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4574,7 +4574,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -4635,7 +4635,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -4646,11 +4646,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.06"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Mo-00.03.01"
       },
       "kind": "Verbindung"
@@ -4712,7 +4712,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -4723,11 +4723,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "TP-00.03.01"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "PR-00.03.01"
       },
       "kind": "Verbindung"
@@ -4789,7 +4789,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -4800,11 +4800,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "TP-00.03.01"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.01"
       },
       "kind": "Verbindung"
@@ -4871,7 +4871,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -4882,11 +4882,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.01"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.02"
       },
       "kind": "Verbindung"
@@ -4948,7 +4948,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -4959,11 +4959,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.02"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.03"
       },
       "kind": "Verbindung"
@@ -5025,7 +5025,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -5036,11 +5036,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.03"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.04"
       },
       "kind": "Verbindung"
@@ -5102,7 +5102,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -5113,11 +5113,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.04"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.05"
       },
       "kind": "Verbindung"
@@ -5184,7 +5184,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [
       {
@@ -5195,11 +5195,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "PR-00.03.04"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Ro-00.03.06"
       },
       "kind": "Verbindung"
@@ -5261,7 +5261,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": {
@@ -5270,7 +5270,7 @@
        "code": "—"
       },
       "nach": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "TP-00.03.01"
       },
       "kind": "Einspeisung"
@@ -5312,7 +5312,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5353,7 +5353,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5394,7 +5394,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5435,7 +5435,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5456,7 +5456,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5477,7 +5477,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5498,7 +5498,7 @@
        "note": ""
       }
      ],
-     "raumname": "Wohnzimmer",
+     "raumname": "Wohnen",
      "floor": "EG",
      "refs": [],
      "endp": null
@@ -5676,7 +5676,7 @@
      ],
      "endp": {
       "von": {
-       "room": "Wohnzimmer",
+       "room": "Wohnen",
        "code": "Mo-00.03.01"
       },
       "nach": {
@@ -6211,7 +6211,7 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "T-01.06.01"
       },
       "nach": {
@@ -6443,7 +6443,7 @@
    "etage": "01",
    "floor": "1. OG",
    "raum": "02",
-   "name": "TH DG (Treppenhaus DG)",
+   "name": "TH DG",
    "cables": [
     {
      "page": 20,
@@ -6481,7 +6481,7 @@
        "note": ""
       }
      ],
-     "raumname": "TH DG (Treppenhaus DG)",
+     "raumname": "TH DG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -6512,7 +6512,7 @@
        "note": ""
       }
      ],
-     "raumname": "TH DG (Treppenhaus DG)",
+     "raumname": "TH DG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -6583,7 +6583,7 @@
        "note": ""
       }
      ],
-     "raumname": "TH DG (Treppenhaus DG)",
+     "raumname": "TH DG",
      "floor": "1. OG",
      "refs": [
       {
@@ -6598,7 +6598,7 @@
        "code": "Pe-01.01.02"
       },
       "nach": {
-       "room": "TH DG (Treppenhaus DG)",
+       "room": "TH DG",
        "code": "Pe-01.02.01"
       },
       "kind": "Verbindung"
@@ -7080,7 +7080,7 @@
      ],
      "endp": {
       "von": {
-       "room": "TH DG (Treppenhaus DG)",
+       "room": "TH DG",
        "code": "Pe-01.02.01"
       },
       "nach": {
@@ -7716,7 +7716,7 @@
    "etage": "01",
    "floor": "1. OG",
    "raum": "05",
-   "name": "Schlafzimmer",
+   "name": "Schlafen",
    "cables": [
     {
      "page": 25,
@@ -7754,7 +7754,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -7795,7 +7795,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -7826,7 +7826,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -7857,7 +7857,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -7893,7 +7893,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -7924,7 +7924,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -7965,7 +7965,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8026,7 +8026,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8037,11 +8037,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "T-01.05.01"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Pa-01.05.02"
       },
       "kind": "Verbindung"
@@ -8103,7 +8103,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8114,11 +8114,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Pa-01.05.02"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Pa-01.05.03"
       },
       "kind": "Verbindung"
@@ -8185,7 +8185,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8196,11 +8196,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "T-01.05.01"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "PR-01.05.01"
       },
       "kind": "Verbindung"
@@ -8262,7 +8262,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8273,11 +8273,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Pa-01.05.03"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Ro-01.05.01"
       },
       "kind": "Verbindung"
@@ -8339,7 +8339,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8350,11 +8350,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Ro-01.05.01"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Ro-01.05.02"
       },
       "kind": "Verbindung"
@@ -8416,7 +8416,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8431,7 +8431,7 @@
        "code": "PR-01.01.03"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "T-01.05.01"
       },
       "kind": "Verbindung"
@@ -8498,7 +8498,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [
       {
@@ -8509,11 +8509,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "T-01.05.01"
       },
       "nach": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Tta-01.05.01"
       },
       "kind": "Verbindung"
@@ -8575,12 +8575,12 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": {
       "von": {
-       "room": "Schlafzimmer",
+       "room": "Schlafen",
        "code": "Tta-01.05.01"
       },
       "nach": {
@@ -8606,7 +8606,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8627,7 +8627,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8668,7 +8668,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8709,7 +8709,7 @@
        "note": ""
       }
      ],
-     "raumname": "Schlafzimmer",
+     "raumname": "Schlafen",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8720,7 +8720,7 @@
    "etage": "01",
    "floor": "1. OG",
    "raum": "06",
-   "name": "Kinderzimmer 1. OG",
+   "name": "Kind 1. OG",
    "cables": [
     {
      "page": 28,
@@ -8758,7 +8758,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8789,7 +8789,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8820,7 +8820,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8851,7 +8851,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8887,7 +8887,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8918,7 +8918,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8949,7 +8949,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -8980,7 +8980,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9011,7 +9011,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9052,7 +9052,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9113,7 +9113,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9124,11 +9124,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "T-01.06.01"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "PR-01.06.01"
       },
       "kind": "Verbindung"
@@ -9195,7 +9195,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9206,11 +9206,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "PR-01.06.01"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.01"
       },
       "kind": "Verbindung"
@@ -9272,7 +9272,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9283,11 +9283,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.01"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.02"
       },
       "kind": "Verbindung"
@@ -9349,7 +9349,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9360,11 +9360,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.02"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.03"
       },
       "kind": "Verbindung"
@@ -9426,7 +9426,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9437,11 +9437,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.03"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.04"
       },
       "kind": "Verbindung"
@@ -9508,7 +9508,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9519,11 +9519,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.04"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.05"
       },
       "kind": "Verbindung"
@@ -9585,7 +9585,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9596,11 +9596,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.05"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.06"
       },
       "kind": "Verbindung"
@@ -9662,7 +9662,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [
       {
@@ -9673,11 +9673,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.06"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "Ro-01.06.07"
       },
       "kind": "Verbindung"
@@ -9739,7 +9739,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": {
@@ -9748,7 +9748,7 @@
        "code": "—"
       },
       "nach": {
-       "room": "Kinderzimmer 1. OG",
+       "room": "Kind 1. OG",
        "code": "T-01.06.01"
       },
       "kind": "Einspeisung"
@@ -9790,7 +9790,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9836,7 +9836,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9877,7 +9877,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9918,7 +9918,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9959,7 +9959,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -9980,7 +9980,7 @@
        "note": ""
       }
      ],
-     "raumname": "Kinderzimmer 1. OG",
+     "raumname": "Kind 1. OG",
      "floor": "1. OG",
      "refs": [],
      "endp": null
@@ -10315,7 +10315,7 @@
      ],
      "endp": {
       "von": {
-       "room": "Abstellraum",
+       "room": "Abstell",
        "code": "T-02.05.01"
       },
       "nach": {
@@ -11436,7 +11436,7 @@
    "etage": "02",
    "floor": "DG",
    "raum": "04",
-   "name": "Gästezimmer",
+   "name": "Gast",
    "cables": [
     {
      "page": 36,
@@ -11464,7 +11464,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11495,7 +11495,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11541,7 +11541,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11602,7 +11602,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [
       {
@@ -11613,11 +11613,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Gästezimmer",
+       "room": "Gast",
        "code": "T-02.04.01"
       },
       "nach": {
-       "room": "Gästezimmer",
+       "room": "Gast",
        "code": "PR-02.04.01"
       },
       "kind": "Verbindung"
@@ -11679,7 +11679,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [
       {
@@ -11690,11 +11690,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Gästezimmer",
+       "room": "Gast",
        "code": "T-02.04.01"
       },
       "nach": {
-       "room": "Gästezimmer",
+       "room": "Gast",
        "code": "Ro-02.04.01"
       },
       "kind": "Verbindung"
@@ -11756,7 +11756,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [],
      "endp": {
@@ -11765,7 +11765,7 @@
        "code": "—"
       },
       "nach": {
-       "room": "Gästezimmer",
+       "room": "Gast",
        "code": "T-02.04.01"
       },
       "kind": "Einspeisung"
@@ -11807,7 +11807,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11833,7 +11833,7 @@
        "note": ""
       }
      ],
-     "raumname": "Gästezimmer",
+     "raumname": "Gast",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11844,7 +11844,7 @@
    "etage": "02",
    "floor": "DG",
    "raum": "05",
-   "name": "Abstellraum",
+   "name": "Abstell",
    "cables": [
     {
      "page": 38,
@@ -11872,7 +11872,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11903,7 +11903,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11929,7 +11929,7 @@
        "note": "von nächstgelegener Steckdose (dauerhaft)"
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -11965,7 +11965,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -12006,7 +12006,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -12067,7 +12067,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [
       {
@@ -12078,11 +12078,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Gästezimmer",
+       "room": "Gast",
        "code": "T-02.04.01"
       },
       "nach": {
-       "room": "Abstellraum",
+       "room": "Abstell",
        "code": "PR-02.05.01"
       },
       "kind": "Verbindung"
@@ -12149,7 +12149,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [
       {
@@ -12160,11 +12160,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Abstellraum",
+       "room": "Abstell",
        "code": "PR-02.05.01"
       },
       "nach": {
-       "room": "Abstellraum",
+       "room": "Abstell",
        "code": "Ro-02.05.01"
       },
       "kind": "Verbindung"
@@ -12226,7 +12226,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [
       {
@@ -12237,11 +12237,11 @@
      ],
      "endp": {
       "von": {
-       "room": "Abstellraum",
+       "room": "Abstell",
        "code": "PR-02.05.01"
       },
       "nach": {
-       "room": "Abstellraum",
+       "room": "Abstell",
        "code": "T-02.05.01"
       },
       "kind": "Verbindung"
@@ -12283,7 +12283,7 @@
        "note": ""
       }
      ],
-     "raumname": "Abstellraum",
+     "raumname": "Abstell",
      "floor": "DG",
      "refs": [],
      "endp": null
@@ -12405,7 +12405,7 @@
    "etage": "03",
    "floor": "Außenbereich",
    "raum": "01",
-   "name": "Einfahrt",
+   "name": "Eingang/ Einfahrt",
    "cables": [
     {
      "page": 39,
@@ -12433,7 +12433,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12454,7 +12454,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12500,7 +12500,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12521,7 +12521,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12592,7 +12592,7 @@
        "note": "Smart Home Verteilung"
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12653,7 +12653,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [
       {
@@ -12668,7 +12668,7 @@
        "code": "Wetter-03.02.01"
       },
       "nach": {
-       "room": "Einfahrt",
+       "room": "Eingang/ Einfahrt",
        "code": "NFC-03.01.01"
       },
       "kind": "Verbindung"
@@ -12780,7 +12780,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [
       {
@@ -12795,7 +12795,7 @@
        "code": "—"
       },
       "nach": {
-       "room": "Einfahrt",
+       "room": "Eingang/ Einfahrt",
        "code": "NFC-03.01.02"
       },
       "kind": "Einspeisung"
@@ -12832,7 +12832,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12868,7 +12868,7 @@
        "note": ""
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -12899,7 +12899,7 @@
        "note": "Smart Home Verteilung"
       }
      ],
-     "raumname": "Einfahrt",
+     "raumname": "Eingang/ Einfahrt",
      "floor": "Außenbereich",
      "refs": [],
      "endp": null
@@ -13138,7 +13138,7 @@
      ],
      "endp": {
       "von": {
-       "room": "Einfahrt",
+       "room": "Eingang/ Einfahrt",
        "code": "NFC-03.01.02"
       },
       "nach": {
@@ -13460,7 +13460,7 @@
      ],
      "endp": {
       "von": {
-       "room": "Einfahrt",
+       "room": "Eingang/ Einfahrt",
        "code": "Wallbox-03.01.01"
       },
       "nach": {
