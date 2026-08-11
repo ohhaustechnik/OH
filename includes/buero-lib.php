@@ -746,6 +746,7 @@ function oh_ki(string $system, string $userMsg, int $maxTokens = 1500): ?string 
  * bei stündlichem Cron mit vielen KI-Aufrufen).
  * ------------------------------------------------------------------------ */
 function oh_alert_guthaben(string $detail = ''): void {
+    return;
     $cfg = oh_config();
     $to  = $cfg['alert_email'] ?? ($cfg['gmail_user'] ?? '');
     $a    = oh_read('guthaben_alert', []);
