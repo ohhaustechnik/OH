@@ -1,11 +1,8 @@
 <?php
-/* =========================================================================
- * OH Haustechnik – Privater Kundenbereich (360°-Baudokumentation)
- * ========================================================================= */
+/* OH Haustechnik – Privater Kundenbereich (3D-Baudokumentation) */
 session_start();
 header('X-Robots-Tag: noindex, nofollow, noarchive');
 
-/* ---- HIER das Kundenpasswort setzen ---- */
 $KUNDEN_PASSWORT = 'weihs2026';
 $PROJEKT_TITEL   = 'Familie Weihs · Nürnberg';
 
@@ -29,6 +26,34 @@ function panorama($etage,$raum){
 $floors=['EG'=>[],'1. OG'=>[],'DG'=>[],'KG'=>[],'Außenbereich'=>[]];
 if($data) foreach($data['rooms'] as $r){ if(isset($floors[$r['floor']])) $floors[$r['floor']][]=$r; }
 $FLABEL=['KG'=>'Kellergeschoss','EG'=>'Erdgeschoss','1. OG'=>'1. Obergeschoss','DG'=>'Dachgeschoss / 2. OG','Außenbereich'=>'Außenbereich'];
+
+$POLYCAM = [
+  '00-01'=>'https://poly.cam/capture/EF1073F4-DED3-484A-A75B-1B30E62EFEAD',
+  '00-02'=>'https://poly.cam/capture/648F909B-278B-490B-B064-CEAD9A06B2AF',
+  '00-03'=>'https://poly.cam/capture/6773F4C0-EAB5-4192-95C7-1BC683F59892',
+  '00-04'=>'https://poly.cam/capture/6EDE0CE5-A428-40EA-8ECF-60B96CFDB236',
+  '01-01'=>'https://poly.cam/capture/CDED9EE4-41F5-4AFA-A650-47CF04B780BD',
+  '01-03'=>'https://poly.cam/capture/80782AD2-F6A9-4A71-ADF9-55FFE2347E1A',
+  '01-04'=>'https://poly.cam/capture/F13D6303-E8B6-4EE7-8B6F-36223FD45CCD',
+  '01-05'=>'https://poly.cam/capture/6EE8B075-3594-41EE-BC47-E6F06CB87486',
+  '01-06'=>'https://poly.cam/capture/A33D400F-6FDA-45ED-87E4-C75172A19A21',
+  '02-01'=>'https://poly.cam/capture/6E702AB7-63D9-42C0-A4A4-647EBE2F4D37',
+  '02-02'=>'https://poly.cam/capture/1FED9E49-6ED4-444C-988E-3DBC07BDF924',
+  '02-03'=>'https://poly.cam/capture/09340AE3-3057-48C4-866F-7C9AEF8E7AED',
+  '02-04'=>'https://poly.cam/capture/5CFCC130-3395-4F53-9027-EE2232E1CE54',
+  '02-05'=>'https://poly.cam/capture/245CCB58-989E-4024-A1A3-877DB5AF2775',
+  '02-06'=>'https://poly.cam/capture/C90DDD56-CC4B-4B91-90A3-A43679F621E1',
+];
+function polycam($etage,$raum){ global $POLYCAM; return $POLYCAM[$etage.'-'.sprintf('%02d',(int)$raum)] ?? null; }
+
+$EXTRA_ROOMS = [
+  'EG' => [
+    ['name'=>'Esszimmer', 'poly'=>'https://poly.cam/capture/9AD9464B-EE7B-41FD-8900-C11B54597AB0', 'cableref'=>'00-02'],
+  ],
+];
+$ROOMKEY=[];
+if($data) foreach($data['rooms'] as $rr){ $ROOMKEY[$rr['etage'].'-'.sprintf('%02d',(int)$rr['raum'])]=$rr; }
+function excables($ref){ global $ROOMKEY; $r=$ROOMKEY[$ref] ?? null; return $r? $r['cables'] : []; }
 ?><!DOCTYPE html><html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
@@ -123,27 +148,35 @@ a{ color:inherit; }
   <a class="out" href="?logout=1">Abmelden</a>
 </div>
 <div class="hero">
-  <div class="eyebrow">360° Rundgang · Elektroinstallation</div>
+  <div class="eyebrow">3D-Rundgang · Elektroinstallation</div>
   <h2>Ihr Zuhause – jede Leitung dokumentiert</h2>
-  <p>Öffnen Sie eine Etage, wählen Sie einen Raum und drehen Sie sich im 360°-Rundgang um. Zu jedem Raum finden Sie die vollständige Dokumentation der verlegten Leitungen.</p>
+  <p>Öffnen Sie eine Etage, wählen Sie einen Raum und gehen Sie im 3D-Rundgang durch. Zu jedem Raum finden Sie die vollständige Dokumentation der verlegten Leitungen.</p>
 </div>
 <div class="wrap">
 <?php $i=0; foreach($floors as $fl=>$rooms){ if(!$rooms) continue; $i++;
-  $withpano=0; foreach($rooms as $r){ if(panorama($r['etage'],$r['raum'])) $withpano++; } ?>
+  $extra = $EXTRA_ROOMS[$fl] ?? [];
+  $withpano=count($extra); foreach($rooms as $r){ if(panorama($r['etage'],$r['raum'])||polycam($r['etage'],$r['raum'])) $withpano++; } ?>
   <div class="floor<?= $i===1?' open':'' ?>">
     <button class="floor-h" onclick="this.parentElement.classList.toggle('open')">
       <span class="num"><?= h($fl) ?></span>
-      <span><span class="t"><?= h($FLABEL[$fl]) ?></span><br><span class="c"><?= count($rooms) ?> Räume · <?= $withpano ?>× 360°</span></span>
+      <span><span class="t"><?= h($FLABEL[$fl]) ?></span><br><span class="c"><?= count($rooms) ?> Räume · <?= $withpano ?>× 3D-Rundgang</span></span>
       <span class="car">▸</span>
     </button>
     <div class="rooms">
-    <?php foreach($rooms as $r){ $p=panorama($r['etage'],$r['raum']); $kab=count($r['cables']); ?>
-      <div class="room" onclick='openRoom(<?= json_encode(["name"=>$r['name'],"floor"=>$FLABEL[$fl],"pano"=>$p,"cables"=>array_map(function($c){ return ["code"=>bcode($c),"desc"=>preg_replace("/^(Zuleitung|Verbindung|Ableitung)\s+/u","",$c["desc"]),"kabel"=>$c["kabeltyp"]]; }, $r['cables'])], JSON_UNESCAPED_UNICODE|JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>
+    <?php foreach($rooms as $r){ $p=panorama($r['etage'],$r['raum']); $py=polycam($r['etage'],$r['raum']); $kab=count($r['cables']); ?>
+      <div class="room" onclick='openRoom(<?= json_encode(["name"=>$r['name'],"floor"=>$FLABEL[$fl],"pano"=>$p,"poly3d"=>$py,"cables"=>array_map(function($c){ return ["code"=>bcode($c),"desc"=>preg_replace("/^(Zuleitung|Verbindung|Ableitung)\s+/u","",$c["desc"]),"kabel"=>$c["kabeltyp"]]; }, $r['cables'])], JSON_UNESCAPED_UNICODE|JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>
         <div class="thumb" <?= $p?'style="background-image:url('.h($p).')"':'' ?>>
-          <?php if($p): ?><span class="badge360">360°</span><div class="play"><span>▶</span></div>
-          <?php else: ?><span class="soon">360° folgt</span><span class="ph">Rundgang wird<br>noch hochgeladen</span><?php endif; ?>
+          <?php if($py): ?><span class="badge360">3D-Rundgang</span><div class="play"><span>▶</span></div>
+          <?php elseif($p): ?><span class="badge360">360°</span><div class="play"><span>▶</span></div>
+          <?php else: ?><span class="soon">Rundgang folgt</span><span class="ph">3D-Rundgang wird<br>noch hochgeladen</span><?php endif; ?>
         </div>
         <div class="meta"><div class="rn"><?= h($r['name']) ?></div><div class="rc"><?= $kab ?> Leitungen dokumentiert</div></div>
+      </div>
+    <?php } ?>
+    <?php foreach($extra as $ex){ $exc=excables($ex['cableref']??''); $kab=count($exc); ?>
+      <div class="room" onclick='openRoom(<?= json_encode(["name"=>$ex['name'],"floor"=>$FLABEL[$fl],"pano"=>null,"poly3d"=>$ex['poly'],"cables"=>array_map(function($c){ return ["code"=>bcode($c),"desc"=>preg_replace("/^(Zuleitung|Verbindung|Ableitung)\s+/u","",$c["desc"]),"kabel"=>$c["kabeltyp"]]; }, $exc)], JSON_UNESCAPED_UNICODE|JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'>
+        <div class="thumb"><span class="badge360">3D-Rundgang</span><div class="play"><span>▶</span></div></div>
+        <div class="meta"><div class="rn"><?= h($ex['name']) ?></div><div class="rc"><?= $kab ?> Leitungen dokumentiert</div></div>
       </div>
     <?php } ?>
     </div>
@@ -152,8 +185,10 @@ a{ color:inherit; }
   <p style="color:var(--mut);font-size:11.5px;text-align:center;margin-top:26px">🔒 Privater Bereich · erstellt von OH Haustechnik · Alle Angaben aus dem geprüften Installationsplan.</p>
 </div>
 <div class="viewer" id="viewer">
-  <div class="vtop"><div><div class="vn" id="vName"></div><div class="vf" id="vFloor"></div></div><button class="x" onclick="closeRoom()">Schließen ✕</button></div>
-  <div class="stage"><div id="pano"></div><div class="nopano" id="nopano" style="display:none"><div style="font-size:32px">📷</div><div>360°-Rundgang für diesen Raum folgt in Kürze.</div></div></div>
+  <div class="vtop"><div><div class="vn" id="vName"></div><div class="vf" id="vFloor"></div></div>
+    <a id="vTab" href="#" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:#9aa0c0;text-decoration:none;border:1px solid #252a4a;border-radius:8px;padding:8px 11px;display:none">↗ Neuer Tab</a>
+    <button class="x" onclick="closeRoom()">Schließen ✕</button></div>
+  <div class="stage"><iframe id="poly3d" style="position:absolute;inset:0;width:100%;height:100%;border:0;display:none" allow="fullscreen; xr-spatial-tracking; gyroscope; accelerometer" allowfullscreen></iframe><div id="pano"></div><div class="nopano" id="nopano" style="display:none"><div style="font-size:32px">📷</div><div>3D-Rundgang für diesen Raum folgt in Kürze.</div></div></div>
   <div class="docbar" id="docbar">
     <div class="dh" onclick="document.getElementById('docbar').classList.toggle('open')">🔌 Verlegte Leitungen <span class="cnt" id="vCnt"></span> <span style="margin-left:auto;color:var(--mut)">▾</span></div>
     <table><thead><tr><th style="width:32%">Bezeichnung</th><th>Bauteil</th><th style="width:26%">Kabeltyp</th></tr></thead><tbody id="vRows"></tbody></table>
@@ -168,13 +203,14 @@ function openRoom(d){
   document.getElementById('vRows').innerHTML=d.cables.map(c=>`<tr><td class="code">${c.code}</td><td>${c.desc||'–'}</td><td>${c.kabel||'–'}</td></tr>`).join('');
   document.getElementById('viewer').classList.add('on');
   document.body.style.overflow='hidden';
-  const pano=document.getElementById('pano'), no=document.getElementById('nopano');
+  const pano=document.getElementById('pano'), no=document.getElementById('nopano'), fr=document.getElementById('poly3d'), tab=document.getElementById('vTab');
   if(viewer){ try{viewer.destroy();}catch(e){} viewer=null; }
   pano.innerHTML='';
-  if(d.pano && window.pannellum){ no.style.display='none'; pano.style.display='block'; viewer=pannellum.viewer('pano',{type:'equirectangular',panorama:d.pano,autoLoad:true,showControls:true,autoRotate:-2,compass:false,hfov:100}); }
-  else { pano.style.display='none'; no.style.display='flex'; }
+  if(d.poly3d){ no.style.display='none'; pano.style.display='none'; fr.style.display='block'; fr.src=d.poly3d; tab.style.display='inline-block'; tab.href=d.poly3d; }
+  else if(d.pano && window.pannellum){ fr.style.display='none'; fr.src='about:blank'; tab.style.display='none'; no.style.display='none'; pano.style.display='block'; viewer=pannellum.viewer('pano',{type:'equirectangular',panorama:d.pano,autoLoad:true,showControls:true,autoRotate:-2,compass:false,hfov:100}); }
+  else { fr.style.display='none'; fr.src='about:blank'; tab.style.display='none'; pano.style.display='none'; no.style.display='flex'; }
 }
-function closeRoom(){ document.getElementById('viewer').classList.remove('on'); document.body.style.overflow=''; if(viewer){ try{viewer.destroy();}catch(e){} viewer=null; } }
+function closeRoom(){ document.getElementById('viewer').classList.remove('on'); document.body.style.overflow=''; const fr=document.getElementById('poly3d'); fr.src='about:blank'; fr.style.display='none'; if(viewer){ try{viewer.destroy();}catch(e){} viewer=null; } }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeRoom(); });
 </script>
 <?php endif; ?>
