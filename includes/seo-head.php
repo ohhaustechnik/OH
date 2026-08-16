@@ -34,7 +34,7 @@ $graph = [[
   ]],
   'areaServed' => array_map(fn($o) => ['@type' => 'City', 'name' => $o],
                             ['Nürnberg','Fürth','Erlangen','Schwabach','Wendelstein']),
-  'aggregateRating' => ['@type' => 'AggregateRating', 'ratingValue' => '5.0', 'reviewCount' => '21'],
+  'aggregateRating' => ['@type' => 'AggregateRating', 'ratingValue' => '5.0', 'reviewCount' => '27'],
 ]];
 
 if ($s('service')) {
