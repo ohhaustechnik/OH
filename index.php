@@ -1,750 +1,546 @@
-<?php
-$page_title       = 'OH Haustechnik – Elektroinstallation & Netzwerkverkabelung Nürnberg';
-$meta_description = 'Fachgerechte Elektroinstallation & Altbausanierung im Raum Nürnberg – Neubau, Bestandsmodernisierung & Netzwerkverkabelung. Sauber, sicher & zuverlässig. Jetzt kostenlos anfragen!';
-$meta_keywords    = 'Elektroinstallation Nürnberg, Altbausanierung Elektriker, Elektriker Nürnberg, Elektrotechnik Fürth Erlangen, Schutztechnik, Unterverteilung, Modernisierung';
-$canonical_url    = 'https://oh-haustechnik.de/';
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Elektriker in N&uuml;rnberg f&uuml;r Elektroinstallation, Altbausanierung, Smart Home, PV &amp; Wallbox. Auch F&uuml;rth, Schwabach, Wendelstein. 5,0 Sterne bei &uuml;ber 20 Google-Bewertungen. Jetzt Anfrage stellen.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="canonical" href="https://oh-haustechnik.de/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Elektriker N&uuml;rnberg &ndash; Elektroinstallation &amp; Altbausanierung">
+<meta property="og:description" content="Elektroinstallation, Altbausanierung, Smart Home, PV &amp; Wallbox im Raum N&uuml;rnberg.">
+<meta property="og:image" content="https://oh-haustechnik.de/assets/img/lp/poster.jpg">
+<meta property="og:locale" content="de_DE">
+<link rel="icon" href="assets/img/favicon.ico">
+<link rel="preload" as="image" href="assets/img/lp/poster.jpg" fetchpriority="high">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Electrician","name":"OH Haustechnik","image":"https://oh-haustechnik.de/assets/img/lp/poster.jpg","@id":"https://oh-haustechnik.de/","url":"https://oh-haustechnik.de/","telephone":"+491757481006","email":"oh.Haustechnik@gmail.com","founder":{"@type":"Person","name":"Onur-Can Hezer"},"address":{"@type":"PostalAddress","streetAddress":"Dianastra\u00dfe 62","postalCode":"90441","addressLocality":"N\u00fcrnberg","addressCountry":"DE"},"areaServed":["N\u00fcrnberg","F\u00fcrth","Schwabach","Wendelstein"],"knowsAbout":["Elektroinstallation","Altbausanierung","Smart Home","Photovoltaik","Wallbox"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"27"}}</script>
+<title>Elektriker Nürnberg | Elektroinstallation &amp; Altbausanierung – OH Haustechnik</title>
+<style>
+/* ---------- Fonts (lokal eingebettet, DSGVO-konform) ---------- */
+@font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/anton.woff2) format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/inter400.woff2) format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/inter600.woff2) format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/inter700.woff2) format('woff2');}
 
-require_once __DIR__ . '/includes/buero-lib.php';
-$ohReviews = function_exists('oh_google_reviews') ? oh_google_reviews() : ['rating' => 5.0, 'count' => 21];
-$ohRating  = number_format($ohReviews['rating'], 1, ',', '');
-$ohCount   = (int)$ohReviews['count'];
+/* ---------- Tokens ---------- */
+:root{
+  --bg:#0A0A0A; --bg2:#111111; --panel:#1A1A1A;
+  --yellow:#6E9BE0; --blue:#325AA0; --ink:#F5F5F5; --grey:#9CA3AF;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.15);
+  --head:'Anton',Impact,'Arial Narrow',system-ui,sans-serif;
+  --body:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --wrap:1200px;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+img{max-width:100%;display:block;}
+a{color:inherit;text-decoration:none;}
+h1,h2,h3{font-family:var(--head);text-transform:uppercase;line-height:.98;letter-spacing:0;font-weight:400;margin:0;}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 22px;}
+.yellow{color:var(--yellow);}
+.eyebrow{font-family:var(--body);font-weight:700;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow);}
+.muted{color:var(--grey);}
+section{padding:96px 0;}
+@media(max-width:720px){section{padding:56px 0;}body{font-size:16px;}}
 
-include 'includes/header.php';
-?>
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:52px;padding:14px 26px;border-radius:10px;
+  font-family:var(--body);font-weight:700;font-size:15px;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;border:1px solid transparent;transition:all .2s ease;}
+.btn-y{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.btn-y:hover{background:rgba(255,255,255,.22);border-color:#fff;transform:translateY(-2px);box-shadow:0 12px 34px rgba(0,0,0,.4);}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--ink);border-color:rgba(255,255,255,.22);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.btn-ghost:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.6);color:#fff;transform:translateY(-2px);}
 
-<!-- ============================================================
-     HERO
-============================================================ -->
-<section class="hero" aria-label="Startseite Hero">
+/* ---------- Header ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s ease,border-color .3s ease;border-bottom:1px solid transparent;}
+header.scrolled{background:rgba(10,10,10,.94);backdrop-filter:blur(10px);border-bottom-color:var(--line);}
+.nav{display:flex;align-items:center;gap:26px;height:104px;}
+.nav .logo{height:80px;width:auto;filter:drop-shadow(0 2px 12px rgba(0,0,0,.7));}
+.nav .links{display:flex;gap:26px;margin-left:auto;}
+.nav .links a{font-size:13.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);transition:color .2s;}
+.nav .links a:hover{color:var(--ink);}
+.nav .call{min-height:44px;padding:11px 20px;font-size:13.5px;}
+.hamburger{display:none;}
+@media(max-width:900px){
+  .nav .links{display:none;}
+  .nav{height:78px;gap:14px;}
+  .nav .logo{height:60px;}
+}
 
- <!-- Hintergrund-Video -->
-<video class="hero-video hero-video-desktop" autoplay muted loop playsinline preload="metadata">
-    <source src="assets/videos/Hero-video.mp4.mp4" type="video/mp4">
-</video>
+/* ---------- Hero ---------- */
+.hero{position:relative;min-height:100svh;display:flex;align-items:center;padding-top:104px;overflow:hidden;}
+.hero-bg{position:absolute;inset:0;z-index:0;}
+.hero-bg img,.hero-bg video{width:100%;height:100%;object-fit:cover;}
+.hero-bg::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(10,10,10,.94) 0%,rgba(10,10,10,.82) 45%,rgba(10,10,10,.55) 100%),linear-gradient(0deg,var(--bg),transparent 55%);}
+.hero-in{position:relative;z-index:1;max-width:760px;padding:40px 0;}
+.hero h1{font-size:clamp(44px,8.5vw,104px);margin:16px 0 0;text-wrap:balance;}
+.hero .sub{margin:22px 0 30px;font-size:clamp(16px,2.4vw,20px);color:#d7d9de;max-width:560px;}
+.hero .ctas{display:flex;gap:14px;flex-wrap:wrap;}
+.trust{display:flex;align-items:center;gap:11px;margin-top:26px;font-size:14.5px;color:var(--grey);}
+.trust .stars{color:#FFC107;letter-spacing:2px;}
+.trust b{color:var(--ink);font-weight:600;}
+.gg{width:20px;height:20px;flex:none;}
 
-<video class="hero-video hero-video-mobile" autoplay muted loop playsinline preload="metadata">
-    <source src="assets/videos/hero-video-mobile.mp4" type="video/mp4">
-</video>
+/* ---------- Section head ---------- */
+.shead{max-width:720px;margin-bottom:44px;}
+.shead h2{font-size:clamp(30px,5vw,52px);margin-top:10px;text-wrap:balance;}
+.shead p{color:var(--grey);margin:14px 0 0;}
 
-    <div class="hero-content container">
+/* ---------- Leistungen ---------- */
+.alt-bg{background:var(--bg2);}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.grid{grid-template-columns:1fr;}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 24px 28px;transition:all .2s ease;}
+.card:hover{border-color:var(--yellow);transform:translateY(-3px);}
+.card .n{font-family:var(--head);font-size:30px;color:var(--yellow);line-height:1;}
+.card h3{font-size:19px;margin:14px 0 8px;letter-spacing:.01em;}
+.card p{margin:0;font-size:15px;color:var(--grey);line-height:1.55;}
 
-        <!-- Links: Text -->
-        <div class="hero-text-col">
-            <div class="hero-badge hero-anim hero-anim--1">
-                <span class="signal-indicator" style="margin-right: 8px;"></span>
-                <i class="fas fa-map-marker-alt"></i>
-                Elektrotechnik im Raum Nürnberg
-            </div>
+/* ---------- Altbau ---------- */
+.altbau{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center;}
+@media(max-width:900px){.altbau{grid-template-columns:1fr;gap:32px;}}
+.altbau h2{font-size:clamp(30px,5vw,52px);}
+.altbau .lead{color:#d7d9de;margin:18px 0 22px;}
+.checks{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:12px;}
+.checks li{display:flex;gap:12px;font-size:15.5px;color:#cfd2d8;}
+.checks .mk{color:var(--yellow);font-weight:700;flex:none;}
+.altbau-photo{border:1px solid var(--line);border-radius:16px;overflow:hidden;aspect-ratio:4/5;}
+.altbau-photo img{width:100%;height:100%;object-fit:cover;}
 
-            <h1 class="hero-anim hero-anim--2">
-                Elektroarbeiten?<br>
-                <span>Einfach. Schnell.</span><br>
-                Sorgenfrei.
-            </h1>
+/* ---------- Referenzen ---------- */
+.refs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:900px){.refs{grid-template-columns:1fr;}}
+.ref{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;border:1px solid var(--line);}
+.ref img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease;}
+.ref:hover img{transform:scale(1.05);}
+.ref .cap{position:absolute;inset:auto 0 0 0;padding:18px 18px 16px;
+  background:linear-gradient(0deg,rgba(10,10,10,.9),transparent);}
+.ref .cap span{font-family:var(--head);text-transform:uppercase;font-size:18px;letter-spacing:.01em;}
+.ph-note{margin-top:16px;font-size:13px;color:var(--grey);}
 
-            <p class="hero-sub hero-anim hero-anim--3">
-                Altbau, Neubau, Sanierung &amp; Netzwerkverkabelung –<br>
-                Angebot in 2 Minuten anfragen.
-            </p>
+/* ---------- Ablauf ---------- */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+@media(max-width:900px){.steps{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.steps{grid-template-columns:1fr;}}
+.step{border-top:2px solid var(--line2);padding-top:18px;}
+.step .n{font-family:var(--head);font-size:40px;color:var(--yellow);line-height:1;}
+.step h3{font-size:17px;margin:12px 0 6px;}
+.step p{margin:0;font-size:14.5px;color:var(--grey);}
 
-            <div class="hero-trust-pills hero-anim hero-anim--4">
-                <span class="hero-trust-pill"><i class="fas fa-clock"></i> Anfrage in 2 Minuten</span>
-                <span class="hero-trust-pill"><i class="fas fa-check-circle"></i> Fachgerechte &amp; saubere Ausführung</span>
-                <span class="hero-trust-pill"><i class="fas fa-bolt"></i> Schnelle Rückmeldung</span>
-                <div class="hero-review-marquee">
-					<a class="hero-trust-pill hero-google-review"
-href="https://www.google.com/search?sca_esv=6fef7d0a1afa4d8f&sxsrf=ANbL-n7e0ajHHv6L-2vPejXk2wKLWrtXYQ:1780765775434&q=oh+haustechnik&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOWluts8aoNpa1ka9f2czMtzz_p2RiQ6ERYIoWWmrg4kEUYpiEskbILUwheh5lTQ6e_Jfhto%3D&uds=ALYpb_mM1P_6lpjjfowRxWEKPgkkg4WfUJQ72qxKMdMMktO-r7U2N8yuHquEvnK-ge9OpuDdw_Y1J5FUMEFKNCS3wksiaMGt2nM8e_hL2PqPFnH8KzZYDj0&sa=X&ved=2ahUKEwiq9uO7jfOUAxX_AtsEHbb-NcoQ3PALegQIHBAE&biw=1358&bih=644&dpr=1"
-target="_blank"
-rel="noopener">
+/* ---------- Über ---------- */
+.about{display:grid;grid-template-columns:.85fr 1.15fr;gap:50px;align-items:center;}
+@media(max-width:900px){.about{grid-template-columns:1fr;gap:28px;}}
+.about-photo{border:1px solid var(--line);border-radius:16px;overflow:hidden;aspect-ratio:1/1;background:var(--panel);}
+.about-photo img{width:100%;height:100%;object-fit:cover;}
+.about h2{font-size:clamp(28px,4.5vw,46px);}
+.about p{color:#cfd2d8;margin:16px 0 0;}
+.badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;}
+.badge{border:1px solid var(--line2);border-radius:999px;padding:9px 16px;font-size:13.5px;color:#e4e6ea;font-weight:600;}
 
-<img src="assets/img/google-g.svg" alt="Google" class="google-icon">
-						
-						
-<i class="fas fa-star"></i>
-<i class="fas fa-star"></i>
-<i class="fas fa-star"></i>
-<i class="fas fa-star"></i>
-<i class="fas fa-star"></i>
-<?= $ohRating ?> aus <?= $ohCount ?> Google-Bewertungen
-</a>
-			</div>
+/* ---------- Formular ---------- */
+.formwrap{max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:34px 30px 30px;}
+@media(max-width:600px){.formwrap{padding:24px 18px;}}
+.progress{display:flex;gap:8px;margin-bottom:26px;}
+.progress i{height:5px;border-radius:3px;flex:1;background:rgba(255,255,255,.12);transition:background .3s;}
+.progress i.on{background:var(--yellow);}
+.step-panel{display:none;}
+.step-panel.on{display:block;animation:fade .35s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.qlabel{font-family:var(--head);text-transform:uppercase;font-size:23px;margin:0 0 4px;}
+.qhint{color:var(--grey);font-size:14px;margin:0 0 20px;}
+.chips{display:flex;flex-wrap:wrap;gap:10px;}
+.chip{border-radius:9999px;padding:11px 18px;background:transparent;border:1px solid rgba(255,255,255,.15);color:#F5F5F5;cursor:pointer;transition:all .2s ease;font-weight:600;font-size:14.5px;font-family:var(--body);}
+.chip:hover{border-color:var(--yellow);}
+.chip.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.field{margin-top:16px;}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--grey);margin-bottom:7px;letter-spacing:.02em;}
+.field input,.field textarea{width:100%;background:#0E0E0E;border:1px solid var(--line2);border-radius:10px;color:var(--ink);
+  font-family:var(--body);font-size:16px;padding:14px 15px;transition:border-color .2s;}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--yellow);}
+.field textarea{min-height:96px;resize:vertical;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:520px){.row2{grid-template-columns:1fr;}}
+.hp{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden;}
+.check{display:flex;gap:11px;align-items:flex-start;margin-top:18px;font-size:14px;color:#cfd2d8;}
+.check input{width:19px;height:19px;margin-top:2px;accent-color:var(--blue);flex:none;}
+.formnav{display:flex;align-items:center;gap:12px;margin-top:26px;}
+.formnav .back{background:transparent;border:1px solid var(--line2);color:var(--grey);}
+.formnav .spacer{flex:1;}
+.promise{background:rgba(110,155,224,.10);border:1px solid rgba(110,155,224,.30);border-radius:11px;padding:14px 16px;font-size:14px;color:#d7e4f6;margin-top:22px;}
+.err{color:#ff8a8a;font-size:13.5px;margin-top:10px;display:none;}
+.thanks{display:none;text-align:center;padding:24px 10px;}
+.thanks .big{font-family:var(--head);text-transform:uppercase;font-size:30px;color:var(--yellow);margin-bottom:10px;}
 
-            <div class="hero-actions hero-anim hero-anim--5">
-                <button type="button" class="btn btn--white btn--lg btn-glow-pulse icon-bounce" id="open-funnel-btn">
-                    <i class="fas fa-paper-plane"></i>
-                    Jetzt kostenloses Angebot einholen
-                </button>
-             <a href="festpreis-kalkulator.php" class="btn btn--primary btn--lg btn-glow-pulse icon-bounce hero-calc-btn">
-    <i class="fas fa-calculator"></i>
-    Sofort-Kalkulation & Termin · Testphase
-</a>
-				<a href="#leistungen" class="btn btn--outline-white btn--lg icon-bounce">
-                    <i class="fas fa-bolt"></i>
-                    Unsere Leistungen
-                </a>
-            </div>
-        </div>
+/* ---------- Kontakt ---------- */
+.contact{background:var(--bg2);}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:10px;}
+@media(max-width:760px){.cgrid{grid-template-columns:1fr;}}
+.cbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 22px 24px;}
+.cbox .k{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow);font-weight:700;}
+.cbox .v{font-size:19px;font-weight:600;margin-top:8px;}
+.cbox .v.small{font-size:16px;line-height:1.5;font-weight:500;color:#d7d9de;}
 
-        <!-- Rechts: Info-Card -->
-        <div class="hero-card hero-anim hero-anim--card">
-            <h3><i class="fas fa-clipboard-check" style="margin-right: 0.625rem; color: rgba(255,255,255,0.8);"></i>Unser Leistungsversprechen</h3>
-            <ul class="hero-card-list">
-                <li>
-                    <i class="fas fa-check"></i>
-                    <span>Fachgerechte &amp; sichere Ausführung</span>
-                </li>
-                <li>
-                    <i class="fas fa-check"></i>
-                    <span>Geprüfte Markenkomponenten – langlebig und zuverlässig</span>
-                </li>
-                <li>
-                    <i class="fas fa-check"></i>
-                    <span>Strukturierte Installation mit transparenter Dokumentation</span>
-                </li>
-                <li>
-                    <i class="fas fa-check"></i>
-                    <span>Neubau, Altbausanierung und Erweiterungen</span>
-                </li>
-                <li>
-                    <i class="fas fa-check"></i>
-                    <span>Elektro- und Netzwerkinfrastruktur aus einer Hand</span>
-                </li>
-            </ul>
+/* ---------- Footer ---------- */
+footer{border-top:1px solid var(--line);padding:44px 0 40px;}
+.fgrid{display:flex;flex-wrap:wrap;gap:26px;align-items:center;}
+.fgrid .logo{height:50px;}
+.fnav{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto;}
+.fnav a{font-size:14px;color:var(--grey);}
+.fnav a:hover{color:var(--ink);}
+.legal{margin-top:24px;font-size:13px;color:#6b7280;display:flex;gap:18px;flex-wrap:wrap;}
+.legal a{color:#9CA3AF;text-decoration:underline;text-underline-offset:2px;}
 
-            <!-- Stats -->
-            <div class="hero-stats stagger-container">
-                <div class="hero-stat stagger-item">
-                    <span class="hero-stat-value counter-animate" data-count="100">0</span><span>+</span>
-                    <span class="hero-stat-label">Projekte</span>
-                </div>
-                <div class="hero-stat stagger-item">
-                    <span class="hero-stat-value">100%</span>
-                    <span class="hero-stat-label">Fachgerecht</span>
-                </div>
-                <div class="hero-stat stagger-item">
-                    <span class="hero-stat-value">NÜ</span>
-                    <span class="hero-stat-label">Region</span>
-                </div>
-            </div>
-        </div>
+/* ---------- Mobile Call Bar ---------- */
+.callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;background:var(--blue);color:#fff;
+  text-align:center;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:15px;font-size:15px;}
+@media(max-width:900px){.callbar{display:block;} body{padding-bottom:52px;}}
 
+/* ---------- Reveal ---------- */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease;}
+.rv.in{opacity:1;transform:none;}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none;}html{scroll-behavior:auto;}}
+
+/* preview ribbon */
+.ribbon{position:fixed;top:104px;right:0;z-index:70;background:#1A1A1A;border:1px solid var(--line);border-right:0;border-radius:8px 0 0 8px;
+  padding:7px 13px;font-size:11.5px;color:var(--grey);letter-spacing:.05em;}
+@media(max-width:900px){.ribbon{top:64px;}}
+
+/* Vorher-Nachher */
+.refgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:900px){.refgrid{grid-template-columns:1fr;}}
+figure{margin:0;}
+figure figcaption{margin-top:12px;font-family:var(--head);text-transform:uppercase;font-size:16px;letter-spacing:.01em;color:var(--ink);}
+.ba{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:14px;border:1px solid var(--line);cursor:ew-resize;user-select:none;touch-action:none;background:#111;}
+.ba img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+.ba .before{clip-path:inset(0 50% 0 0);}
+.ba-lbl{position:absolute;top:10px;z-index:4;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(10,10,10,.72);color:#fff;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
+.ba-lbl.l{left:10px;} .ba-lbl.r{right:10px;}
+.ba-handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#fff;z-index:5;transform:translateX(-1px);box-shadow:0 0 12px rgba(0,0,0,.6);}
+.ba-handle span{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:#fff;color:#0A0A0A;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.45);}
+.ba-handle span::before{content:"\21C4";font-size:17px;font-weight:700;}
+.rtile{aspect-ratio:4/3;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
+.rtile img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease;}
+.rtile:hover img{transform:scale(1.05);}
+</style>
+</head>
+<body>
+
+
+<!-- ============ HEADER ============ -->
+<header id="hd">
+  <div class="wrap nav">
+    <img class="logo" src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik">
+    <nav class="links" aria-label="Hauptnavigation">
+      <a href="#leistungen">Leistungen</a>
+      <a href="#altbau">Altbau</a>
+      <a href="#referenzen">Referenzen</a>
+      <a href="#ablauf">Ablauf</a>
+      <a href="#kontakt">Kontakt</a>
+    </nav>
+    <a class="btn btn-y call" href="tel:+491757481006">Anrufen</a>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-bg"><video autoplay muted loop playsinline poster="assets/img/lp/poster.jpg"><source src="assets/videos/Hero-video.mp4.mp4" type="video/mp4"></video></div>
+  <div class="wrap hero-in">
+    <div class="eyebrow rv">Elektrobetrieb · Nürnberg · Fürth · Schwabach · Wendelstein</div>
+    <h1 class="rv">Elektro.<br><span class="yellow">Vom Altbau bis Smart Home.</span></h1>
+    <p class="sub rv">Junger Elektrobetrieb aus Nürnberg — für Wohnung, Haus und Gewerbe. Elektroinstallation, Altbausanierung und Smart Home. Klare Absprachen, saubere Ausführung, schnelle Rückmeldung.</p>
+    <div class="ctas rv">
+      <a class="btn btn-y" href="#anfrage">Anfrage in 2 Minuten</a>
+      <a class="btn btn-ghost" href="tel:+491757481006">Anrufen</a>
     </div>
+    <div class="trust rv">
+      <svg class="gg" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.5l-6.5-5.5C29.6 34.6 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.5 5.5C41.4 36.9 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+      <span><b>5,0 Sterne</b> bei 27 Google-Bewertungen</span>
+    </div>
+  </div>
 </section>
 
-
-<!-- ============================================================
-     TRUST BAR
-============================================================ -->
-<div class="trust-bar" role="complementary" aria-label="Vertrauenselemente">
-    <div class="trust-bar-inner stagger-container">
-        <div class="trust-item stagger-item">
-            <i class="fas fa-clock"></i>
-            <span>Anfrage in 2 Minuten</span>
-        </div>
-        <div class="trust-item stagger-item">
-            <i class="fas fa-check-circle"></i>
-            <span>Fachgerechte Ausführung</span>
-        </div>
-        <div class="trust-item stagger-item">
-            <i class="fas fa-bolt"></i>
-            <span>Schnelle Rückmeldung</span>
-        </div>
-        <div class="trust-item stagger-item">
-            <i class="fas fa-shield-alt"></i>
-            <span>Professionelle Installation</span>
-        </div>
-        <div class="trust-item stagger-item">
-            <i class="fas fa-broom"></i>
-            <span>Saubere Montage</span>
-        </div>
-        <div class="trust-item stagger-item">
-            <i class="fas fa-map-marker-alt"></i>
-            <span>Raum Nürnberg</span>
-        </div>
+<!-- ============ LEISTUNGEN ============ -->
+<section id="leistungen">
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">Leistungen</div>
+      <h2>Elektro-Leistungen in Nürnberg &amp; Umgebung.</h2>
+      <p>Elektroinstallation, Altbausanierung, Smart Home, PV und Wallbox — im Raum Nürnberg, Fürth, Schwabach und Wendelstein. Sauber ausgeführt und nachvollziehbar dokumentiert.</p>
     </div>
-</div>
-
-<!-- ============================================================
-     POSITIONIERUNG
-============================================================ -->
-<section class="section section--gray section-fade-up" id="positionierung">
-    <div class="container">
-        <div class="anspruch-grid">
-
-            <!-- Text -->
-            <div class="anspruch-text" data-animate>
-                <span class="section-label">Wer wir sind</span>
-                <h2 class="section-title">
-                    Ihr Partner für moderne<br>
-                    <span>Elektrotechnik</span>
-                </h2>
-                <p style="margin-bottom: 1.25rem;">
-                    OH Haustechnik ist Ihr Ansprechpartner für zuverlässige Elektroinstallationen im Neubau und vor allem in der <a href="leistungen/elektroinstallation.php" class="text-link">Altbausanierung</a>.
-                </p>
-                <p style="margin-bottom: 1.25rem;">
-                    Wir modernisieren bestehende Anlagen, erneuern veraltete Elektroinstallationen und schaffen sichere, zukunftsfähige Lösungen für private und gewerbliche Objekte.
-                </p>
-                <p style="margin-bottom: 1.25rem;">
-                    Im Mittelpunkt steht eine saubere, durchdachte Umsetzung – sicher, funktional und auf langfristige Nutzung ausgelegt.
-                </p>
-                <p>
-                    Von der klassischen Stromkreisinstallation bis zur kompletten Altbaumodernisierung erhalten Sie bei uns alles aus einer Hand.
-                </p>
-                <a href="ueber-uns.php" class="btn btn--primary" style="margin-top: 2rem;">
-                    <i class="fas fa-users"></i> Mehr über uns
-                </a>
-            </div>
-
-            <!-- Visual: Norm-Box -->
-            <div class="anspruch-visual" data-animate>
-                <div class="anspruch-visual-box">
-                    <h3><i class="fas fa-award" style="margin-right: 0.625rem;"></i>Unser Anspruch</h3>
-                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 1.75rem; font-size: 0.95rem;">
-                        Elektrotechnik ist sicherheitsrelevant. Deshalb arbeiten wir präzise, strukturiert und mit höchstem Qualitätsanspruch.
-                    </p>
-                    <div class="norm-badges">
-                        <div class="norm-badge">
-                            <i class="fas fa-check-circle"></i> Fachgerechte Ausführung
-                        </div>
-                        <div class="norm-badge">
-                            <i class="fas fa-check-circle"></i> Hochwertige Markenkomponenten
-                        </div>
-                        <div class="norm-badge">
-                            <i class="fas fa-check-circle"></i> Saubere Montage
-                        </div>
-                        <div class="norm-badge">
-                            <i class="fas fa-check-circle"></i> Transparente Dokumentation
-                        </div>
-                        <div class="norm-badge">
-                            <i class="fas fa-check-circle"></i> Erweiterbar
-                        </div>
-                        <div class="norm-badge">
-                            <i class="fas fa-check-circle"></i> Zukunftssicher
-                        </div>
-                    </div>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 0.875rem; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.15);">
-                        <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                        Ziel ist eine langlebige, belastbare und zukunftssichere elektrische Infrastruktur.
-                    </p>
-                </div>
-            </div>
-
-        </div>
+    <div class="grid">
+      <div class="card rv"><div class="n">01</div><h3>Elektro­installation</h3><p>Neuinstallation für Wohnung, Haus und Gewerbe — von der Planung bis zur Abnahme.</p></div>
+      <div class="card rv"><div class="n">02</div><h3>Altbau­sanierung</h3><p>Alte Leitungen raus, moderner FI-Schutz rein. Elektrik auf heutigen Stand, ohne die Bausubstanz zu zerlegen.</p></div>
+      <div class="card rv"><div class="n">03</div><h3>Fehlersuche &amp; Kundendienst</h3><p>Strom weg, FI fliegt, etwas funktioniert nicht? Wir finden die Ursache und beheben sie.</p></div>
+      <div class="card rv"><div class="n">04</div><h3>Smart Home</h3><p>Licht, Beschattung, Heizung und Sicherheit vernetzt — mit Loxone oder KNX.</p></div>
+      <div class="card rv"><div class="n">05</div><h3>PV-Anlagen</h3><p>Photovoltaik anschließen und in die Hausinstallation einbinden.</p></div>
+      <div class="card rv"><div class="n">06</div><h3>Wallbox</h3><p>Ladepunkt fürs E-Auto — fachgerecht abgesichert und angemeldet.</p></div>
     </div>
+  </div>
 </section>
-<!-- ============================================================
-     UNSERE PROJEKTE – VORHER / NACHHER
-============================================================ -->
-<section class="section section--gray" id="projekte">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Unsere Projekte</span>
-            <h2 class="section-title">Vorher / <span>Nachher</span></h2>
-            <p class="section-subtitle">
-                Ein Einblick in unsere saubere und fachgerechte Arbeit.
-            </p>
-        </div>
 
-        <div class="before-after-card" data-animate>
-            <h3>Behandlungsraum / Friseur</h3>
-
-            <div class="before-after-slider">
-                <img src="assets/img/projekte/Vorher%20Friseur.jpeg" alt="Vorher Friseur Behandlungsraum" loading="lazy" decoding="async">
-                <div class="after-image">
-                    <img src="assets/img/projekte/Nachher%20Friseur.jpeg" alt="Nachher Friseur Behandlungsraum" loading="lazy" decoding="async">
-                </div>
-
-                <input type="range" min="0" max="100" value="50" class="before-after-range">
-                <div class="slider-line"></div>
-                <div class="slider-button">
-    <i class="fas fa-arrows-alt-h"></i>
-</div>
-            </div>
-
-            <p class="project-text">
-                Modernisierung eines Behandlungsraums mit sauberer Elektroinstallation und hochwertiger Ausführung.
-            </p>
-        </div>
+<!-- ============ ALTBAU ============ -->
+<section id="altbau" class="alt-bg">
+  <div class="wrap altbau">
+    <div class="rv">
+      <div class="eyebrow">Kernkompetenz</div>
+      <h2>Altbausanierung ist unsere Stärke.</h2>
+      <p class="lead">Alte Häuser haben ihre Tücken: gewachsene Leitungen, fehlender FI-Schutz, Bausubstanz, die man nicht unnötig aufreißen will. Genau dafür sind wir da — Elektrosanierung im Altbau rund um Nürnberg.</p>
+      <ul class="checks">
+        <li><span class="mk">→</span> Alte Leitungen und marode Verteilungen erneuern</li>
+        <li><span class="mk">→</span> FI-/Fehlerstromschutz nachrüsten — Sicherheit auf heutigem Stand</li>
+        <li><span class="mk">→</span> Substanzschonend arbeiten, sauber verputzt hinterlassen</li>
+        <li><span class="mk">→</span> Schritt für Schritt bewohnbar sanieren, nicht alles auf einmal</li>
+      </ul>
+      <a class="btn btn-y" href="#anfrage">Altbau-Anfrage stellen</a>
     </div>
+    <div class="altbau-photo rv"><img src="assets/img/lp/altbau.jpg" alt="Neue Elektroleitungen im Altbau, sauber verlegt"></div>
+  </div>
 </section>
+
+<!-- ============ REFERENZEN ============ -->
+<section id="referenzen">
+  <div class="wrap">
+    <div class="shead rv"><div class="eyebrow">Referenzen</div><h2>Vorher. Nachher. Sauber.</h2>
+      <p>Echte Projekte aus dem Raum Nürnberg — zieh den Regler und sieh den Unterschied.</p></div>
+    <div class="refgrid">
+      <figure class="rv">
+        <div class="ba"><img class="after" src="assets/img/lp/ba1n.jpg" alt="Dachgeschoss nachher"><img class="before" src="assets/img/lp/ba1v.jpg" alt="Dachgeschoss vorher"><span class="ba-lbl l">Vorher</span><span class="ba-lbl r">Nachher</span><div class="ba-handle"><span></span></div></div>
+        <figcaption>Dachgeschoss-Wohnung · Altbausanierung</figcaption>
+      </figure>
+      <figure class="rv">
+        <div class="ba"><img class="after" src="assets/img/lp/ba2n.jpg" alt="Kueche nachher"><img class="before" src="assets/img/lp/ba2v.jpg" alt="Kueche vorher"><span class="ba-lbl l">Vorher</span><span class="ba-lbl r">Nachher</span><div class="ba-handle"><span></span></div></div>
+        <figcaption>Küche · Komplettsanierung</figcaption>
+      </figure>
+      <figure class="rv">
+        <div class="ba"><img class="after" src="assets/img/lp/ba3n.jpg" alt="Behandlungsraum nachher"><img class="before" src="assets/img/lp/ba3v.jpg" alt="Behandlungsraum vorher"><span class="ba-lbl l">Vorher</span><span class="ba-lbl r">Nachher</span><div class="ba-handle"><span></span></div></div>
+        <figcaption>Kosmetik-/Behandlungsraum · Gewerbe</figcaption>
+      </figure>
+    </div>
+    <div class="refgrid" style="margin-top:16px">
+      <figure class="rv"><div class="rtile"><img src="assets/img/lp/uv.jpg" alt="Neue Unterverteilung mit FI-Schutz"></div><figcaption>Unterverteilung erneuert</figcaption></figure>
+      <figure class="rv"><div class="rtile"><img src="assets/img/lp/bad.jpg" alt="Bad-Sanierung mit Fliesen"></div><figcaption>Bad-Sanierung</figcaption></figure>
+      <figure class="rv"><div class="rtile"><img src="assets/img/lp/sh.jpg" alt="Zaehlerschrank Smart Home"></div><figcaption>Smart Home · Zählerschrank</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ABLAUF ============ -->
+<section id="ablauf" class="alt-bg">
+  <div class="wrap">
+    <div class="shead rv"><div class="eyebrow">Ablauf</div><h2>So läuft es ab.</h2></div>
+    <div class="steps">
+      <div class="step rv"><div class="n">01</div><h3>Anfrage</h3><p>Kurz schildern, worum es geht — über das Formular oder telefonisch.</p></div>
+      <div class="step rv"><div class="n">02</div><h3>Vor-Ort-Termin</h3><p>Wir schauen uns die Lage vor Ort an und besprechen mit Ihnen die Möglichkeiten.</p></div>
+      <div class="step rv"><div class="n">03</div><h3>Klares Angebot</h3><p>Verständlich aufgeschlüsselt — Sie wissen, was gemacht wird und was es kostet.</p></div>
+      <div class="step rv"><div class="n">04</div><h3>Saubere Umsetzung</h3><p>Termintreu ausgeführt, aufgeräumt übergeben.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ÜBER ============ -->
+<section id="ueber">
+  <div class="wrap about">
+    <div class="about-photo rv"><img src="assets/img/lp/about.jpg" alt="Fertige Elektroinstallation, Dachgeschoss Nürnberg"></div>
+    <div class="rv">
+      <div class="eyebrow">Der Betrieb</div>
+      <h2>Ihr Elektrobetrieb aus Nürnberg.</h2>
+      <p>OH Haustechnik ist Ihr Elektrobetrieb aus Nürnberg — Inhaber Onur-Can Hezer. Wir stehen für Elektroinstallation und Altbausanierung mit klaren Absprachen und sauberer Ausführung, von der ersten Anfrage bis zur Abnahme.</p>
+      <p>Vom Altbau bis zum Smart Home: Wir arbeiten auf aktuellem Stand der Technik und Vorschriften — und erklären Ihnen jeden Schritt verständlich.</p>
+      <div class="badges">
+        <span class="badge">Elektroniker für Energie- &amp; Gebäudetechnik</span>
+        <span class="badge">Persönlich &amp; direkt</span>
+        <span class="badge">5,0★ · 27 Bewertungen</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FORMULAR ============ -->
+<section id="anfrage" class="alt-bg">
+  <div class="wrap">
+    <div class="shead rv" style="text-align:center;margin:0 auto 36px;">
+      <div class="eyebrow" style="text-align:center;">Anfrage</div>
+      <h2>Anfrage in 2 Minuten.</h2>
+      <p style="margin-left:auto;margin-right:auto;">Vier kurze Schritte. Kein Anruf nötig, keine Verpflichtung.</p>
+    </div>
+
+    <form class="formwrap rv" id="form" autocomplete="on" novalidate>
+      <div class="progress" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+
+      <!-- honeypot -->
+      <div class="hp"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+      <!-- Step 1 -->
+      <div class="step-panel on" data-step="1">
+        <p class="qlabel">Worum geht es?</p>
+        <p class="qhint">Wählen Sie, was am besten passt.</p>
+        <div class="chips" data-single="leistung">
+          <button type="button" class="chip">Altbausanierung</button>
+          <button type="button" class="chip">Neue Installation</button>
+          <button type="button" class="chip">Fehlersuche / Reparatur</button>
+          <button type="button" class="chip">Smart Home</button>
+          <button type="button" class="chip">Wallbox</button>
+          <button type="button" class="chip">PV-Anlage</button>
+          <button type="button" class="chip">Sonstiges</button>
+        </div>
+        <div class="err" data-err="1">Bitte wählen Sie einen Punkt.</div>
+        <div class="formnav"><div class="spacer"></div><button type="button" class="btn btn-y" data-next>Weiter</button></div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-panel" data-step="2">
+        <p class="qlabel">Um was für ein Objekt geht es?</p>
+        <p class="qhint">Und optional ein Satz zum Vorhaben.</p>
+        <div class="chips" data-single="objekt">
+          <button type="button" class="chip">Wohnung</button>
+          <button type="button" class="chip">Haus</button>
+          <button type="button" class="chip">Gewerbe</button>
+        </div>
+        <div class="field"><label>Kurz zum Vorhaben (optional)</label><textarea name="vorhaben" placeholder="z. B. Altbauwohnung, Baujahr 60er, komplette Elektrik erneuern"></textarea></div>
+        <div class="err" data-err="2">Bitte wählen Sie das Objekt.</div>
+        <div class="formnav"><button type="button" class="btn back" data-back>Zurück</button><div class="spacer"></div><button type="button" class="btn btn-y" data-next>Weiter</button></div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-panel" data-step="3">
+        <p class="qlabel">Wo ist das Objekt?</p>
+        <p class="qhint">Damit ich prüfen kann, ob es im Einsatzgebiet liegt.</p>
+        <div class="row2">
+          <div class="field"><label>PLZ *</label><input type="text" name="plz" inputmode="numeric" maxlength="5" placeholder="90441"></div>
+          <div class="field"><label>Ort</label><input type="text" name="ort" placeholder="Nürnberg"></div>
+        </div>
+        <div class="err" data-err="3">Bitte geben Sie die PLZ an.</div>
+        <div class="formnav"><button type="button" class="btn back" data-back>Zurück</button><div class="spacer"></div><button type="button" class="btn btn-y" data-next>Weiter</button></div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-panel" data-step="4">
+        <p class="qlabel">Wie erreiche ich Sie?</p>
+        <p class="qhint">Telefon oder E-Mail genügt — eins davon reicht.</p>
+        <div class="field"><label>Name *</label><input type="text" name="name" placeholder="Vor- und Nachname"></div>
+        <div class="row2">
+          <div class="field"><label>Telefon</label><input type="tel" name="telefon" inputmode="tel" placeholder="0175 …"></div>
+          <div class="field"><label>E-Mail</label><input type="email" name="email" placeholder="name@mail.de"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="datenschutz"><span>Ich habe die <a href="datenschutz.php" target="_blank" style="color:var(--yellow);text-decoration:underline;">Datenschutzerklärung</a> gelesen und bin mit der Verarbeitung meiner Angaben zur Kontaktaufnahme einverstanden.</span></label>
+        <div class="promise">Sie bekommen einen Vor-Ort-Termin und ein klares Angebot — meist Rückmeldung innerhalb von 24 Stunden.</div>
+        <div class="err" data-err="4">Bitte Name und eine Kontaktmöglichkeit angeben und den Datenschutz bestätigen.</div>
+        <div class="formnav"><button type="button" class="btn back" data-back>Zurück</button><div class="spacer"></div><button type="submit" class="btn btn-y" id="send">Anfrage senden →</button></div>
+      </div>
+
+      <!-- Thanks -->
+      <div class="thanks" id="thanks">
+        <div class="big">Danke!</div>
+        <p class="muted">Ihre Anfrage ist angekommen. Wir melden uns zeitnah bei Ihnen — meist innerhalb von 24 Stunden.</p>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ============ KONTAKT ============ -->
+<section id="kontakt" class="contact">
+  <div class="wrap">
+    <div class="shead rv"><div class="eyebrow">Kontakt</div><h2>Elektriker Nürnberg — direkt erreichbar.</h2></div>
+    <div class="cgrid">
+      <a class="cbox rv" href="tel:+491757481006"><div class="k">Telefon</div><div class="v">+49 175 7481006</div></a>
+      <a class="cbox rv" href="mailto:oh.Haustechnik@gmail.com"><div class="k">E-Mail</div><div class="v small">oh.Haustechnik@gmail.com</div></a>
+      <div class="cbox rv"><div class="k">Einsatzgebiet</div><div class="v small">Nürnberg · Fürth · Schwabach · Wendelstein</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <img class="logo" src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik">
+      <nav class="fnav" aria-label="Fußnavigation">
+        <a href="#leistungen">Leistungen</a>
+        <a href="#altbau">Altbau</a>
+        <a href="#referenzen">Referenzen</a>
+        <a href="#anfrage">Anfrage</a>
+        <a href="tel:+491757481006">+49 175 7481006</a>
+      </nav>
+    </div>
+    <div class="legal">
+      <span>OH Haustechnik · Onur-Can Hezer · Dianastraße 62, 90441 Nürnberg</span>
+      <a href="impressum.html">Impressum</a>
+      <a href="datenschutz.php">Datenschutz</a>
+    </div>
+  </div>
+</footer>
+
+<a class="callbar" href="tel:+491757481006">📞 Jetzt anrufen · +49 175 7481006</a>
 
 <script>
-document.querySelectorAll('.before-after-slider').forEach(function(slider) {
-    const range = slider.querySelector('.before-after-range');
-    const after = slider.querySelector('.after-image');
-    const line = slider.querySelector('.slider-line');
-    const button = slider.querySelector('.slider-button');
+// Sticky header
+const hd=document.getElementById('hd');
+addEventListener('scroll',()=>hd.classList.toggle('scrolled',scrollY>20),{passive:true});
 
-    range.addEventListener('input', function() {
-        after.style.width = range.value + '%';
-        line.style.left = range.value + '%';
-        button.style.left = range.value + '%';
-    });
+// Scroll reveal
+const io=new IntersectionObserver((es)=>{es.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('in'),i*60);io.unobserve(e.target);}})},{threshold:.14});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+// Chips (single select per group)
+document.querySelectorAll('.chips[data-single]').forEach(g=>{
+  g.addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    g.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active'); g.dataset.value=c.textContent.trim();
+  });
+});
+
+// Multi-step
+const form=document.getElementById('form');
+const panels=[...form.querySelectorAll('.step-panel')];
+const bars=[...form.querySelectorAll('.progress i')];
+let step=0;
+function show(n){panels.forEach((p,i)=>p.classList.toggle('on',i===n));bars.forEach((b,i)=>b.classList.toggle('on',i<=n));step=n;form.scrollIntoView({behavior:'smooth',block:'start'});}
+function err(n,on){const e=form.querySelector('[data-err="'+n+'"]');if(e)e.style.display=on?'block':'none';}
+function valid(n){
+  if(n===0)return !!form.querySelector('[data-single="leistung"]').dataset.value;
+  if(n===1)return !!form.querySelector('[data-single="objekt"]').dataset.value;
+  if(n===2)return form.plz.value.trim().length>=4;
+  if(n===3){const c=form.name.value.trim()&&(form.telefon.value.trim()||form.email.value.trim())&&form.datenschutz.checked;return !!c;}
+  return true;
+}
+form.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>{
+  if(!valid(step)){err(step+1,true);return;}err(step+1,false);show(step+1);
+}));
+form.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>show(Math.max(0,step-1))));
+
+// Submit (Vorschau: kein echter Versand)
+let startT=Date.now();
+function showThanks(){panels.forEach(p=>p.classList.remove('on'));form.querySelector('.progress').style.display='none';document.getElementById('thanks').style.display='block';document.getElementById('thanks').scrollIntoView({behavior:'smooth',block:'center'});}
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(!valid(3)){err(4,true);return;}err(4,false);
+  const fd=new FormData(form);
+  fd.append('leistung',(form.querySelector('[data-single="leistung"]').dataset.value||''));
+  fd.append('objekt',(form.querySelector('[data-single="objekt"]').dataset.value||''));
+  fd.append('elapsed',String(Date.now()-startT));
+  const btn=document.getElementById('send');btn.disabled=true;btn.textContent='Senden…';
+  fetch('senden.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(d&&d.ok){showThanks();}
+    else{const e4=form.querySelector('[data-err="4"]');e4.textContent=(d&&d.error)||'Es ist etwas schiefgelaufen. Bitte rufen Sie kurz an: 0175 7481006';e4.style.display='block';btn.disabled=false;btn.textContent='Anfrage senden →';}
+  }).catch(()=>{showThanks();});
+});
+
+document.querySelectorAll('.ba').forEach(ba=>{
+  const before=ba.querySelector('.before'), handle=ba.querySelector('.ba-handle');
+  function set(x){x=Math.max(0,Math.min(100,x));before.style.clipPath='inset(0 '+(100-x)+'% 0 0)';handle.style.left=x+'%';}
+  let drag=false;
+  const pos=e=>{const r=ba.getBoundingClientRect();const cx=(e.touches?e.touches[0].clientX:e.clientX);set((cx-r.left)/r.width*100);};
+  ba.addEventListener('pointerdown',e=>{drag=true;try{ba.setPointerCapture(e.pointerId);}catch(_){}pos(e);});
+  ba.addEventListener('pointermove',e=>{if(drag)pos(e);});
+  ba.addEventListener('pointerup',()=>drag=false);
+  ba.addEventListener('pointercancel',()=>drag=false);
+  set(50);
 });
 </script>
-<!-- ============================================================
-     LEISTUNGEN OVERVIEW
-============================================================ -->
-<section class="section section-clip-wipe" id="leistungen">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Was wir machen</span>
-            <h2 class="section-title">Unsere <span>Leistungen</span></h2>
-            <p class="section-subtitle">
-                Von der klassischen Elektroinstallation bis zur strukturierten Netzwerkverkabelung – alles aus einer Hand.<br>
-                <span style="font-size:0.95em; opacity:0.85;">Fachgerecht geplant, sauber umgesetzt und transparent dokumentiert.</span>
-            </p>
-        </div>
-
-        <div class="grid-3">
-
-            <!-- Elektroinstallation -->
-            <div class="leistung-card card-scan card-tilt section-light-speed" data-animate>
-                <div class="leistung-icon electric-spark trigger-wobble">
-                    <i class="fas fa-bolt"></i>
-                </div>
-                <h3>Elektroinstallation</h3>
-                <p>
-                    Individuell geplant und sauber umgesetzt – abgestimmt auf Ihr Objekt.
-                </p>
-                <ul class="leistung-list">
-                    <li><i class="fas fa-circle"></i> Altbausanierung &amp; Modernisierung</li>
-                    <li><i class="fas fa-circle"></i> Neubauinstallationen</li>
-                    <li><i class="fas fa-circle"></i> Erweiterungen bestehender Anlagen</li>
-                    <li><i class="fas fa-circle"></i> Erneuerung von Verteilungen</li>
-                    <li><i class="fas fa-circle"></i> Vorbereitung für E-Mobilität</li>
-                    <li><i class="fas fa-circle"></i> Austausch &amp; Erweiterung von Sicherungssystemen</li>
-                </ul>
-                <a href="leistungen/elektroinstallation.php" class="leistung-link link-underline-slide icon-bounce">
-                    Mehr erfahren <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-
-            <!-- Netzwerkverkabelung -->
-            <div class="leistung-card card-scan card-tilt section-light-speed" data-animate>
-                <div class="leistung-icon trigger-jello">
-                    <i class="fas fa-network-wired"></i>
-                </div>
-                <h3>Netzwerkverkabelung</h3>
-                <p>
-                    Strukturierte Datenverkabelung für Zuhause und Gewerbe – sauber verlegt und dokumentiert.
-                </p>
-                <ul class="leistung-list">
-                    <li><i class="fas fa-circle"></i> Strukturierte Datenverkabelung</li>
-                    <li><i class="fas fa-circle"></i> Patchpanel- &amp; Serverschrankmontage</li>
-                    <li><i class="fas fa-circle"></i> Glasfaser-Vorbereitung</li>
-                    <li><i class="fas fa-circle"></i> Saubere Kabelführung &amp; Dokumentation</li>
-                    <li><i class="fas fa-circle"></i> Einrichtung kleiner Verteiler- &amp; Netzwerksysteme</li>
-                </ul>
-                <a href="leistungen/netzwerkverkabelung.php" class="leistung-link link-underline-slide icon-bounce">
-                    Mehr erfahren <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-
-            <!-- Schutztechnik -->
-            <div class="leistung-card card-scan card-tilt section-light-speed" data-animate>
-                <div class="leistung-icon trigger-rubber-band">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <h3>Sicherheit & Schutz</h3>
-                <p>
-                    Zuverlässige Absicherung Ihrer Anlage – sauber beschriftet, strukturiert und nachrüstbar.
-                </p>
-                <ul class="leistung-list">
-                    <li><i class="fas fa-circle"></i> Installation moderner Schutzschalter</li>
-                    <li><i class="fas fa-circle"></i> Absicherung sensibler Stromkreise</li>
-                    <li><i class="fas fa-circle"></i> Überspannungsschutz</li>
-                    <li><i class="fas fa-circle"></i> Sauber beschriftete &amp; strukturierte Verteiler</li>
-                    <li><i class="fas fa-circle"></i> Nachrüstung bestehender Anlagen</li>
-                </ul>
-                <a href="leistungen/schutztechnik.php" class="leistung-link link-underline-slide icon-bounce">
-                    Mehr erfahren <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     STATS
-============================================================ -->
-<section class="stats-section section-glitch" aria-label="Kennzahlen" data-power-on>
-    <div class="container">
-        <div class="stats-grid stagger-container">
-            <div class="stat-item stagger-item" data-animate>
-                <span class="stat-number counter-animate" data-count="100">0</span><span class="stat-number">+</span>
-                <span class="stat-label">Abgeschlossene Projekte</span>
-            </div>
-            <div class="stat-item stagger-item" data-animate>
-                <span class="stat-number"><i class="fas fa-map-marker-alt" style="font-size:1.5rem;"></i></span>
-                <span class="stat-label">Raum Nürnberg</span>
-            </div>
-            <div class="stat-item stagger-item" data-animate>
-                <span class="stat-number"><i class="fas fa-bolt" style="font-size:1.5rem;"></i></span>
-                <span class="stat-label">Schnelle Umsetzung</span>
-            </div>
-            <div class="stat-item stagger-item" data-animate>
-                <span class="stat-number">1x</span>
-                <span class="stat-label">Persönlicher Ansprechpartner</span>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     PROJEKTABLAUF
-============================================================ -->
-<section class="section section--gray section-slide-blur" id="ablauf">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Transparenz & Seriosität</span>
-            <h2 class="section-title">Unser <span>Projektablauf</span></h2>
-            <p class="section-subtitle">
-                Von der ersten Anfrage bis zur Übergabe – strukturiert, transparent und verlässlich.
-            </p>
-            <div style="margin-top: 2rem;" data-animate>
-                <button class="btn btn--primary btn--lg btn-fill-slide btn-glow-pulse icon-bounce" data-open-funnel>
-                    <i class="fas fa-paper-plane"></i>
-                    Jetzt Angebot einholen – 100% kostenlos &amp; unverbindlich
-                </button>
-            </div>
-        </div>
-
-        <div class="ablauf-grid">
-
-            <div class="ablauf-step section-roll-in" data-animate>
-                <div class="ablauf-number anim-rotate-in"><span>1</span></div>
-                <h4>Anfrage &amp; Erstgespräch</h4>
-                <p>Klärung des Projektumfangs und Ihrer Anforderungen. Schnelle Rückmeldung. <a href="kontakt.php" class="text-link">Jetzt anfragen →</a></p>
-            </div>
-
-            <div class="ablauf-step section-roll-in" data-animate>
-                <div class="ablauf-number anim-rotate-in"><span>2</span></div>
-                <h4>Analyse &amp; Planung</h4>
-                <p>Erfassung des Ist-Zustands, technische Planung und individuelle Lösungsfindung für Ihr Objekt.</p>
-            </div>
-
-            <div class="ablauf-step section-roll-in" data-animate>
-                <div class="ablauf-number anim-rotate-in"><span>3</span></div>
-                <h4>Angebot</h4>
-                <p>Transparente und nachvollziehbare Kostenaufstellung – klar und ohne versteckte Posten.</p>
-            </div>
-
-            <div class="ablauf-step section-roll-in" data-animate>
-                <div class="ablauf-number anim-rotate-in"><span>4</span></div>
-                <h4>Umsetzung</h4>
-                <p>Fachgerechte Installation mit sauberer Ausführung und respektvollem Umgang mit Ihrem Objekt.</p>
-            </div>
-
-            <div class="ablauf-step section-roll-in" data-animate>
-                <div class="ablauf-number anim-rotate-in"><span>5</span></div>
-                <h4>Übergabe</h4>
-                <p>Abschließende Funktionsprüfung, vollständige Dokumentation und persönliche Abnahme.</p>
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
-<!-- ============================================================
-     EINSATZGEBIET
-============================================================ -->
-<section class="section section-elastic-zoom" id="einsatzgebiet">
-    <div class="container">
-        <div class="einsatz-grid">
-
-            <div data-animate>
-                <span class="section-label">Wo wir tätig sind</span>
-                <h2 class="section-title">Einsatzgebiet <span>Nürnberg</span></h2>
-                <p>Wir sind im Raum Nürnberg tätig und betreuen Projekte in der gesamten Metropolregion. 
-                    Je nach Projektumfang sind auch größere Einsatzradien möglich. <a href="kontakt.php" class="text-link">Sprechen Sie uns an</a>.</p>
-                <p style="font-size: 0.875rem; color: var(--text-muted);">
-                    <i class="fas fa-info-circle" style="color: var(--blue-primary); margin-right: 0.375rem;"></i>
-                    Für größere Projekte sprechen Sie uns gerne direkt an.
-                </p>
-                <div class="einsatz-cities">
-                    <div class="city-card trigger-jello">
-                        <i class="fas fa-city"></i>
-                        <span>Nürnberg</span>
-                    </div>
-                    <div class="city-card trigger-jello">
-                        <i class="fas fa-city"></i>
-                        <span>Fürth</span>
-                    </div>
-                    <div class="city-card trigger-jello">
-                        <i class="fas fa-city"></i>
-                        <span>Erlangen</span>
-                    </div>
-                    <div class="city-card trigger-jello">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Umliegende Gemeinden</span>
-                    </div>
-                </div>
-            </div>
-
-            <div data-animate>
-                <div class="einsatz-map-box">
-                    <div class="einsatz-map-icon">
-                        <i class="fas fa-map-marked-alt"></i>
-                    </div>
-                    <h3 style="font-size: 1.3rem; margin-bottom: 0.75rem;">Metropolregion Nürnberg</h3>
-                    <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.75rem;">
-                        Wir betreuen Objekte in Nürnberg, Fürth, Erlangen und den umliegenden Gemeinden der Metropolregion.
-                    </p>
-                    <a href="kontakt.php" class="btn btn--primary">
-                        <i class="fas fa-envelope"></i>
-                        Projekt anfragen
-                    </a>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     ÜBER UNS (Kurzversion)
-============================================================ -->
-<section class="section section--gray section-swing-in" id="ueber-uns">
-    <div class="container">
-        <div class="ueber-grid">
-
-            <!-- Bild -->
-            <div class="ueber-image-box" data-animate>
-                <img src="assets/img/ohhaustechnikueberuns.png" alt="OH Haustechnik – Über uns" class="ueber-foto" loading="lazy" decoding="async">
-            </div>
-
-            <!-- Text -->
-            <div data-animate>
-                <span class="section-label">Über uns</span>
-                <h2 class="section-title">
-                    Handwerkliche Präzision &amp;<br>
-                    <span>Technisches Verständnis</span>
-                </h2>
-                <p style="margin-bottom: 1.25rem;">
-                    OH Haustechnik verbindet handwerkliche Präzision mit technischem Verständnis.
-                    Elektroinstallationen sind nicht nur Montagearbeiten – sie bilden das sicherheitsrelevante 
-                    Rückgrat eines Gebäudes.
-                </p>
-                <p style="margin-bottom: 1.75rem;">
-                    Unser Anspruch ist es, Anlagen zu schaffen, die technisch durchdacht, fachgerecht umgesetzt
-                    und langfristig erweiterbar sind. Wir arbeiten lösungsorientiert und 
-                    transparent – vom ersten <a href="kontakt.php" class="text-link">Kundengespräch</a> bis zur finalen Inbetriebnahme.
-                </p>
-
-                <div class="ueber-qualities">
-                    <div class="quality-item">
-                        <i class="fas fa-check-circle"></i>
-                        Technisch durchdacht
-                    </div>
-                    <div class="quality-item">
-                        <i class="fas fa-check-circle"></i>
-                        Übersichtlich strukturiert
-                    </div>
-                    <div class="quality-item">
-                        <i class="fas fa-check-circle"></i>
-                        Fachgerecht umgesetzt
-                    </div>
-                    <div class="quality-item">
-                        <i class="fas fa-check-circle"></i>
-                        Langlebig &amp; erweiterbar
-                    </div>
-                    <div class="quality-item">
-                        <i class="fas fa-check-circle"></i>
-                        Persönlich &amp; zuverlässig
-                    </div>
-                    <div class="quality-item">
-                        <i class="fas fa-check-circle"></i>
-                        Transparent
-                    </div>
-                </div>
-
-                <a href="ueber-uns.php" class="btn btn--primary" style="margin-top: 2rem;">
-                    <i class="fas fa-arrow-right"></i>
-                    Mehr über uns
-                </a>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     REFERENZEN
-============================================================ -->
-<section class="section section-fade-scale" id="referenzen">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Unsere Arbeit</span>
-            <h2 class="section-title">Beispielhafte <span>Referenzprojekte</span></h2>
-            <p class="section-subtitle">
-                Projekte, die wir im Raum Nürnberg erfolgreich realisiert haben.
-            </p>
-        </div>
-
-        <div class="grid-3">
-
-            <div class="referenz-card section-light-speed trigger-tada" data-animate>
-                <div class="referenz-icon anim-rotate-in">
-                    <i class="fas fa-tools"></i>
-                </div>
-                <span class="referenz-type">Altbausanierung</span>
-                <h4>Komplette Erneuerung der Elektroinstallation in einer Altbauwohnung</h4>
-                <p>Vollständige Erneuerung der Elektroinstallation in einer 3-Zimmer-Altbauwohnung inklusive neuer Verteilung und Absicherung.</p>
-            </div>
-
-            <div class="referenz-card section-light-speed trigger-tada" data-animate>
-                <div class="referenz-icon anim-rotate-in">
-                    <i class="fas fa-industry"></i>
-                </div>
-                <span class="referenz-type">Gewerbeobjekt – Erweiterung</span>
-                <h4>Anpassung und Erweiterung im Gewerbebetrieb</h4>
-                <p>Anpassung und Erweiterung bestehender elektrischer Anlagen in einem Gewerbebetrieb – sauber umgesetzt und dokumentiert.</p>
-            </div>
-
-            <div class="referenz-card section-light-speed trigger-tada" data-animate>
-                <div class="referenz-icon anim-rotate-in">
-                    <i class="fas fa-building"></i>
-                </div>
-                <span class="referenz-type">Mehrfamilienhaus</span>
-                <h4>Erweiterung und Modernisierung einer Unterverteilung im Bestand</h4>
-                <p>Erweiterung und Modernisierung einer bestehenden Unterverteilung im Mehrfamilienhaus – strukturiert und zukunftssicher.</p>
-            </div>
-
-            <div class="referenz-card section-light-speed trigger-tada" data-animate>
-                <div class="referenz-icon anim-rotate-in">
-                    <i class="fas fa-home"></i>
-                </div>
-                <span class="referenz-type">Einfamilienhaus – Neubau</span>
-                <h4>Neuinstallation der kompletten Elektroanlage im Einfamilienhaus</h4>
-                <p>Neuinstallation der kompletten Elektroanlage inklusive Verteiler, Stromkreise und Vorbereitung für zukünftige Erweiterungen.</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     FAQ SECTION
-============================================================ -->
-<section class="section section--gray section-faq" id="faq">
-    <div class="container">
-
-        <div class="section-header" data-animate>
-            <span class="section-label">Häufige Fragen</span>
-            <h2 class="section-title">Das fragen unsere <span>Kunden</span></h2>
-            <p class="section-subtitle">Antworten auf die wichtigsten Fragen rund um Elektroinstallationen.</p>
-        </div>
-
-        <div class="faq-grid" data-animate>
-
-            <div class="faq-item">
-                <button class="faq-question" aria-expanded="false">
-                    <span>Wie schnell können Sie einen Termin anbieten?</span>
-                    <i class="fas fa-plus faq-icon"></i>
-                </button>
-                <div class="faq-answer">
-                    <p>In der Regel können wir innerhalb von 3–5 Werktagen einen Besichtigungstermin vereinbaren. Bei dringenden Fällen bemühen wir uns um schnellstmögliche Terminvergabe.</p>
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question" aria-expanded="false">
-                    <span>Führen Sie auch kleinere Reparaturen durch?</span>
-                    <i class="fas fa-plus faq-icon"></i>
-                </button>
-                <div class="faq-answer">
-                    <p>Ja, wir übernehmen sowohl kleinere Reparaturen als auch größere Installationsprojekte. Von der Steckdose bis zur kompletten Elektroplanung – wir helfen Ihnen.</p>
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question" aria-expanded="false">
-                    <span>Wie stellen Sie die Qualität Ihrer Arbeit sicher?</span>
-                    <i class="fas fa-plus faq-icon"></i>
-                </button>
-                <div class="faq-answer">
-                    <p>Wir arbeiten nach aktuellen Sicherheitsstandards und bewährter Praxis. Eingesetzt werden ausschließlich geprüfte Markenkomponenten. Nach Abschluss erhalten Sie eine vollständige Dokumentation Ihrer Anlage.</p>
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question" aria-expanded="false">
-                    <span>In welchen Regionen sind Sie tätig?</span>
-                    <i class="fas fa-plus faq-icon"></i>
-                </button>
-                <div class="faq-answer">
-                    <p>Unser Haupteinsatzgebiet ist der Großraum Nürnberg – inkl. Fürth, Erlangen, Schwabach, Zirndorf und Umgebung. Sprechen Sie uns auch gerne bei Projekten außerhalb dieser Regionen an.</p>
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question" aria-expanded="false">
-                    <span>Erhalte ich nach der Arbeit eine Dokumentation?</span>
-                    <i class="fas fa-plus faq-icon"></i>
-                </button>
-                <div class="faq-answer">
-                    <p>Ja. Jede Installation wird von uns vollständig dokumentiert – inklusive Prüfprotokoll, Schaltplänen (sofern relevant) und Übergabeunterlagen. Das ist für uns selbstverständlich.</p>
-                </div>
-            </div>
-
-            <div class="faq-item">
-                <button class="faq-question" aria-expanded="false">
-                    <span>Was kostet eine Erstberatung?</span>
-                    <i class="fas fa-plus faq-icon"></i>
-                </button>
-                <div class="faq-answer">
-                    <p>Die Erstberatung ist für Sie kostenlos und unverbindlich. Wir schauen uns Ihr Projekt vor Ort an und erstellen Ihnen danach ein transparentes Angebot.</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     CTA SECTION – Parallax Bild mit zentriertem Text
-============================================================ -->
-<section class="parallax-cta section-split-reveal" id="anfrage">
-
-    <!-- Parallax Hintergrundbild -->
-    <div class="parallax-cta-bg" id="parallaxCtaBg"></div>
-
-    <!-- Overlay -->
-    <div class="parallax-cta-overlay"></div>
-
-    <!-- Content zentriert -->
-    <div class="parallax-cta-content">
-
-        <div class="parallax-cta-label">
-            <i class="fas fa-bolt"></i>&nbsp; O H &nbsp; H A U S T E C H N I K
-        </div>
-
-        <h2 class="parallax-cta-headline" data-animate>
-            Bereit für Ihr<br>nächstes Projekt?
-        </h2>
-
-        <p class="parallax-cta-text" data-animate>
-            Lassen Sie uns darüber sprechen.<br>
-            Persönlich, telefonisch oder per Anfrage.
-        </p>
-
-        <div class="parallax-cta-actions" data-animate>
-            <a href="tel:+491757481006" class="btn btn--white btn--lg btn-glow-pulse trigger-heartbeat icon-bounce">
-                <i class="fas fa-phone"></i>
-                Jetzt anrufen
-            </a>
-            <a href="kontakt.php" class="btn btn--outline-white btn--lg icon-bounce">
-                <i class="fas fa-paper-plane"></i>
-                Anfrage senden
-            </a>
-        </div>
-
-    </div>
-
-</section>
-
-<?php include 'includes/funnel-modal.php'; ?>
-<?php include 'includes/footer.php'; ?>
+</body>
+</html>
