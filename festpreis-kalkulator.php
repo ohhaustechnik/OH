@@ -37,10 +37,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 "==============================\n" .
 "OH Haustechnik Website\n" .
 "==============================\n";
-    $headers = "From: website@oh-haustechnik.de\r\n";
-    $headers .= "Reply-To: " . ($_POST["email"] ?? "website@oh-haustechnik.de") . "\r\n";
-
-    mail($to, $subject, $message, $headers);
+    // Versand über authentifiziertes SMTP (oh_send_mail), sonst landet die Mail
+    // je nach Absenderdomain im Nichts. Fallback auf mail() mit eigener Domain.
+    $kundenMail = $_POST["email"] ?? '';
+    if (function_exists('oh_send_mail')) {
+        oh_send_mail($to, $subject, $message, $kundenMail !== '' ? $kundenMail : null);
+    } else {
+        $headers  = "From: OH Haustechnik <noreply@oh-haustechnik.de>\r\n";
+        $headers .= "Reply-To: " . ($kundenMail !== '' ? str_replace(["\r","\n"], '', $kundenMail) : 'noreply@oh-haustechnik.de') . "\r\n";
+        $headers .= "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+        mail($to, $subject, $message, $headers);
+    }
 
     // Anfrage als Lead ins Büro übernehmen (Dashboard, HOT-/Großauftrag-Erkennung)
     if (function_exists('oh_add_lead')) {

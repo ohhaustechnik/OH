@@ -1,5 +1,9 @@
 <?php
-/* OH Haustechnik – Formularversand für die Landingpage (elektriker-nuernberg.html) */
+/* OH Haustechnik – Formularversand für Startseite, Landingpage und Kontaktseite.
+   Versand über oh_send_mail() (authentifiziertes Gmail-SMTP). Wichtig: NICHT
+   per PHP-mail() mit From-Adresse @gmail.com verschicken – der Webserver darf
+   nicht im Namen von gmail.com senden, SPF schlägt fehl und Gmail verwirft
+   die Nachricht. Genau daran sind die Anfragen vorher gescheitert. */
 header('Content-Type: application/json; charset=utf-8');
 
 function out($ok, $error = '') { echo json_encode(['ok' => $ok, 'error' => $error]); exit; }
@@ -28,7 +32,7 @@ if ($name === '' || ($telefon === '' && $email === ''))
 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL))
     out(false, 'Die E-Mail-Adresse ist ungültig.');
 
-$to      = 'oh.Haustechnik@gmail.com';
+$to      = 'oh.haustechnik@gmail.com';
 $subject = 'Neue Anfrage: ' . ($leistung !== '' ? $leistung : 'Elektro') . ' – ' . ($ort !== '' ? $ort : $plz);
 
 $body  = "Neue Anfrage über die Website\n";
@@ -42,19 +46,51 @@ $body .= "Telefon:   $telefon\n";
 $body .= "E-Mail:    $email\n";
 $body .= "--------------------------------\n";
 $body .= "Gesendet:  " . date('d.m.Y H:i') . "\n";
+$body .= "Seite:     " . clean($_SERVER['HTTP_REFERER'] ?? '-') . "\n";
 
-$headers  = 'From: OH Haustechnik <oh.Haustechnik@gmail.com>' . "\r\n";
-if ($email !== '') $headers .= 'Reply-To: ' . clean($name) . ' <' . clean($email) . '>' . "\r\n";
-$headers .= 'Content-Type: text/plain; charset=utf-8' . "\r\n";
-$headers .= 'X-Mailer: OH-Website' . "\r\n";
+$replyTo = ($email !== '') ? $email : null;
 
-$subjectEnc = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-$sent = @mail($to, $subjectEnc, $body, $headers);
+// --- Versand über die bewährte SMTP-Funktion, Fallback auf mail() ---
+$gesendet = false; $info = '';
+$lib = __DIR__ . '/includes/buero-lib.php';
+if (is_file($lib)) {
+    require_once $lib;
+}
+if (function_exists('oh_send_mail')) {
+    $res      = oh_send_mail($to, $subject, $body, $replyTo);
+    $gesendet = !empty($res['ok']);
+    $info     = $res['info'] ?? '';
+} else {
+    // Fallback: eigene Domain als Absender (NICHT @gmail.com – siehe oben)
+    $headers  = "From: OH Haustechnik <noreply@oh-haustechnik.de>\r\n";
+    if ($replyTo) $headers .= 'Reply-To: ' . clean($replyTo) . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/plain; charset=utf-8\r\n";
+    $headers .= "Content-Transfer-Encoding: 8bit\r\n";
+    $gesendet = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers);
+    $info     = $gesendet ? 'via mail()' : 'mail() fehlgeschlagen';
+}
 
-// Fallback: Anfrage immer zusätzlich lokal protokollieren (falls Mail scheitert)
+// --- Eingangsbestätigung an den Kunden (nur wenn E-Mail angegeben) ---
+if ($email !== '' && function_exists('oh_send_mail')) {
+    $kBody  = "Hallo $name,\n\n";
+    $kBody .= "vielen Dank für Ihre Anfrage bei OH Haustechnik.\n";
+    $kBody .= "Wir haben Ihre Angaben erhalten und melden uns zeitnah bei Ihnen.\n\n";
+    if ($leistung !== '') $kBody .= "Ihre Anfrage: $leistung\n";
+    if ($vorhaben !== '') $kBody .= "Ihr Hinweis:  $vorhaben\n";
+    $kBody .= "\nWenn es eilt, erreichen Sie uns direkt unter 0175 7481006.\n\n";
+    $kBody .= "Freundliche Grüße\n";
+    $kBody .= "OH Haustechnik · Onur-Can Hezer\n";
+    $kBody .= "Dianastraße 62, 90441 Nürnberg\n";
+    $kBody .= "https://oh-haustechnik.de\n";
+    @oh_send_mail($email, 'Ihre Anfrage bei OH Haustechnik', $kBody, $to);
+}
+
+// --- Anfrage IMMER lokal protokollieren, auch wenn der Mailversand scheitert ---
 @file_put_contents(
     __DIR__ . '/anfragen.log',
-    date('c') . " | $subject | Name: $name | Tel: $telefon | Mail: $email | $plz $ort | $vorhaben\n",
+    date('c') . " | " . ($gesendet ? 'MAIL-OK' : 'MAIL-FEHLER') . " ($info)"
+    . " | $subject | Name: $name | Tel: $telefon | Mail: $email | $plz $ort | $vorhaben\n",
     FILE_APPEND | LOCK_EX
 );
 

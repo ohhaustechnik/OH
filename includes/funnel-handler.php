@@ -287,14 +287,31 @@ if (!empty($attachments)) {
     $message .= "--{$boundary}--";
     $sent = mail($to, $subject, $message, $headers);
 
+    // Sicherheitsnetz: Wenn mail() den Anhang nicht rausbekommt, geht die
+    // Anfrage wenigstens als Textmail ueber authentifiziertes SMTP raus.
+    if (!$sent && function_exists('oh_send_mail')) {
+        $hinweis = $body . "\n\n(Hinweis: " . count($attachments)
+                 . " Foto(s) konnten nicht angehaengt werden - bitte beim Kunden nachfragen.)\n";
+        $res  = oh_send_mail($to, 'Neue Angebotsanfrage (ohne Fotos)', $hinweis, $email ?: null);
+        $sent = !empty($res['ok']);
+    }
+
 } else {
-    // Einfache Plaintext-Mail
-    $headers  = "From: noreply@oh-haustechnik.de\r\n";
-    $headers .= "Reply-To: {$email}\r\n";
-    $headers .= "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-    $headers .= "Content-Transfer-Encoding: 8bit\r\n";
-    $sent = mail($to, $subject, $body, $headers);
+    // Einfache Plaintext-Mail: bevorzugt ueber authentifiziertes SMTP,
+    // weil PHP-mail() je nach Serverkonfiguration still verworfen wird.
+    if (function_exists('oh_send_mail')) {
+        $res  = oh_send_mail($to, 'Neue Angebotsanfrage: ' . $kategorieLabel
+                                  . ' – ' . $vorname . ' ' . $nachname,
+                             $body, $email ?: null);
+        $sent = !empty($res['ok']);
+    } else {
+        $headers  = "From: OH Haustechnik <noreply@oh-haustechnik.de>\r\n";
+        $headers .= "Reply-To: {$email}\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $headers .= "Content-Transfer-Encoding: 8bit\r\n";
+        $sent = mail($to, $subject, $body, $headers);
+    }
 }
 
 // ---------------------------------------------------------------
@@ -324,13 +341,21 @@ if ($sent) {
     $confirmBody .= "Elektroinstallation & Netzwerkverkabelung Nürnberg\n";
     $confirmBody .= "https://oh-haustechnik.de\n";
 
-    $confirmHeaders  = "From: oh.Haustechnik@gmail.com\r\n";
-    $confirmHeaders .= "MIME-Version: 1.0\r\n";
-    $confirmHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
-    $confirmHeaders .= "Content-Transfer-Encoding: 8bit\r\n";
-
-    $confirmSubjectEncoded = '=?UTF-8?B?' . base64_encode('Ihre Anfrage bei OH Haustechnik – Bestätigung') . '?=';
-    mail($email, $confirmSubjectEncoded, $confirmBody, $confirmHeaders);
+    // Bestaetigung an den Kunden: ueber authentifiziertes SMTP. Frueher ging das
+    // per mail() mit From @gmail.com raus - dafuer ist der Webserver nicht
+    // berechtigt (SPF), solche Mails werden von Gmail & Co. verworfen.
+    if (function_exists('oh_send_mail')) {
+        oh_send_mail($email, 'Ihre Anfrage bei OH Haustechnik – Bestätigung',
+                     $confirmBody, 'oh.haustechnik@gmail.com');
+    } else {
+        $confirmHeaders  = "From: OH Haustechnik <noreply@oh-haustechnik.de>\r\n";
+        $confirmHeaders .= "Reply-To: oh.haustechnik@gmail.com\r\n";
+        $confirmHeaders .= "MIME-Version: 1.0\r\n";
+        $confirmHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $confirmHeaders .= "Content-Transfer-Encoding: 8bit\r\n";
+        $confirmSubjectEncoded = '=?UTF-8?B?' . base64_encode('Ihre Anfrage bei OH Haustechnik – Bestätigung') . '?=';
+        mail($email, $confirmSubjectEncoded, $confirmBody, $confirmHeaders);
+    }
 }
 
 // ---------------------------------------------------------------

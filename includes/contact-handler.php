@@ -65,7 +65,7 @@ if (!empty($errors)) {
 // ---------------------------------------------------------------
 // E-Mail senden
 // ---------------------------------------------------------------
-$to      = 'info@oh-haustechnik.de'; // ← BITTE ANPASSEN
+$to      = 'oh.haustechnik@gmail.com'; // Postfach, das tatsaechlich gelesen wird
 $subject = '=?UTF-8?B?' . base64_encode('Neue Anfrage über Website: ' . ($betreff ?: 'Allgemeine Anfrage')) . '?=';
 
 $body  = "Neue Kontaktanfrage über die Website OH Haustechnik\n";
@@ -99,7 +99,14 @@ if (function_exists('oh_add_lead')) {
     ]);
 }
 
-$sent = mail($to, $subject, $body, $headers);
+// Versand ueber authentifiziertes SMTP, sonst Fallback auf mail().
+if (function_exists('oh_send_mail')) {
+    $res  = oh_send_mail($to, 'Neue Anfrage über Website: ' . ($betreff ?: 'Allgemeine Anfrage'),
+                         $body, $email ?: null);
+    $sent = !empty($res['ok']);
+} else {
+    $sent = mail($to, $subject, $body, $headers);
+}
 
 // Bestätigungs-E-Mail an den Absender
 if ($sent) {
@@ -111,13 +118,18 @@ if ($sent) {
     $confirm_body   .= "Betreff: " . (!empty($betreff) ? $betreff : 'Allgemeine Anfrage') . "\n\n";
     $confirm_body   .= "Mit freundlichen Grüßen\n";
     $confirm_body   .= "OH Haustechnik\n";
-    $confirm_body   .= "info@oh-haustechnik.de\n";
+    $confirm_body   .= "oh.haustechnik@gmail.com\n";
 
-    $confirm_headers  = "From: info@oh-haustechnik.de\r\n";
-    $confirm_headers .= "MIME-Version: 1.0\r\n";
-    $confirm_headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-
-    mail($email, $confirm_subject, $confirm_body, $confirm_headers);
+    if (function_exists('oh_send_mail')) {
+        oh_send_mail($email, 'Ihre Anfrage bei OH Haustechnik – Bestätigung',
+                     $confirm_body, 'oh.haustechnik@gmail.com');
+    } else {
+        $confirm_headers  = "From: OH Haustechnik <noreply@oh-haustechnik.de>\r\n";
+        $confirm_headers .= "Reply-To: oh.haustechnik@gmail.com\r\n";
+        $confirm_headers .= "MIME-Version: 1.0\r\n";
+        $confirm_headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        mail($email, $confirm_subject, $confirm_body, $confirm_headers);
+    }
 }
 
 // ---------------------------------------------------------------
