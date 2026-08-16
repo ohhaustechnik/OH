@@ -15,7 +15,7 @@
 <meta property="og:locale" content="de_DE">
 <link rel="icon" href="assets/img/favicon.ico">
 <link rel="preload" as="image" href="assets/img/lp/poster.jpg" fetchpriority="high">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Electrician","name":"OH Haustechnik","image":"https://oh-haustechnik.de/assets/img/lp/poster.jpg","@id":"https://oh-haustechnik.de/","url":"https://oh-haustechnik.de/","telephone":"+491757481006","email":"oh.Haustechnik@gmail.com","founder":{"@type":"Person","name":"Onur-Can Hezer"},"address":{"@type":"PostalAddress","streetAddress":"Dianastra\u00dfe 62","postalCode":"90441","addressLocality":"N\u00fcrnberg","addressCountry":"DE"},"areaServed":["N\u00fcrnberg","F\u00fcrth","Schwabach","Wendelstein"],"knowsAbout":["Elektroinstallation","Altbausanierung","Smart Home","Photovoltaik","Wallbox"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"21"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Electrician","name":"OH Haustechnik","image":"https://oh-haustechnik.de/assets/img/lp/poster.jpg","@id":"https://oh-haustechnik.de/#business","url":"https://oh-haustechnik.de/","telephone":"+491757481006","email":"oh.Haustechnik@gmail.com","priceRange":"\u20ac\u20ac","founder":{"@type":"Person","name":"Onur-Can Hezer"},"address":{"@type":"PostalAddress","streetAddress":"Dianastra\u00dfe 62","postalCode":"90441","addressLocality":"N\u00fcrnberg","addressRegion":"Bayern","addressCountry":"DE"},"geo":{"@type":"GeoCoordinates","latitude":49.4521,"longitude":11.0767},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"07:30","closes":"17:00"}],"areaServed":[{"@type":"City","name":"N\u00fcrnberg"},{"@type":"City","name":"F\u00fcrth"},{"@type":"City","name":"Erlangen"},{"@type":"City","name":"Schwabach"},{"@type":"City","name":"Wendelstein"}],"knowsAbout":["Elektroinstallation","Altbausanierung","Smart Home","KNX","Loxone","Photovoltaik","Wallbox","E-Check","DGUV V3"],"hasOfferCatalog":{"@type":"OfferCatalog","name":"Elektro-Leistungen","itemListElement":[{"@type":"Offer","itemOffered":{"@type":"Service","name":"Elektroinstallation","url":"https://oh-haustechnik.de/leistungen/elektroinstallation.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Elektro-Altbausanierung","url":"https://oh-haustechnik.de/altbausanierung-nuernberg.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Smart Home KNX & Loxone","url":"https://oh-haustechnik.de/smart-home-knx-loxone-nuernberg.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Photovoltaik-Anschluss","url":"https://oh-haustechnik.de/photovoltaik-nuernberg.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"E-Check und DGUV V3 Pr\u00fcfung","url":"https://oh-haustechnik.de/e-check-dguv-v3-nuernberg.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Kundendienst und Fehlersuche","url":"https://oh-haustechnik.de/kundendienst-fehlersuche-nuernberg.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Sicherheit und Schutztechnik","url":"https://oh-haustechnik.de/leistungen/schutztechnik.php"}},{"@type":"Offer","itemOffered":{"@type":"Service","name":"Netzwerkverkabelung","url":"https://oh-haustechnik.de/leistungen/netzwerkverkabelung.php"}}]},"aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"21"}}</script>
 <title>Elektriker Nürnberg – Elektroinstallation | OH Haustechnik</title>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17801418796"></script>
@@ -111,6 +111,8 @@ header.scrolled{background:rgba(10,10,10,.94);backdrop-filter:blur(10px);border-
 .card .n{font-family:var(--head);font-size:30px;color:var(--yellow);line-height:1;}
 .card h3{font-size:19px;margin:14px 0 8px;letter-spacing:.01em;}
 .card p{margin:0;font-size:15px;color:var(--grey);line-height:1.55;}
+.card a.more{display:inline-block;margin-top:14px;font-size:13.5px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.04em;}
+.card a.more:hover{color:var(--ink);}
 
 /* ---------- Altbau ---------- */
 .altbau{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center;}
@@ -203,6 +205,9 @@ footer{border-top:1px solid var(--line);padding:44px 0 40px;}
 .fnav{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto;}
 .fnav a{font-size:14px;color:var(--grey);}
 .fnav a:hover{color:var(--ink);}
+.fgebiet{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);font-size:13.5px;color:var(--grey);display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+.fgebiet a{color:#b8bcc4;}
+.fgebiet a:hover{color:var(--ink);}
 .legal{margin-top:24px;font-size:13px;color:#6b7280;display:flex;gap:18px;flex-wrap:wrap;}
 .legal a{color:#9CA3AF;text-decoration:underline;text-underline-offset:2px;}
 
@@ -284,12 +289,12 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
       <p>Elektroinstallation, Altbausanierung, Smart Home, PV und Wallbox — im Raum Nürnberg, Fürth, Schwabach und Wendelstein. Sauber ausgeführt und nachvollziehbar dokumentiert.</p>
     </div>
     <div class="grid">
-      <div class="card rv"><div class="n">01</div><h3>Elektro­installation</h3><p>Neuinstallation für Wohnung, Haus und Gewerbe — von der Planung bis zur Abnahme.</p></div>
-      <div class="card rv"><div class="n">02</div><h3>Altbau­sanierung</h3><p>Alte Leitungen raus, moderner FI-Schutz rein. Elektrik auf heutigen Stand, ohne die Bausubstanz zu zerlegen.</p></div>
-      <div class="card rv"><div class="n">03</div><h3>Fehlersuche &amp; Kundendienst</h3><p>Strom weg, FI fliegt, etwas funktioniert nicht? Wir finden die Ursache und beheben sie.</p></div>
-      <div class="card rv"><div class="n">04</div><h3>Smart Home</h3><p>Licht, Beschattung, Heizung und Sicherheit vernetzt — mit Loxone oder KNX.</p></div>
-      <div class="card rv"><div class="n">05</div><h3>PV-Anlagen</h3><p>Photovoltaik anschließen und in die Hausinstallation einbinden.</p></div>
-      <div class="card rv"><div class="n">06</div><h3>Wallbox</h3><p>Ladepunkt fürs E-Auto — fachgerecht abgesichert und angemeldet.</p></div>
+      <div class="card rv"><div class="n">01</div><h3>Elektro­installation</h3><p>Neuinstallation für Wohnung, Haus und Gewerbe — von der Planung bis zur Abnahme.</p><a class="more" href="leistungen/elektroinstallation.php">Mehr erfahren →</a></div>
+      <div class="card rv"><div class="n">02</div><h3>Altbau­sanierung</h3><p>Alte Leitungen raus, moderner FI-Schutz rein. Elektrik auf heutigen Stand, ohne die Bausubstanz zu zerlegen.</p><a class="more" href="altbausanierung-nuernberg.php">Mehr erfahren →</a></div>
+      <div class="card rv"><div class="n">03</div><h3>Fehlersuche &amp; Kundendienst</h3><p>Strom weg, FI fliegt, etwas funktioniert nicht? Wir finden die Ursache und beheben sie.</p><a class="more" href="kundendienst-fehlersuche-nuernberg.php">Mehr erfahren →</a></div>
+      <div class="card rv"><div class="n">04</div><h3>Smart Home</h3><p>Licht, Beschattung, Heizung und Sicherheit vernetzt — mit Loxone oder KNX.</p><a class="more" href="smart-home-knx-loxone-nuernberg.php">Mehr erfahren →</a></div>
+      <div class="card rv"><div class="n">05</div><h3>PV-Anlagen</h3><p>Photovoltaik anschließen und in die Hausinstallation einbinden.</p><a class="more" href="photovoltaik-nuernberg.php">Mehr erfahren →</a></div>
+      <div class="card rv"><div class="n">06</div><h3>Wallbox</h3><p>Ladepunkt fürs E-Auto — fachgerecht abgesichert und angemeldet.</p><a class="more" href="zaehlerschrank-wallbox-nuernberg.php">Mehr erfahren →</a></div>
     </div>
     <p class="rv" style="margin-top:28px"><a class="btn btn-ghost" href="leistungen.php">Alle Leistungen im Detail →</a></p>
   </div>
@@ -478,6 +483,14 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
         <a href="tel:+491757481006">+49 175 7481006</a>
       </nav>
     </div>
+    <nav class="fgebiet" aria-label="Einsatzgebiet">
+      <span>Einsatzgebiet:</span>
+      <a href="elektroinstallation-nuernberg.php">Nürnberg</a>
+      <a href="elektro-sanierung-fuerth.php">Fürth</a>
+      <a href="elektro-sanierung-erlangen.php">Erlangen</a>
+      <a href="elektriker-schwabach.php">Schwabach</a>
+      <a href="elektriker-wendelstein.php">Wendelstein</a>
+    </nav>
     <div class="legal">
       <span>OH Haustechnik · Onur-Can Hezer · Dianastraße 62, 90441 Nürnberg</span>
       <a href="impressum.php">Impressum</a>
