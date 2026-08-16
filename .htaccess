@@ -2,6 +2,8 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^[234]-zimmer-wohnung-elektro-sanieren-nuernberg\.php$ /wohnung-elektro-sanieren-nuernberg.php [R=301,L]
+  # E-Check-Seite umbenannt: DGUV V3 wird nicht angeboten
+  RewriteRule ^e-check-dguv-v3-nuernberg\.php$ /e-check-nuernberg.php [R=301,L]
 </IfModule>
 
 # Sensible Dateien vor oeffentlichem Download schuetzen (Backups, Datenbanken, Keys, Logs)

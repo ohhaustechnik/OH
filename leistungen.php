@@ -127,7 +127,7 @@ $canonical_url    = 'https://oh-haustechnik.de/leistungen.php';
       <div class="card rv"><div class="n">02</div><h3>Smart Home</h3><p>KNX oder Loxone — herstellerneutral geplant, sauber dokumentiert.</p><a class="more" href="/smart-home-knx-loxone-nuernberg.php">Mehr erfahren →</a></div>
       <div class="card rv"><div class="n">03</div><h3>Photovoltaik</h3><p>Zählerschrank, Wechselrichter, Speicher und Netzbetreiber-Anmeldung.</p><a class="more" href="/photovoltaik-nuernberg.php">Mehr erfahren →</a></div>
       <div class="card rv"><div class="n">04</div><h3>Zählerschrank &amp; Wallbox</h3><p>Ladepunkt fürs E-Auto — fachgerecht abgesichert und angemeldet.</p><a class="more" href="/zaehlerschrank-wallbox-nuernberg.php">Mehr erfahren →</a></div>
-      <div class="card rv"><div class="n">05</div><h3>E-Check &amp; DGUV V3</h3><p>Elektroprüfung mit belastbarem Prüfprotokoll statt Aufkleber.</p><a class="more" href="/e-check-dguv-v3-nuernberg.php">Mehr erfahren →</a></div>
+      <div class="card rv"><div class="n">05</div><h3>E-Check</h3><p>Elektroprüfung mit belastbarem Prüfprotokoll statt Aufkleber.</p><a class="more" href="/e-check-nuernberg.php">Mehr erfahren →</a></div>
       <div class="card rv"><div class="n">06</div><h3>Kundendienst</h3><p>FI fliegt, kein Strom im Raum? Systematische Fehlersuche statt Raten.</p><a class="more" href="/kundendienst-fehlersuche-nuernberg.php">Mehr erfahren →</a></div>
     </div>
   </div>

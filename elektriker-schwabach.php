@@ -60,7 +60,7 @@ $seo = [
       <li><a href="/leistungen/elektroinstallation.php" style="text-decoration:underline">Elektroinstallation</a> in Neubau, Umbau und Erweiterung</li>
       <li>Zählerschrank und Unterverteilung erneuern, <a href="/leistungen/schutztechnik.php" style="text-decoration:underline">FI-Schutz nachrüsten</a></li>
       <li><a href="/kundendienst-fehlersuche-nuernberg.php" style="text-decoration:underline">Fehlersuche und Reparatur</a> bei Störungen</li>
-      <li><a href="/e-check-dguv-v3-nuernberg.php" style="text-decoration:underline">E-Check und DGUV V3 Prüfung</a> für Eigentümer, Vermieter und Betriebe</li>
+      <li><a href="/e-check-nuernberg.php" style="text-decoration:underline">E-Check</a> für Eigentümer, Vermieter und Betriebe</li>
       <li><a href="/photovoltaik-nuernberg.php" style="text-decoration:underline">PV-Anschluss</a>, Speicher und <a href="/zaehlerschrank-wallbox-nuernberg.php" style="text-decoration:underline">Wallbox</a></li>
       <li><a href="/smart-home-knx-loxone-nuernberg.php" style="text-decoration:underline">Smart Home</a> mit KNX oder Loxone</li>
     </ul>

@@ -63,7 +63,7 @@ $seo = [
       <li>Zählerschrank und Unterverteilung erneuern, FI-Schutz nachrüsten</li>
       <li>Zusätzliche Stromkreise, Steckdosen und Außenbereich</li>
       <li><a href="/kundendienst-fehlersuche-nuernberg.php" style="text-decoration:underline">Fehlersuche und Reparatur</a></li>
-      <li><a href="/e-check-dguv-v3-nuernberg.php" style="text-decoration:underline">E-Check und DGUV V3 Prüfung</a></li>
+      <li><a href="/e-check-nuernberg.php" style="text-decoration:underline">E-Check</a></li>
       <li><a href="/smart-home-knx-loxone-nuernberg.php" style="text-decoration:underline">Smart Home</a> und <a href="/leistungen/netzwerkverkabelung.php" style="text-decoration:underline">Netzwerkverkabelung</a></li>
     </ul>
   </div>
