@@ -16,6 +16,17 @@
 <link rel="preload" as="image" href="assets/img/lp/poster.jpg" fetchpriority="high">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Electrician","name":"OH Haustechnik","image":"https://oh-haustechnik.de/assets/img/lp/poster.jpg","@id":"https://oh-haustechnik.de/","url":"https://oh-haustechnik.de/","telephone":"+491757481006","email":"oh.Haustechnik@gmail.com","founder":{"@type":"Person","name":"Onur-Can Hezer"},"address":{"@type":"PostalAddress","streetAddress":"Dianastra\u00dfe 62","postalCode":"90441","addressLocality":"N\u00fcrnberg","addressCountry":"DE"},"areaServed":["N\u00fcrnberg","F\u00fcrth","Schwabach","Wendelstein"],"knowsAbout":["Elektroinstallation","Altbausanierung","Smart Home","Photovoltaik","Wallbox"],"aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"27"}}</script>
 <title>Elektriker Nürnberg | Elektroinstallation &amp; Altbausanierung – OH Haustechnik</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17801418796"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17801418796');
+  gtag('config', 'G-004VQKCXXC');
+</script>
+<script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC"};</script>
+<script defer src="assets/js/oh-track.js"></script>
 <style>
 /* ---------- Fonts (lokal eingebettet, DSGVO-konform) ---------- */
 @font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/anton.woff2) format('woff2');}
@@ -525,9 +536,9 @@ form.addEventListener('submit',e=>{
   fd.append('elapsed',String(Date.now()-startT));
   const btn=document.getElementById('send');btn.disabled=true;btn.textContent='Senden…';
   fetch('senden.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-    if(d&&d.ok){showThanks();}
+    if(d&&d.ok){showThanks();if(window.ohTrack)window.ohTrack('lead_form_submit',{value:1});}
     else{const e4=form.querySelector('[data-err="4"]');e4.textContent=(d&&d.error)||'Es ist etwas schiefgelaufen. Bitte rufen Sie kurz an: 0175 7481006';e4.style.display='block';btn.disabled=false;btn.textContent='Anfrage senden →';}
-  }).catch(()=>{showThanks();});
+  }).catch(()=>{showThanks();if(window.ohTrack)window.ohTrack('lead_form_submit',{value:1});});
 });
 
 document.querySelectorAll('.ba').forEach(ba=>{
