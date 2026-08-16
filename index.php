@@ -291,6 +291,7 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
       <div class="card rv"><div class="n">05</div><h3>PV-Anlagen</h3><p>Photovoltaik anschließen und in die Hausinstallation einbinden.</p></div>
       <div class="card rv"><div class="n">06</div><h3>Wallbox</h3><p>Ladepunkt fürs E-Auto — fachgerecht abgesichert und angemeldet.</p></div>
     </div>
+    <p class="rv" style="margin-top:28px"><a class="btn btn-ghost" href="leistungen.php">Alle Leistungen im Detail →</a></p>
   </div>
 </section>
 
@@ -472,15 +473,14 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
       <img class="logo" src="assets/img/logohaustechnikneu.png" alt="OH Haustechnik">
       <nav class="fnav" aria-label="Fußnavigation">
         <a href="#leistungen">Leistungen</a>
-        <a href="#altbau">Altbau</a>
-        <a href="#referenzen">Referenzen</a>
-        <a href="#anfrage">Anfrage</a>
+        <a href="ueber-uns.php">Über uns</a>
+        <a href="kontakt.php">Kontakt</a>
         <a href="tel:+491757481006">+49 175 7481006</a>
       </nav>
     </div>
     <div class="legal">
       <span>OH Haustechnik · Onur-Can Hezer · Dianastraße 62, 90441 Nürnberg</span>
-      <a href="impressum.html">Impressum</a>
+      <a href="impressum.php">Impressum</a>
       <a href="datenschutz.php">Datenschutz</a>
     </div>
   </div>

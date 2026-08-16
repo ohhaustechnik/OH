@@ -1,137 +1,98 @@
 <?php
-$base_path        = '../';
 $page_title       = 'Sicherheit & Schutztechnik Nürnberg – FI, LS, Überspannungsschutz | OH Haustechnik';
-$meta_description = 'Moderne Schutztechnik für Elektroanlagen im Raum Nürnberg ✓ FI-Schutzschalter (RCD) ✓ LS-Schutz ✓ Überspannungsschutz ✓ Normgerechte Verteilerinstallation';
+$meta_description = 'RCD, Leitungsschutz & Überspannungsschutz für langfristige Betriebssicherheit — moderne Schutztechnik in Wohn- und Gewerbeobjekten im Raum Nürnberg.';
 $canonical_url    = 'https://oh-haustechnik.de/leistungen/schutztechnik.php';
-
-include '../includes/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="<?= htmlspecialchars($meta_description) ?>">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="canonical" href="<?= htmlspecialchars($canonical_url) ?>">
+<meta property="og:type" content="website">
+<meta property="og:url" content="<?= htmlspecialchars($canonical_url) ?>">
+<meta property="og:title" content="Sicherheit &amp; Schutztechnik Nürnberg – OH Haustechnik">
+<meta property="og:description" content="<?= htmlspecialchars($meta_description) ?>">
+<meta property="og:image" content="https://oh-haustechnik.de/assets/img/lp/uv.jpg">
+<meta property="og:locale" content="de_DE">
+<link rel="icon" href="/assets/img/favicon.ico">
+<link rel="stylesheet" href="/assets/css/site-dark.css">
+<title><?= htmlspecialchars($page_title) ?></title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17801418796"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17801418796');
+  gtag('config', 'G-004VQKCXXC');
+</script>
+<script defer src="/assets/js/oh-track.js"></script>
+</head>
+<body>
 
+<?php $oh_active = 'leistungen'; include __DIR__ . '/../includes/header-dark.php'; ?>
+
+<!-- ============ HERO ============ -->
 <section class="page-hero">
-    <div class="container">
-        <div class="page-hero-content">
-            <div class="breadcrumb">
-                <a href="../index.php">Start</a>
-                <i class="fas fa-chevron-right"></i>
-                <a href="../leistungen.php">Leistungen</a>
-                <i class="fas fa-chevron-right"></i>
-                <span>Sicherheit & Schutz</span>
-            </div>
-            <h1><i class="fas fa-shield-alt" style="margin-right: 0.75rem; font-size: 0.8em;"></i>Sicherheit &amp; Schutztechnik</h1>
-            <p>
-                Moderne Schutzkomponenten für langfristige Betriebssicherheit – 
-                in Wohn- und Gewerbeobjekten im Raum Nürnberg.
-            </p>
-        </div>
+  <div class="wrap">
+    <div class="breadcrumb rv"><a href="/index.php">Start</a> · <a href="/leistungen.php">Leistungen</a> · Sicherheit &amp; Schutz</div>
+    <h1 class="rv">Sicherheit &amp; <span class="yellow">Schutztechnik</span></h1>
+    <p class="rv">Moderne Schutzkomponenten für langfristige Betriebssicherheit — in Wohn- und Gewerbeobjekten im Raum Nürnberg.</p>
+    <div class="badges rv" style="margin-top:22px">
+      <span class="badge">RCD-Schutz</span>
+      <span class="badge">LS-Schalter</span>
+      <span class="badge">Überspannungsschutz</span>
+      <span class="badge">VDE-konform</span>
+      <span class="badge">Beschriftet</span>
     </div>
+  </div>
 </section>
 
-<div class="trust-bar">
-    <div class="trust-bar-inner">
-        <div class="trust-item"><i class="fas fa-shield-alt"></i><span>RCD-Schutz</span></div>
-        <div class="trust-item"><i class="fas fa-plug"></i><span>LS-Schalter</span></div>
-        <div class="trust-item"><i class="fas fa-bolt"></i><span>Überspannungsschutz</span></div>
-        <div class="trust-item"><i class="fas fa-certificate"></i><span>VDE-konform</span></div>
-        <div class="trust-item"><i class="fas fa-tag"></i><span>Beschriftet</span></div>
+<!-- ============ UMFASSENDE SCHUTZTECHNIK ============ -->
+<section>
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">Mehr als Grundfunktion</div>
+      <h2>Umfassende Schutztechnik.</h2>
+      <p>Ein moderner Verteiler erfüllt mehr als nur die Grundfunktion. Wir integrieren Schutzkomponenten, die Funktionalität und langfristige Sicherheit gewährleisten.</p>
     </div>
-</div>
-
-<section class="section">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Mehr als Grundfunktion</span>
-            <h2 class="section-title">Umfassende <span>Schutztechnik</span></h2>
-            <p class="section-subtitle">
-                Ein moderner Verteiler erfüllt mehr als nur die Grundfunktion. 
-                Wir integrieren Schutzkomponenten, die Funktionalität und langfristige Sicherheit gewährleisten.
-            </p>
-        </div>
-
-        <div class="grid-3">
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-shield-alt"></i></div>
-                <h3>Fehlerstromschutz (RCD)</h3>
-                <p>
-                    Fehlerstromschutzschalter (RCD) erkennen gefährliche Ableitströme und 
-                    trennen den Stromkreis in Millisekunden. Pflichtausstattung nach aktuellen VDE-Normen.
-                    Teil unserer <a href="elektroinstallation.php" class="text-link">Elektroinstallation</a>.
-                </p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-plug"></i></div>
-                <h3>Leitungsschutz (LS)</h3>
-                <p>
-                    Leitungsschutzschalter schützen vor Überlastung und Kurzschluss. 
-                    Korrekte Auslegung je nach Leitungsquerschnitt und Verbraucherprofil.
-                </p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-bolt"></i></div>
-                <h3>Überspannungsschutz</h3>
-                <p>
-                    Schutz vor transienten Überspannungen durch Blitzeinschlag oder Schalthandlungen. 
-                    Besonders wichtig für sensible elektronische Geräte und vernetzte Systeme.
-                </p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-list-ul"></i></div>
-                <h3>Separate Stromkreise</h3>
-                <p>
-                    Leistungsintensive Verbraucher wie Backofen, Herd, Wallbox oder 
-                    Klimaanlage erhalten eigene abgesicherte Stromkreise.
-                </p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-tag"></i></div>
-                <h3>Strukturierte Beschriftung</h3>
-                <p>
-                    Jeder Schutzschalter und jeder Stromkreis wird klar und dauerhaft beschriftet 
-                    – für schnelle Orientierung bei Wartung oder im Störfall.
-                </p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-file-signature"></i></div>
-                <h3>Dokumentation</h3>
-                <p>
-                    Übergabe eines vollständigen Verteilerschemas mit Zuordnung aller Stromkreise 
-                    zu den jeweiligen Verbrauchern und Sicherungen.
-                </p>
-            </div>
-        </div>
+    <div class="grid">
+      <div class="card rv"><div class="n">01</div><h3>Fehlerstromschutz (RCD)</h3><p>RCD-Schalter erkennen gefährliche Ableitströme und trennen den Stromkreis in Millisekunden. Pflichtausstattung nach aktuellen VDE-Normen.</p></div>
+      <div class="card rv"><div class="n">02</div><h3>Leitungsschutz (LS)</h3><p>Leitungsschutzschalter schützen vor Überlastung und Kurzschluss. Korrekte Auslegung je nach Leitungsquerschnitt und Verbraucherprofil.</p></div>
+      <div class="card rv"><div class="n">03</div><h3>Überspannungsschutz</h3><p>Schutz vor transienten Überspannungen durch Blitzeinschlag oder Schalthandlungen — wichtig für sensible elektronische Geräte.</p></div>
+      <div class="card rv"><div class="n">04</div><h3>Separate Stromkreise</h3><p>Leistungsintensive Verbraucher wie Backofen, Herd, Wallbox oder Klimaanlage erhalten eigene abgesicherte Stromkreise.</p></div>
+      <div class="card rv"><div class="n">05</div><h3>Strukturierte Beschriftung</h3><p>Jeder Schutzschalter und jeder Stromkreis wird klar und dauerhaft beschriftet — für schnelle Orientierung im Störfall.</p></div>
+      <div class="card rv"><div class="n">06</div><h3>Dokumentation</h3><p>Übergabe eines vollständigen Verteilerschemas mit Zuordnung aller Stromkreise zu Verbrauchern und Sicherungen.</p></div>
     </div>
+  </div>
 </section>
 
-<section class="section section--blue-light">
-    <div class="container">
-        <div style="max-width: 800px; margin: 0 auto; text-align: center;" data-animate>
-            <i class="fas fa-exclamation-triangle" style="font-size: 2.5rem; color: var(--blue-primary); margin-bottom: 1.5rem;"></i>
-            <h2 class="section-title">Besonders im <span>Altbau</span> wichtig</h2>
-            <p style="font-size: 1.05rem; line-height: 1.8; margin-bottom: 2rem;">
-                In Gebäuden vor den 1980er-Jahren fehlen oft Fehlerstromschutzschalter vollständig. 
-                Gleichzeitig steigen die elektrischen Lasten durch moderne Haushaltsgeräte, 
-                <a href="netzwerkverkabelung.php" class="text-link">Heimnetzwerke</a> und Lademöglichkeiten für E-Fahrzeuge erheblich.
-            </p>
-            <p style="font-size: 1.05rem; line-height: 1.8; margin-bottom: 2.5rem;">
-                Eine Nachrüstung mit zeitgemäßer Schutztechnik ist nicht nur empfehlenswert, 
-                sondern in vielen Fällen auch versicherungsrechtlich relevant. 
-                Sprechen Sie uns an – wir beraten Sie gerne im Rahmen einer <a href="elektroinstallation.php" class="text-link">Bestandsmodernisierung</a>.
-            </p>
-            <a href="../kontakt.php" class="btn btn--primary btn--lg">
-                <i class="fas fa-paper-plane"></i> Jetzt Beratung anfragen
-            </a>
-        </div>
-    </div>
+<!-- ============ ALTBAU WICHTIG ============ -->
+<section class="alt-bg">
+  <div class="wrap prose">
+    <div class="eyebrow rv">Besonders im Altbau wichtig</div>
+    <h2 class="rv">Nachrüsten lohnt sich.</h2>
+    <p class="rv">In Gebäuden vor den 1980er-Jahren fehlen oft Fehlerstromschutzschalter vollständig. Gleichzeitig steigen die elektrischen Lasten durch moderne Haushaltsgeräte, Heimnetzwerke und Lademöglichkeiten für E-Fahrzeuge erheblich.</p>
+    <p class="rv">Eine Nachrüstung mit zeitgemäßer Schutztechnik ist nicht nur empfehlenswert, sondern in vielen Fällen auch versicherungsrechtlich relevant. Sprechen Sie uns an — wir beraten Sie gerne im Rahmen einer <a href="/leistungen/elektroinstallation.php" style="text-decoration:underline">Bestandsmodernisierung</a>.</p>
+    <p class="rv"><a class="btn btn-y" href="/index.php#anfrage">Jetzt Beratung anfragen</a></p>
+  </div>
 </section>
 
-<section class="cta-section">
-    <div class="container" style="position: relative; z-index: 2;">
-        <h2>Schutzanlage prüfen lassen</h2>
-        <p>Wir analysieren Ihre bestehende Anlage und zeigen Ihnen, welche Maßnahmen sinnvoll sind.</p>
-        <div class="cta-actions">
-            <a href="../kontakt.php" class="btn btn--white btn--lg"><i class="fas fa-paper-plane"></i> Jetzt anfragen</a>
-            <a href="tel:+491757481006" class="btn btn--outline-white btn--lg"><i class="fas fa-phone"></i> Direkt anrufen</a>
-        </div>
+<!-- ============ CTA ============ -->
+<section>
+  <div class="wrap" style="text-align:center">
+    <div class="shead rv" style="margin:0 auto 28px"><h2>Schutzanlage prüfen lassen.</h2><p>Wir analysieren Ihre bestehende Anlage und zeigen Ihnen, welche Maßnahmen sinnvoll sind.</p></div>
+    <div class="rv" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a class="btn btn-y" href="/index.php#anfrage">Jetzt anfragen</a>
+      <a class="btn btn-ghost" href="tel:+491757481006">Direkt anrufen</a>
     </div>
+  </div>
 </section>
 
-<?php include '../includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer-dark.php'; ?>
+</body>
+</html>

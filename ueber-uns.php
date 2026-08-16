@@ -1,150 +1,119 @@
 <?php
-$page_title       = 'Über uns – OH Haustechnik Nürnberg | Elektrotechnik mit Anspruch';
-$meta_description = 'OH Haustechnik Nürnberg – Handwerkliche Präzision trifft technisches Verständnis. Ihr Spezialist für Elektroinstallation und Netzwerkverkabelung im Raum Nürnberg.';
+$page_title       = 'Über uns – Elektrotechnik mit Anspruch | OH Haustechnik';
+$meta_description = 'Handwerkliche Präzision trifft technisches Verständnis: Lernen Sie OH Haustechnik kennen – Ihren Elektro-Fachbetrieb im Raum Nürnberg, Fürth & Erlangen.';
 $canonical_url    = 'https://oh-haustechnik.de/ueber-uns.php';
-
-include 'includes/header.php';
 ?>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="<?= htmlspecialchars($meta_description) ?>">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="canonical" href="<?= htmlspecialchars($canonical_url) ?>">
+<meta property="og:type" content="website">
+<meta property="og:url" content="<?= htmlspecialchars($canonical_url) ?>">
+<meta property="og:title" content="Über uns – OH Haustechnik">
+<meta property="og:description" content="<?= htmlspecialchars($meta_description) ?>">
+<meta property="og:image" content="https://oh-haustechnik.de/assets/img/lp/about.jpg">
+<meta property="og:locale" content="de_DE">
+<link rel="icon" href="/assets/img/favicon.ico">
+<link rel="stylesheet" href="/assets/css/site-dark.css">
+<title><?= htmlspecialchars($page_title) ?></title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17801418796"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-17801418796');
+  gtag('config', 'G-004VQKCXXC');
+</script>
+<script defer src="/assets/js/oh-track.js"></script>
+</head>
+<body>
 
+<?php $oh_active = 'ueber-uns'; include __DIR__ . '/includes/header-dark.php'; ?>
+
+<!-- ============ HERO ============ -->
 <section class="page-hero">
-    <div class="container">
-        <div class="page-hero-content">
-            <div class="breadcrumb">
-                <a href="index.php">Start</a>
-                <i class="fas fa-chevron-right"></i>
-                <span>Über uns</span>
-            </div>
-            <h1>Über OH Haustechnik</h1>
-            <p>
-                Handwerkliche Präzision verbunden mit technischem Verständnis – 
-                Ihr verlässlicher Partner für Elektrotechnik im Raum Nürnberg.
-            </p>
-        </div>
-    </div>
+  <div class="wrap">
+    <div class="breadcrumb rv"><a href="/index.php">Start</a> · Über uns</div>
+    <h1 class="rv">Über <span class="yellow">OH Haustechnik</span></h1>
+    <p class="rv">Handwerkliche Präzision verbunden mit technischem Verständnis — Ihr verlässlicher Partner für Elektrotechnik im Raum Nürnberg.</p>
+  </div>
 </section>
 
-<!-- Philosophie -->
-<section class="section">
-    <div class="container">
-        <div class="ueber-grid">
-
-            <div class="ueber-image-box" data-animate>
-                <img src="assets/img/ohhaustechnikueberuns.png" alt="OH Haustechnik – Über uns" class="ueber-foto">
-            </div>
-            </div>
-
-            <div data-animate>
-                <span class="section-label">Wer wir sind</span>
-                <h2 class="section-title">
-                    Elektrotechnik mit <span>Anspruch</span>
-                </h2>
-                <p style="margin-bottom: 1.25rem;">
-                    OH Haustechnik verbindet handwerkliche Präzision mit technischem Verständnis.
-                    Elektroinstallationen sind nicht nur Montagearbeiten – sie bilden das 
-                    sicherheitsrelevante Rückgrat eines Gebäudes.
-                </p>
-                <p style="margin-bottom: 1.25rem;">
-                    Unser Anspruch ist es, Anlagen zu schaffen, die technisch durchdacht, 
-                    normgerecht abgesichert, übersichtlich strukturiert, erweiterbar und langlebig sind.
-                    Ob <a href="leistungen/elektroinstallation.php" class="text-link">Elektroinstallation im Neubau</a>, 
-                    <a href="leistungen/netzwerkverkabelung.php" class="text-link">strukturierte Netzwerkverkabelung</a> 
-                    oder <a href="leistungen/schutztechnik.php" class="text-link">moderne Schutztechnik</a> – wir decken alles ab.
-                </p>
-                <p style="margin-bottom: 2rem;">
-                    Wir arbeiten lösungsorientiert und transparent – vom ersten <a href="kontakt.php" class="text-link">Kontakt</a> bis 
-                    zur finalen Inbetriebnahme. Kein Projekt ist zu groß oder zu klein.
-                </p>
-
-                <div class="ueber-qualities">
-                    <div class="quality-item"><i class="fas fa-check-circle"></i> Technisch durchdacht</div>
-                    <div class="quality-item"><i class="fas fa-check-circle"></i> Normgerecht abgesichert</div>
-                    <div class="quality-item"><i class="fas fa-check-circle"></i> Übersichtlich strukturiert</div>
-                    <div class="quality-item"><i class="fas fa-check-circle"></i> Erweiterbar & langlebig</div>
-                    <div class="quality-item"><i class="fas fa-check-circle"></i> Transparent im Ablauf</div>
-                    <div class="quality-item"><i class="fas fa-check-circle"></i> Lösungsorientiert</div>
-                </div>
-            </div>
-        </div>
+<!-- ============ WER WIR SIND ============ -->
+<section>
+  <div class="wrap about">
+    <div class="about-photo rv"><img src="/assets/img/lp/about.jpg" alt="OH Haustechnik bei der Elektroinstallation"></div>
+    <div class="rv">
+      <div class="eyebrow">Wer wir sind</div>
+      <h2>Elektrotechnik mit Anspruch.</h2>
+      <p>OH Haustechnik verbindet handwerkliche Präzision mit technischem Verständnis. Elektroinstallationen sind nicht nur Montagearbeiten — sie bilden das sicherheitsrelevante Rückgrat eines Gebäudes.</p>
+      <p>Unser Anspruch: Anlagen schaffen, die technisch durchdacht, normgerecht abgesichert, übersichtlich strukturiert, erweiterbar und langlebig sind. Ob Elektroinstallation im Neubau, <a href="/leistungen/netzwerkverkabelung.php" style="text-decoration:underline">strukturierte Netzwerkverkabelung</a> oder <a href="/leistungen/schutztechnik.php" style="text-decoration:underline">moderne Schutztechnik</a> — wir decken alles ab.</p>
+      <p>Wir arbeiten lösungsorientiert und transparent — vom ersten Kontakt bis zur finalen Inbetriebnahme. Kein Projekt ist zu groß oder zu klein.</p>
+      <div class="badges">
+        <span class="badge">Technisch durchdacht</span>
+        <span class="badge">Normgerecht abgesichert</span>
+        <span class="badge">Übersichtlich strukturiert</span>
+        <span class="badge">Erweiterbar &amp; langlebig</span>
+        <span class="badge">Transparent im Ablauf</span>
+        <span class="badge">Lösungsorientiert</span>
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- Unser Anspruch Detail -->
-<section class="section section--gray">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Normen & Standards</span>
-            <h2 class="section-title">Unser technischer <span>Anspruch</span></h2>
-            <p class="section-subtitle">
-                Elektrotechnik ist sicherheitsrelevant. Daher arbeiten wir ausschließlich nach 
-                anerkannten Normen und technischen Regelwerken.
-            </p>
-        </div>
-
-        <div class="grid-3">
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-certificate"></i></div>
-                <h3>VDE-konform</h3>
-                <p>Alle Arbeiten werden nach den Vorschriften des VDE (Verband der Elektrotechnik) ausgeführt – der maßgeblichen Norm für elektrische Sicherheit in Deutschland. Mehr zu unseren <a href="leistungen.php" class="text-link">Leistungen</a>.</p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-ruler-combined"></i></div>
-                <h3>DIN-Vorgaben</h3>
-                <p>Wir berücksichtigen alle relevanten DIN-Normen, insbesondere DIN 18015 für Elektrische Anlagen in Wohngebäuden.</p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-plug"></i></div>
-                <h3>TAB-Anforderungen</h3>
-                <p>Die Technischen Anschlussbedingungen (TAB) des Netzbetreibers werden bei allen Anschlussarbeiten strikt eingehalten.</p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-star"></i></div>
-                <h3>Markenkomponenten</h3>
-                <p>Wir setzen ausschließlich geprüfte Markenkomponenten namhafter Hersteller ein – für maximale Zuverlässigkeit und Langlebigkeit.</p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-sitemap"></i></div>
-                <h3>Strukturiert</h3>
-                <p>Saubere Leitungsführung, klare Stromkreistrennung und übersichtliche Verteiler – damit Sie jederzeit den Überblick behalten.</p>
-            </div>
-            <div class="leistung-card" data-animate>
-                <div class="leistung-icon"><i class="fas fa-file-alt"></i></div>
-                <h3>Dokumentiert</h3>
-                <p>Jede Installation wird vollständig dokumentiert: Verteilerpläne, Leitungsführung und Messprotokolle werden bei der Übergabe übergeben. <a href="kontakt.php" class="text-link">Projekt anfragen →</a></p>
-            </div>
-        </div>
+<!-- ============ NORMEN & STANDARDS ============ -->
+<section class="alt-bg">
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">Normen &amp; Standards</div>
+      <h2>Unser technischer Anspruch.</h2>
+      <p>Elektrotechnik ist sicherheitsrelevant. Daher arbeiten wir ausschließlich nach anerkannten Normen und technischen Regelwerken.</p>
     </div>
+    <div class="grid">
+      <div class="card rv"><div class="n">01</div><h3>VDE-konform</h3><p>Alle Arbeiten nach den Vorschriften des VDE — der maßgeblichen Norm für elektrische Sicherheit in Deutschland.</p></div>
+      <div class="card rv"><div class="n">02</div><h3>DIN-Vorgaben</h3><p>Wir berücksichtigen alle relevanten DIN-Normen, insbesondere DIN 18015 für Elektrische Anlagen in Wohngebäuden.</p></div>
+      <div class="card rv"><div class="n">03</div><h3>TAB-Anforderungen</h3><p>Die Technischen Anschlussbedingungen des Netzbetreibers werden bei allen Anschlussarbeiten strikt eingehalten.</p></div>
+      <div class="card rv"><div class="n">04</div><h3>Markenkomponenten</h3><p>Wir setzen ausschließlich geprüfte Markenkomponenten namhafter Hersteller ein — für maximale Zuverlässigkeit.</p></div>
+      <div class="card rv"><div class="n">05</div><h3>Strukturiert</h3><p>Saubere Leitungsführung, klare Stromkreistrennung und übersichtliche Verteiler — jederzeit den Überblick behalten.</p></div>
+      <div class="card rv"><div class="n">06</div><h3>Dokumentiert</h3><p>Jede Installation wird vollständig dokumentiert: Verteilerpläne, Leitungsführung und Messprotokolle bei der Übergabe.</p></div>
+    </div>
+  </div>
 </section>
 
-<!-- Einsatzgebiet -->
-<section class="section">
-    <div class="container">
-        <div class="section-header" data-animate>
-            <span class="section-label">Unser Gebiet</span>
-            <h2 class="section-title">Tätig im Raum <span>Nürnberg</span></h2>
-            <p class="section-subtitle">
-                Wir betreuen Projekte in der gesamten Metropolregion Nürnberg – 
-                privat und gewerblich.
-            </p>
-        </div>
-        <div class="einsatz-cities" style="max-width: 600px; margin: 0 auto;">
-            <div class="city-card"><i class="fas fa-city"></i><span>Nürnberg</span></div>
-            <div class="city-card"><i class="fas fa-city"></i><span>Fürth</span></div>
-            <div class="city-card"><i class="fas fa-city"></i><span>Erlangen</span></div>
-            <div class="city-card"><i class="fas fa-map-marker-alt"></i><span>Umliegende Gemeinden</span></div>
-        </div>
+<!-- ============ GEBIET ============ -->
+<section>
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">Unser Gebiet</div>
+      <h2>Tätig im Raum <span class="yellow">Nürnberg.</span></h2>
+      <p>Wir betreuen Projekte in der gesamten Metropolregion Nürnberg — privat und gewerblich.</p>
     </div>
+    <div class="badges rv">
+      <span class="badge">Nürnberg</span>
+      <span class="badge">Fürth</span>
+      <span class="badge">Erlangen</span>
+      <span class="badge">Umliegende Gemeinden</span>
+    </div>
+  </div>
 </section>
 
-<!-- CTA -->
-<section class="cta-section">
-    <div class="container" style="position: relative; z-index: 2;">
-        <h2>Lernen Sie uns kennen</h2>
-        <p>Sprechen Sie uns an – wir stehen Ihnen für Fragen und Anfragen gerne zur Verfügung.</p>
-        <div class="cta-actions">
-            <a href="kontakt.php" class="btn btn--white btn--lg"><i class="fas fa-paper-plane"></i> Kontakt aufnehmen</a>
-            <a href="leistungen.php" class="btn btn--outline-white btn--lg"><i class="fas fa-bolt"></i> Unsere Leistungen</a>
-        </div>
+<!-- ============ CTA ============ -->
+<section class="alt-bg">
+  <div class="wrap" style="text-align:center">
+    <div class="shead rv" style="margin:0 auto 28px"><h2>Lernen Sie uns kennen.</h2><p>Sprechen Sie uns an — wir stehen Ihnen für Fragen und Anfragen gerne zur Verfügung.</p></div>
+    <div class="rv" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a class="btn btn-y" href="/kontakt.php">Kontakt aufnehmen</a>
+      <a class="btn btn-ghost" href="/leistungen.php">Unsere Leistungen</a>
     </div>
+  </div>
 </section>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer-dark.php'; ?>
+</body>
+</html>
