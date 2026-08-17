@@ -25,5 +25,5 @@
   </div>
 </footer>
 
-<a class="callbar" href="tel:+491757481006">📞 Jetzt anrufen · +49 175 7481006</a>
+<a class="callbar" href="tel:+491757481006">Anrufen · 0175 7481006</a>
 <script src="/assets/js/site-dark.js"></script>

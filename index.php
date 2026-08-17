@@ -212,9 +212,12 @@ footer{border-top:1px solid var(--line);padding:44px 0 40px;}
 .legal a{color:#9CA3AF;text-decoration:underline;text-underline-offset:2px;}
 
 /* ---------- Mobile Call Bar ---------- */
-.callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;background:var(--blue);color:#fff;
-  text-align:center;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:15px;font-size:15px;}
-@media(max-width:900px){.callbar{display:block;} body{padding-bottom:52px;}}
+.callbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;
+  background:rgba(16,16,16,.97);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line2);color:#fff;text-align:center;font-weight:600;
+  letter-spacing:.01em;padding:16px;font-size:15.5px;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+@media(max-width:900px){.callbar{display:block;} body{padding-bottom:calc(56px + env(safe-area-inset-bottom));}}
 
 /* ---------- Reveal ---------- */
 .rv{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease;}
@@ -499,7 +502,7 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
   </div>
 </footer>
 
-<a class="callbar" href="tel:+491757481006">📞 Jetzt anrufen · +49 175 7481006</a>
+<a class="callbar" href="tel:+491757481006">Anrufen · 0175 7481006</a>
 
 <script>
 // Sticky header
