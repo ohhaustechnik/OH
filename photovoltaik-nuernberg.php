@@ -1,12 +1,12 @@
 <?php
 $seo = [
-  'title'   => 'Photovoltaik-Anschluss Nürnberg | Elektriker für PV & Speicher',
-  'desc'    => 'PV-Anlage elektrisch anschließen lassen im Raum Nürnberg: Zählerschrank, Wechselrichter, Speicher, Wallbox-Anbindung und Netzbetreiber-Anmeldung vom Elektrofachbetrieb.',
+  'title'   => 'Photovoltaik Nürnberg | PV-Anlage vom Elektro-Fachbetrieb',
+  'desc'    => 'PV-Anlage im Raum Nürnberg — Montage und Elektrik aus einer Hand: Module, Wechselrichter, Speicher, Zählerschrank und Anmeldung beim Netzbetreiber.',
   'slug'    => 'photovoltaik-nuernberg.php',
-  'service' => 'Photovoltaik-Anschluss und Speicherinstallation',
+  'service' => 'Photovoltaik-Installation und Speicheranbindung',
   'image'   => 'https://oh-haustechnik.de/assets/img/lp/uv.jpg',
   'faq'     => [
-    ['Montiert ihr auch die Module auf dem Dach?', 'Die Modulmontage auf dem Dach ist Sache des Dachdeckers oder eines Solarteurs. Wir übernehmen den elektrotechnischen Teil: Anschluss von Wechselrichter und Speicher, Anpassung des Zählerschranks, Leitungsführung, Überspannungs- und Fehlerstromschutz sowie die Anmeldung beim Netzbetreiber. Bei vielen Projekten arbeiten wir mit dem Dachbetrieb zusammen.'],
+    ['Montiert ihr auch die Module auf dem Dach?', 'Ja. Wir übernehmen die Montage auf dem Dach und den kompletten elektrischen Teil — Unterkonstruktion, Module, Wechselrichter, Speicher, Zählerschrank und die Anmeldung beim Netzbetreiber. Sie brauchen also keinen zweiten Betrieb zu koordinieren und haben einen Ansprechpartner, wenn etwas zu klären ist.'],
     ['Muss der Zählerschrank für PV getauscht werden?', 'Häufig ja. Ältere Zählerschränke erfüllen die heutigen Anforderungen des Netzbetreibers oft nicht mehr — es fehlt Platz für den Zweirichtungszähler, der Überspannungsschutz oder die geforderte Aufteilung. Wir prüfen den Bestand vorab und sagen Ihnen, ob ein Umbau nötig ist, bevor Sie die Anlage bestellen.'],
     ['Wer meldet die Anlage beim Netzbetreiber an?', 'Die Anmeldung und Inbetriebsetzung beim Netzbetreiber darf nur ein eingetragener Elektrofachbetrieb vornehmen. Diesen Teil übernehmen wir für Sie, einschließlich der erforderlichen Unterlagen und Messprotokolle. Die Registrierung im Marktstammdatenregister ist zusätzlich erforderlich.'],
     ['Lohnt sich ein Speicher?', 'Das hängt von Ihrem Verbrauchsprofil ab, nicht von der Anlagengröße allein. Wer tagsüber wenig Strom braucht und abends viel, profitiert stärker als ein Haushalt mit hohem Tagverbrauch. Wir rechnen ehrlich mit Ihnen durch, ob sich die Investition in Ihrem Fall trägt — auch wenn die Antwort manchmal nein lautet.'],
@@ -25,10 +25,10 @@ $seo = [
 <section class="page-hero">
   <div class="wrap">
     <div class="breadcrumb rv"><a href="/index.php">Start</a> · <a href="/leistungen.php">Leistungen</a> · Photovoltaik</div>
-    <h1 class="rv"><span class="yellow">Photovoltaik</span> anschließen in Nürnberg</h1>
-    <p class="rv">Der elektrotechnische Teil Ihrer PV-Anlage: Zählerschrank, Wechselrichter, Speicher, Schutztechnik und Netzbetreiber-Anmeldung — sauber gemacht und vollständig dokumentiert.</p>
+    <h1 class="rv"><span class="yellow">Photovoltaik</span> in Nürnberg</h1>
+    <p class="rv">Montage und Elektrik aus einer Hand: Module, Wechselrichter, Speicher, Zählerschrank und die Anmeldung beim Netzbetreiber — ein Ansprechpartner von der Planung bis zur Inbetriebsetzung.</p>
     <div class="badges rv" style="margin-top:22px">
-      <span class="badge">Zählerschrank-Umbau</span>
+      <span class="badge">Montage &amp; Elektrik</span>
       <span class="badge">Speicher &amp; Wallbox</span>
       <span class="badge">Netzbetreiber-Anmeldung</span>
       <span class="badge">VDE-konform</span>
@@ -38,10 +38,10 @@ $seo = [
 
 <section>
   <div class="wrap prose">
-    <div class="eyebrow rv">Klare Rollenverteilung</div>
-    <h2 class="rv">Was wir machen — und was nicht.</h2>
-    <p class="rv">Bei einer PV-Anlage arbeiten zwei Gewerke: Das Dach übernimmt die Modulmontage, die Elektrik den Anschluss. Wir sind der Elektroteil. Das sagen wir offen, weil viele Anbieter beides aus einer Hand versprechen und dann das eine oder andere unterbeauftragen.</p>
-    <p class="rv">Unser Bereich beginnt am Wechselrichter und endet beim Netzbetreiber: Leitungsführung, Zählerplatz, Schutzorgane, Speicheranbindung, Messkonzept und die Inbetriebsetzung. Wenn Sie bereits einen Solarteur haben, arbeiten wir diesem zu. Wenn nicht, sagen wir Ihnen, worauf Sie bei dessen Auswahl achten sollten.</p>
+    <div class="eyebrow rv">Montage und Elektrik</div>
+    <h2 class="rv">Alles aus einer Hand.</h2>
+    <p class="rv">Eine PV-Anlage besteht aus zwei Teilen: der Montage auf dem Dach und dem elektrischen Anschluss. Beides machen wir selbst. Sie koordinieren also nicht zwei Betriebe, die sich im Zweifel gegenseitig die Schuld zuschieben, sondern haben von der Unterkonstruktion bis zur Inbetriebsetzung einen Ansprechpartner.</p>
+    <p class="rv">Das umfasst Unterkonstruktion und Modulmontage ebenso wie Leitungsführung, Wechselrichter, Speicheranbindung, Zählerplatz, Schutzorgane, Messkonzept und die Inbetriebsetzung beim Netzbetreiber. Der elektrische Teil ist dabei der anspruchsvollere — und genau der ist unser Kerngeschäft, nicht ein zugekaufter Nebenposten.</p>
 
     <h2 class="rv">Der Zählerschrank ist meistens der Knackpunkt</h2>
     <p class="rv">Der häufigste Grund, warum PV-Projekte teurer werden als geplant: Der vorhandene Zählerschrank erfüllt die Anforderungen des Netzbetreibers nicht mehr. In Bestandsgebäuden ist das eher die Regel als die Ausnahme.</p>
@@ -49,6 +49,7 @@ $seo = [
 
     <h2 class="rv">Leistungen im Detail</h2>
     <ul class="rv">
+      <li>Montage der Unterkonstruktion und der Module auf dem Dach</li>
       <li>Bestandsaufnahme von Zählerschrank, Unterverteilung und Leitungswegen</li>
       <li>Anpassung oder Neuaufbau des Zählerplatzes nach TAB des Netzbetreibers</li>
       <li>DC- und AC-seitiger Anschluss von Wechselrichter und Batteriespeicher</li>
@@ -79,7 +80,7 @@ $seo = [
 
 <section>
   <div class="wrap" style="text-align:center">
-    <div class="shead rv" style="margin:0 auto 28px"><h2>PV-Anschluss anfragen.</h2><p>Schicken Sie uns ein Foto Ihres Zählerschranks — dann können wir die wichtigste Frage meist sofort beantworten.</p></div>
+    <div class="shead rv" style="margin:0 auto 28px"><h2>PV-Anlage anfragen.</h2><p>Schicken Sie uns ein Foto Ihres Dachs und Ihres Zählerschranks — dann können wir die wichtigsten Fragen meist sofort beantworten.</p></div>
     <div class="rv" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
       <a class="btn btn-y" href="/index.php#anfrage">Jetzt anfragen</a>
       <a class="btn btn-ghost" href="tel:+491757481006">Direkt anrufen</a>
