@@ -78,7 +78,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             "@type": "OpeningHoursSpecification",
             "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
             "opens": "07:30",
-            "closes": "17:00"
+            "closes": "19:00"
         },
         "priceRange": "€€"
     }
