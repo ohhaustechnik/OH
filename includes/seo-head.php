@@ -82,4 +82,12 @@ if ($s('faq')) {
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<?php
+/* Ads-Conversion-Labels. Ohne diese Zuordnung sendet oh-track.js nur GA4-Events
+   und KEINE Google-Ads-Conversion - Telefon-Klicks blieben dadurch unsichtbar.
+   phone_click ist bei einem Handwerksbetrieb der wichtigste Kanal. */
+$ohConv = ['lead_form_submit' => 'sMAOCPTShb8cEKywsKhC',
+           'phone_click'      => 'WVjGCJyxmeMcEKywsKhC'];
+?>
+<script>window.OH_ADS_CONV = <?= json_encode($ohConv, JSON_UNESCAPED_SLASHES) ?>;</script>
 <script defer src="/assets/js/oh-track.js"></script>

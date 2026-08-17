@@ -26,7 +26,7 @@
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
-<script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC"};</script>
+<script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC","phone_click":"WVjGCJyxmeMcEKywsKhC"};</script>
 <script defer src="assets/js/oh-track.js"></script>
 <style>
 /* ---------- Fonts (lokal eingebettet, DSGVO-konform) ---------- */
