@@ -54,7 +54,7 @@ $canonical_url    = 'https://oh-haustechnik.de/kontakt.php';
       <div class="cbox rv">
         <div class="k">Telefon</div>
         <div class="v"><a href="tel:+491757481006">+49 175 7481006</a></div>
-        <div class="v small">Mo – Fr: 07:30 – 19:00 Uhr erreichbar</div>
+        <div class="v small">Mo – Fr: 07:00 – 19:00 Uhr erreichbar</div>
       </div>
       <div class="cbox rv">
         <div class="k">E-Mail</div>
