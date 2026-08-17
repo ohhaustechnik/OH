@@ -49,7 +49,7 @@ $seo = [
     <ul class="rv">
       <li><strong>Fachwerk verträgt keine beliebigen Schlitze.</strong> In tragenden Ständern und Riegeln darf nicht frei gefräst werden. Die Leitungsführung muss dem Gefach folgen oder auf Alternativen ausweichen.</li>
       <li><strong>Wandaufbauten sind oft dünner als erwartet.</strong> Standard-Einbautiefen für Dosen passen nicht immer; teils sind flachere Geräte oder abweichende Positionen nötig.</li>
-      <li><strong>Gewachsene Installationen.</strong> In über Jahrzehnte erweiterten Anlagen finden sich häufig Mischungen aus mehreren Bauphasen — auch klassische Nullung ohne separaten Schutzleiter ist im Bestand noch anzutreffen.</li>
+      <li><strong>Zweiadrige und brüchige Leitungen.</strong> In über Jahrzehnte erweiterten Anlagen finden sich häufig Mischungen aus mehreren Bauphasen — auch klassische Nullung ohne separaten Schutzleiter ist im Bestand noch anzutreffen.</li>
       <li><strong>Denkmalschutz.</strong> Steht das Objekt unter Schutz, sind sichtbare Eingriffe abstimmungspflichtig. Das ist kein Hindernis, aber ein Planungsschritt, der vor den Angebotspreis gehört und nicht danach.</li>
     </ul>
     <p class="rv">Wir klären diese Punkte bei der Bestandsaufnahme — bevor ein Preis genannt wird. Nachträgliche Überraschungen im Fachwerk sind der teuerste Teil solcher Projekte.</p>

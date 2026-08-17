@@ -7,11 +7,11 @@ $LP = [
   'h1'     => 'Elektro-Altbausanierung im Raum Nürnberg – sicher, sauber, zum Festpreis',
   'sub'    => 'Alte Leitungen, zu wenig Steckdosen, kein FI-Schutz? Wir bringen die Elektrik Ihres Altbaus auf den neuesten Stand – ohne Baustellenchaos, mit klarem Festpreis.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
-  'badges' => ['24 h erreichbar', 'Faire Festpreise', 'Saubere Ausführung', 'Lokal & persönlich'],
+  'badges' => ['Rückmeldung am selben Tag', 'Faire Festpreise', 'Saubere Ausführung', 'Lokal & persönlich'],
   'schritte' => [
     ['Anfrage senden', 'In 2 Minuten Eckdaten zu Ihrem Altbau angeben – ganz unverbindlich.'],
     ['Angebot erhalten', 'Sie bekommen schnell ein transparentes Festpreis-Angebot.'],
-    ['Termin & Umsetzung', 'Wir sanieren termintreu und sauber – Sie wohnen sorgenfrei.'],
+    ['Termin & Umsetzung', 'Wir sanieren termintreu und in einem Zug – ein Ansprechpartner bis zur Abnahme.'],
   ],
   'leistungen' => [
     ['fa-bolt', 'Neue Elektroinstallation', 'Komplette Erneuerung der Leitungen, Dosen und Verteilung nach aktueller Norm.'],

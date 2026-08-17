@@ -7,7 +7,7 @@ $LP = [
   'h1'     => 'Elektroinstallation im Raum Nürnberg – sauber, sicher, zum Festpreis',
   'sub'    => 'Neubau, Umbau oder Modernisierung? Wir installieren Ihre Elektrik fachgerecht und termintreu – vom Fachbetrieb, ohne Baustellenchaos.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
-  'badges' => ['24 h erreichbar', 'Faire Festpreise', 'Saubere Ausführung', 'Lokal & persönlich'],
+  'badges' => ['Rückmeldung am selben Tag', 'Faire Festpreise', 'Saubere Ausführung', 'Lokal & persönlich'],
   'schritte' => [
     ['Anfrage senden', 'In 2 Minuten Eckdaten zu Ihrem Projekt angeben – ganz unverbindlich.'],
     ['Angebot erhalten', 'Sie bekommen schnell ein transparentes Festpreis-Angebot.'],

@@ -7,7 +7,7 @@ $LP = [
   'h1'     => 'Netzwerkverkabelung für Büro & Gewerbe im Raum Nürnberg',
   'sub'    => 'Stabiles, schnelles Netzwerk für Ihren Betrieb – sauber verlegt, normgerecht dokumentiert, ohne Ausfallrisiko. Vom Elektro-Fachbetrieb.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
-  'badges' => ['24 h erreichbar', 'Faire Festpreise', 'Saubere Ausführung', 'Für Gewerbe & Praxis'],
+  'badges' => ['Rückmeldung am selben Tag', 'Faire Festpreise', 'Saubere Ausführung', 'Für Gewerbe & Praxis'],
   'schritte' => [
     ['Anfrage senden', 'In 2 Minuten Eckdaten zu Standort, Arbeitsplätzen und Wunschtermin angeben.'],
     ['Angebot erhalten', 'Sie bekommen schnell ein transparentes Festpreis-Angebot inkl. Plan.'],
