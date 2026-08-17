@@ -306,12 +306,12 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
     <div class="rv">
       <div class="eyebrow">Kernkompetenz</div>
       <h2>Altbausanierung ist unsere Stärke.</h2>
-      <p class="lead">Alte Häuser haben ihre Tücken: gewachsene Leitungen, fehlender FI-Schutz, Bausubstanz, die man nicht unnötig aufreißen will. Genau dafür sind wir da — Elektrosanierung im Altbau rund um Nürnberg.</p>
+      <p class="lead">Alte Häuser haben ihre Tücken: zweiadrige oder brüchige Leitungen, fehlender FI-Schutz, Bausubstanz, die man nicht unnötig aufreißen will. Genau dafür sind wir da — Elektrosanierung im Altbau rund um Nürnberg.</p>
       <ul class="checks">
         <li><span class="mk">→</span> Alte Leitungen und marode Verteilungen erneuern</li>
         <li><span class="mk">→</span> FI-/Fehlerstromschutz nachrüsten — Sicherheit auf heutigem Stand</li>
-        <li><span class="mk">→</span> Substanzschonend arbeiten, sauber verputzt hinterlassen</li>
-        <li><span class="mk">→</span> Schritt für Schritt bewohnbar sanieren, nicht alles auf einmal</li>
+        <li><span class="mk">→</span> Schlitze und Dosen fachgerecht gesetzt — verputzfertig für Ihren Maler</li>
+        <li><span class="mk">→</span> Termintreu von der Planung bis zur Abnahme — ein Ansprechpartner</li>
       </ul>
       <a class="btn btn-y" href="#anfrage">Altbau-Anfrage stellen</a>
     </div>
