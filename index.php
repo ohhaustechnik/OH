@@ -28,6 +28,8 @@
 </script>
 <script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC","phone_click":"WVjGCJyxmeMcEKywsKhC"};</script>
 <script defer src="assets/js/oh-track.js"></script>
+<link rel="stylesheet" href="assets/css/funnel.css">
+<link rel="stylesheet" href="assets/css/funnel-dark.css">
 <style>
 /* ---------- Fonts (lokal eingebettet, DSGVO-konform) ---------- */
 @font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/anton.woff2) format('woff2');}
@@ -273,7 +275,7 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
     <h1 class="rv">Elektro.<br><span class="yellow">Vom Altbau bis Smart Home.</span></h1>
     <p class="sub rv">Junger Elektrobetrieb aus Nürnberg — für Wohnung, Haus und Gewerbe. Elektroinstallation, Altbausanierung und Smart Home. Klare Absprachen, saubere Ausführung, schnelle Rückmeldung.</p>
     <div class="ctas rv">
-      <a class="btn btn-y" href="#anfrage">Anfrage in 2 Minuten</a>
+      <button class="btn btn-y" type="button" data-open-funnel>Anfrage in 2 Minuten</button>
       <a class="btn btn-ghost" href="tel:+491757481006">Anrufen</a>
     </div>
     <div class="trust rv">
@@ -381,84 +383,22 @@ figure figcaption{margin-top:12px;font-family:var(--head);text-transform:upperca
 </section>
 
 <!-- ============ FORMULAR ============ -->
+<!-- ============ ANFRAGE ============ -->
 <section id="anfrage" class="alt-bg">
-  <div class="wrap">
-    <div class="shead rv" style="text-align:center;margin:0 auto 36px;">
-      <div class="eyebrow" style="text-align:center;">Anfrage</div>
-      <h2>Anfrage in 2 Minuten.</h2>
-      <p style="margin-left:auto;margin-right:auto;">Vier kurze Schritte. Kein Anruf nötig, keine Verpflichtung.</p>
+  <div class="wrap" style="text-align:center">
+    <div class="shead rv" style="margin:0 auto 30px">
+      <div class="eyebrow" style="text-align:center">Anfrage</div>
+      <h2>Angebot in 2 Minuten.</h2>
+      <p style="margin-left:auto;margin-right:auto">Ein paar kurze Fragen zu Ihrem Objekt —
+      danach melden wir uns mit einer Einschätzung. Kein Anruf nötig, keine Verpflichtung.</p>
     </div>
-
-    <form class="formwrap rv" id="form" autocomplete="on" novalidate>
-      <div class="progress" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
-
-      <!-- honeypot -->
-      <div class="hp"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
-
-      <!-- Step 1 -->
-      <div class="step-panel on" data-step="1">
-        <p class="qlabel">Worum geht es?</p>
-        <p class="qhint">Wählen Sie, was am besten passt.</p>
-        <div class="chips" data-single="leistung">
-          <button type="button" class="chip">Altbausanierung</button>
-          <button type="button" class="chip">Neue Installation</button>
-          <button type="button" class="chip">Fehlersuche / Reparatur</button>
-          <button type="button" class="chip">Smart Home</button>
-          <button type="button" class="chip">Wallbox</button>
-          <button type="button" class="chip">PV-Anlage</button>
-          <button type="button" class="chip">Sonstiges</button>
-        </div>
-        <div class="err" data-err="1">Bitte wählen Sie einen Punkt.</div>
-        <div class="formnav"><div class="spacer"></div><button type="button" class="btn btn-y" data-next>Weiter</button></div>
-      </div>
-
-      <!-- Step 2 -->
-      <div class="step-panel" data-step="2">
-        <p class="qlabel">Um was für ein Objekt geht es?</p>
-        <p class="qhint">Und optional ein Satz zum Vorhaben.</p>
-        <div class="chips" data-single="objekt">
-          <button type="button" class="chip">Wohnung</button>
-          <button type="button" class="chip">Haus</button>
-          <button type="button" class="chip">Gewerbe</button>
-        </div>
-        <div class="field"><label>Kurz zum Vorhaben (optional)</label><textarea name="vorhaben" placeholder="z. B. Altbauwohnung, Baujahr 60er, komplette Elektrik erneuern"></textarea></div>
-        <div class="err" data-err="2">Bitte wählen Sie das Objekt.</div>
-        <div class="formnav"><button type="button" class="btn back" data-back>Zurück</button><div class="spacer"></div><button type="button" class="btn btn-y" data-next>Weiter</button></div>
-      </div>
-
-      <!-- Step 3 -->
-      <div class="step-panel" data-step="3">
-        <p class="qlabel">Wo ist das Objekt?</p>
-        <p class="qhint">Damit ich prüfen kann, ob es im Einsatzgebiet liegt.</p>
-        <div class="row2">
-          <div class="field"><label>PLZ *</label><input type="text" name="plz" inputmode="numeric" maxlength="5" placeholder="90441"></div>
-          <div class="field"><label>Ort</label><input type="text" name="ort" placeholder="Nürnberg"></div>
-        </div>
-        <div class="err" data-err="3">Bitte geben Sie die PLZ an.</div>
-        <div class="formnav"><button type="button" class="btn back" data-back>Zurück</button><div class="spacer"></div><button type="button" class="btn btn-y" data-next>Weiter</button></div>
-      </div>
-
-      <!-- Step 4 -->
-      <div class="step-panel" data-step="4">
-        <p class="qlabel">Wie erreiche ich Sie?</p>
-        <p class="qhint">Telefon oder E-Mail genügt — eins davon reicht.</p>
-        <div class="field"><label>Name *</label><input type="text" name="name" placeholder="Vor- und Nachname"></div>
-        <div class="row2">
-          <div class="field"><label>Telefon</label><input type="tel" name="telefon" inputmode="tel" placeholder="0175 …"></div>
-          <div class="field"><label>E-Mail</label><input type="email" name="email" placeholder="name@mail.de"></div>
-        </div>
-        <label class="check"><input type="checkbox" name="datenschutz"><span>Ich habe die <a href="datenschutz.php" target="_blank" style="color:var(--yellow);text-decoration:underline;">Datenschutzerklärung</a> gelesen und bin mit der Verarbeitung meiner Angaben zur Kontaktaufnahme einverstanden.</span></label>
-        <div class="promise">Sie bekommen einen Vor-Ort-Termin und ein klares Angebot — meist Rückmeldung innerhalb von 24 Stunden.</div>
-        <div class="err" data-err="4">Bitte Name und eine Kontaktmöglichkeit angeben und den Datenschutz bestätigen.</div>
-        <div class="formnav"><button type="button" class="btn back" data-back>Zurück</button><div class="spacer"></div><button type="submit" class="btn btn-y" id="send">Anfrage senden →</button></div>
-      </div>
-
-      <!-- Thanks -->
-      <div class="thanks" id="thanks">
-        <div class="big">Danke!</div>
-        <p class="muted">Ihre Anfrage ist angekommen. Wir melden uns zeitnah bei Ihnen — meist innerhalb von 24 Stunden.</p>
-      </div>
-    </form>
+    <div class="rv" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-y" type="button" data-open-funnel>Anfrage starten</button>
+      <a class="btn btn-ghost" href="tel:+491757481006">Lieber anrufen</a>
+    </div>
+    <p class="rv" style="margin-top:22px;font-size:13.5px;color:var(--grey)">
+      Ihre Angaben bleiben vertraulich und werden nur zur Bearbeitung Ihrer Anfrage genutzt.
+    </p>
   </div>
 </section>
 
@@ -513,51 +453,6 @@ addEventListener('scroll',()=>hd.classList.toggle('scrolled',scrollY>20),{passiv
 const io=new IntersectionObserver((es)=>{es.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('in'),i*60);io.unobserve(e.target);}})},{threshold:.14});
 document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
-// Chips (single select per group)
-document.querySelectorAll('.chips[data-single]').forEach(g=>{
-  g.addEventListener('click',e=>{
-    const c=e.target.closest('.chip'); if(!c)return;
-    g.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
-    c.classList.add('active'); g.dataset.value=c.textContent.trim();
-  });
-});
-
-// Multi-step
-const form=document.getElementById('form');
-const panels=[...form.querySelectorAll('.step-panel')];
-const bars=[...form.querySelectorAll('.progress i')];
-let step=0;
-function show(n){panels.forEach((p,i)=>p.classList.toggle('on',i===n));bars.forEach((b,i)=>b.classList.toggle('on',i<=n));step=n;form.scrollIntoView({behavior:'smooth',block:'start'});}
-function err(n,on){const e=form.querySelector('[data-err="'+n+'"]');if(e)e.style.display=on?'block':'none';}
-function valid(n){
-  if(n===0)return !!form.querySelector('[data-single="leistung"]').dataset.value;
-  if(n===1)return !!form.querySelector('[data-single="objekt"]').dataset.value;
-  if(n===2)return form.plz.value.trim().length>=4;
-  if(n===3){const c=form.name.value.trim()&&(form.telefon.value.trim()||form.email.value.trim())&&form.datenschutz.checked;return !!c;}
-  return true;
-}
-form.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>{
-  if(!valid(step)){err(step+1,true);return;}err(step+1,false);show(step+1);
-}));
-form.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>show(Math.max(0,step-1))));
-
-// Submit (Vorschau: kein echter Versand)
-let startT=Date.now();
-function showThanks(){panels.forEach(p=>p.classList.remove('on'));form.querySelector('.progress').style.display='none';document.getElementById('thanks').style.display='block';document.getElementById('thanks').scrollIntoView({behavior:'smooth',block:'center'});}
-form.addEventListener('submit',e=>{
-  e.preventDefault();
-  if(!valid(3)){err(4,true);return;}err(4,false);
-  const fd=new FormData(form);
-  fd.append('leistung',(form.querySelector('[data-single="leistung"]').dataset.value||''));
-  fd.append('objekt',(form.querySelector('[data-single="objekt"]').dataset.value||''));
-  fd.append('elapsed',String(Date.now()-startT));
-  const btn=document.getElementById('send');btn.disabled=true;btn.textContent='Senden…';
-  fetch('senden.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-    if(d&&d.ok){showThanks();if(window.ohTrack)window.ohTrack('lead_form_submit',{value:1});}
-    else{const e4=form.querySelector('[data-err="4"]');e4.textContent=(d&&d.error)||'Es ist etwas schiefgelaufen. Bitte rufen Sie kurz an: 0175 7481006';e4.style.display='block';btn.disabled=false;btn.textContent='Anfrage senden →';}
-  }).catch(()=>{showThanks();if(window.ohTrack)window.ohTrack('lead_form_submit',{value:1});});
-});
-
 document.querySelectorAll('.ba').forEach(ba=>{
   const before=ba.querySelector('.before'), handle=ba.querySelector('.ba-handle');
   function set(x){x=Math.max(0,Math.min(100,x));before.style.clipPath='inset(0 '+(100-x)+'% 0 0)';handle.style.left=x+'%';}
@@ -570,5 +465,7 @@ document.querySelectorAll('.ba').forEach(ba=>{
   set(50);
 });
 </script>
+<?php include __DIR__ . '/includes/funnel-modal.php'; ?>
+<script src="assets/js/funnel.js"></script>
 </body>
 </html>

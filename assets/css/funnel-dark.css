@@ -1,0 +1,130 @@
+/* ==========================================================================
+   Funnel im OH-Dark-Design
+   Wird NUR auf der Startseite zusaetzlich zu funnel.css geladen und
+   ueberschreibt dort Farben und Schriften. Die alten Landingpages nutzen
+   weiterhin nur funnel.css und bleiben unveraendert hell.
+
+   Wichtig: Font Awesome wird hier NICHT geladen (externes CDN = DSGVO).
+   Die Icon-Flaechen werden stattdessen ausgeblendet, die Optionen stehen
+   als reiner Text - sauber und ohne Fremdanfragen.
+   ========================================================================== */
+
+/* ---------- Grundflaechen ---------- */
+.funnel-overlay{
+  background:rgba(4,4,4,.82) !important;
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+}
+.funnel-modal{
+  background:#141414 !important;
+  color:#F5F5F5 !important;
+  border:1px solid rgba(255,255,255,.10);
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif !important;
+}
+
+/* ---------- Kopfbereich ---------- */
+.funnel-header{
+  background:#0A0A0A !important;
+  border-bottom:1px solid rgba(255,255,255,.12);
+}
+.funnel-header-title{
+  font-family:'Anton',Impact,'Arial Narrow',sans-serif !important;
+  text-transform:uppercase; letter-spacing:.01em;
+  font-weight:400 !important; color:#FFFFFF !important;
+}
+.funnel-header-title i{ display:none !important; }   /* Icon ohne Font Awesome */
+.funnel-header-sub,
+.funnel-privacy-note{ color:#9CA3AF !important; }
+.funnel-close{
+  background:rgba(255,255,255,.10) !important;
+  color:#F5F5F5 !important; border:1px solid rgba(255,255,255,.18) !important;
+}
+.funnel-close:hover{ background:rgba(255,255,255,.20) !important; }
+
+/* ---------- Fortschritt ---------- */
+.funnel-progress-bar-wrap{ background:rgba(255,255,255,.14) !important; }
+.funnel-progress-bar-fill{ background:#6E9BE0 !important; }
+.funnel-progress-label{ color:#D7D9DE !important; }
+
+/* ---------- Inhalt ---------- */
+.funnel-body{ background:#141414 !important; }
+.funnel-step-title{
+  font-family:'Anton',Impact,sans-serif !important;
+  text-transform:uppercase; font-weight:400 !important;
+  color:#FFFFFF !important; letter-spacing:.01em;
+}
+.funnel-step-desc,
+.funnel-label,
+.funnel-split-block-title{ color:#9CA3AF !important; }
+
+/* ---------- Auswahlkacheln ---------- */
+.funnel-option-label{
+  background:#1A1A1A !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  color:#F5F5F5 !important;
+}
+.funnel-option-label:hover{
+  border-color:#6E9BE0 !important; background:#202020 !important;
+}
+.funnel-option input:checked + .funnel-option-label{
+  border-color:#6E9BE0 !important; background:#1E2735 !important;
+  box-shadow:0 0 0 3px rgba(110,155,224,.25) !important;
+}
+.funnel-option-icon{ display:none !important; }      /* braeuchte Font Awesome */
+.funnel-option-text{ color:#F5F5F5 !important; }
+.funnel-option-text small,
+.funnel-option-text span{ color:#9CA3AF !important; }
+
+.funnel-checkbox-item{
+  background:#1A1A1A !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  color:#E4E6EA !important;
+}
+.funnel-checkbox-item:hover{ border-color:#6E9BE0 !important; }
+
+/* ---------- Eingabefelder ---------- */
+.funnel-input,
+.funnel-field input,
+.funnel-field textarea,
+.funnel-field select{
+  background:#0E0E0E !important;
+  border:1px solid rgba(255,255,255,.15) !important;
+  color:#F5F5F5 !important;
+  font-family:'Inter',system-ui,sans-serif !important;
+}
+.funnel-input:focus,
+.funnel-field input:focus,
+.funnel-field textarea:focus{
+  outline:none !important; border-color:#6E9BE0 !important;
+}
+.funnel-input::placeholder,
+.funnel-field input::placeholder,
+.funnel-field textarea::placeholder{ color:#6B7280 !important; }
+
+/* ---------- Fussbereich und Knoepfe ---------- */
+.funnel-footer{
+  background:#0F0F0F !important;
+  border-top:1px solid rgba(255,255,255,.12) !important;
+}
+.funnel-btn{
+  font-family:'Inter',system-ui,sans-serif !important;
+  font-weight:700 !important; letter-spacing:.03em;
+}
+.funnel-btn--next,
+.funnel-btn--submit{
+  background:#325AA0 !important; color:#FFFFFF !important; border:none !important;
+}
+.funnel-btn--next:hover,
+.funnel-btn--submit:hover{ background:#3D6BBD !important; }
+.funnel-btn--prev{
+  background:transparent !important; color:#9CA3AF !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+}
+.funnel-btn--prev:hover{ color:#F5F5F5 !important; border-color:rgba(255,255,255,.35) !important; }
+.funnel-btn i{ display:none !important; }
+
+.funnel-dot{ background:rgba(255,255,255,.22) !important; }
+.funnel-dot.active{ background:#6E9BE0 !important; }
+
+.funnel-dsgvo{ color:#9CA3AF !important; }
+.funnel-dsgvo a{ color:#6E9BE0 !important; }
+.funnel-error-msg{ color:#ff8a8a !important; }
