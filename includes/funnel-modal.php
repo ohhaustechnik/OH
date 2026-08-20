@@ -73,6 +73,36 @@
                     </label>
                 </div>
                 <div class="funnel-option">
+                    <input type="radio" name="kategorie" id="kat-smarthome" value="smarthome">
+                    <label class="funnel-option-label" for="kat-smarthome">
+                        <span class="funnel-option-icon"><i class="fas fa-house-signal"></i></span>
+                        <span class="funnel-option-text">
+                            Smart Home
+                            <small>KNX, Loxone, Licht &amp; Beschattung</small>
+                        </span>
+                    </label>
+                </div>
+                <div class="funnel-option">
+                    <input type="radio" name="kategorie" id="kat-pv" value="pv">
+                    <label class="funnel-option-label" for="kat-pv">
+                        <span class="funnel-option-icon"><i class="fas fa-solar-panel"></i></span>
+                        <span class="funnel-option-text">
+                            Photovoltaik
+                            <small>Module, Wechselrichter, Speicher</small>
+                        </span>
+                    </label>
+                </div>
+                <div class="funnel-option">
+                    <input type="radio" name="kategorie" id="kat-wallbox" value="wallbox">
+                    <label class="funnel-option-label" for="kat-wallbox">
+                        <span class="funnel-option-icon"><i class="fas fa-charging-station"></i></span>
+                        <span class="funnel-option-text">
+                            Wallbox
+                            <small>Ladepunkt f&uuml;rs E-Auto</small>
+                        </span>
+                    </label>
+                </div>
+                <div class="funnel-option">
                     <input type="radio" name="kategorie" id="kat-lampen" value="lampen">
                     <label class="funnel-option-label" for="kat-lampen">
                         <span class="funnel-option-icon"><i class="fas fa-lightbulb"></i></span>
@@ -96,6 +126,212 @@
                     <label class="funnel-checkbox-item"><input type="checkbox" value="E-Auto Ladestation"> E-Auto Ladestation</label>
                     <label class="funnel-checkbox-item"><input type="checkbox" value="Smart Home / KNX"> Smart Home / KNX</label>
                     <label class="funnel-checkbox-item"><input type="checkbox" value="Sonstiges Elektro"> Sonstiges</label>
+                </div>
+            </div>
+
+            <!-- Sub-Options: Smart Home -->
+            <div class="funnel-suboptions" id="sub-smarthome">
+                <div class="funnel-suboptions-title">Welches System schwebt Ihnen vor?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="sh_system" id="sh_system-0" value="KNX">
+                        <label class="funnel-option-label" for="sh_system-0">
+                            <span class="funnel-option-text">KNX<small>Herstellerübergreifender Standard</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="sh_system" id="sh_system-1" value="Loxone">
+                        <label class="funnel-option-label" for="sh_system-1">
+                            <span class="funnel-option-text">Loxone<small>Ein Anbieter, schneller eingerichtet</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="sh_system" id="sh_system-2" value="Noch offen">
+                        <label class="funnel-option-label" for="sh_system-2">
+                            <span class="funnel-option-text">Noch offen<small>Wir beraten Sie dazu</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-suboptions-title" style="margin-top:1rem;">Neubau oder Nachr&uuml;stung?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="sh_bau" id="sh_bau-0" value="Neubau / Rohbau">
+                        <label class="funnel-option-label" for="sh_bau-0">
+                            <span class="funnel-option-text">Neubau oder Rohbau<small>Leitungen noch offen</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="sh_bau" id="sh_bau-1" value="Nachrüstung im Bestand">
+                        <label class="funnel-option-label" for="sh_bau-1">
+                            <span class="funnel-option-text">Nachr&uuml;stung im Bestand<small>Bewohnt, Leitungen liegen</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-suboptions-title" style="margin-top:1rem;">Was soll gesteuert werden?</div>
+                <div class="funnel-checkbox-list">
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Licht"> Licht</label>
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Beschattung / Rollläden"> Beschattung / Rollläden</label>
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Heizung"> Heizung</label>
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Sicherheit / Zutritt"> Sicherheit / Zutritt</label>
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Musik / Multimedia"> Musik / Multimedia</label>
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Energie / Verbrauch"> Energie / Verbrauch</label>
+                    <label class="funnel-checkbox-item"><input type="checkbox" value="Noch unklar"> Noch unklar</label>
+                </div>
+            </div>
+
+            <!-- Sub-Options: Photovoltaik -->
+            <div class="funnel-suboptions" id="sub-pv">
+                <div class="funnel-suboptions-title">Was f&uuml;r ein Dach haben Sie?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_dach" id="pv_dach-0" value="Schrägdach Ziegel">
+                        <label class="funnel-option-label" for="pv_dach-0">
+                            <span class="funnel-option-text">Schr&auml;gdach mit Ziegeln<small>Der h&auml;ufigste Fall</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_dach" id="pv_dach-1" value="Schrägdach Blech">
+                        <label class="funnel-option-label" for="pv_dach-1">
+                            <span class="funnel-option-text">Schr&auml;gdach mit Blech<small>Trapez- oder Wellblech</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_dach" id="pv_dach-2" value="Flachdach">
+                        <label class="funnel-option-label" for="pv_dach-2">
+                            <span class="funnel-option-text">Flachdach<small>Aufst&auml;nderung n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_dach" id="pv_dach-3" value="Weiß ich nicht">
+                        <label class="funnel-option-label" for="pv_dach-3">
+                            <span class="funnel-option-text">Wei&szlig; ich nicht<small>Wir schauen es uns an</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-suboptions-title" style="margin-top:1rem;">Mit Batteriespeicher?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_speicher" id="pv_speicher-0" value="Ja, mit Speicher">
+                        <label class="funnel-option-label" for="pv_speicher-0">
+                            <span class="funnel-option-text">Ja, mit Speicher<small>Strom auch abends nutzen</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_speicher" id="pv_speicher-1" value="Nein, ohne Speicher">
+                        <label class="funnel-option-label" for="pv_speicher-1">
+                            <span class="funnel-option-text">Nein, ohne Speicher<small>G&uuml;nstiger im Einstieg</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_speicher" id="pv_speicher-2" value="Bitte beraten">
+                        <label class="funnel-option-label" for="pv_speicher-2">
+                            <span class="funnel-option-text">Bitte beraten<small>Wir rechnen es durch</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-suboptions-title" style="margin-top:1rem;">Wie alt ist Ihr Z&auml;hlerschrank?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_zaehler" id="pv_zaehler-0" value="Neu, unter 10 Jahre">
+                        <label class="funnel-option-label" for="pv_zaehler-0">
+                            <span class="funnel-option-text">Neu, unter 10 Jahre<small>Vermutlich kein Umbau n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_zaehler" id="pv_zaehler-1" value="&Auml;lter als 10 Jahre">
+                        <label class="funnel-option-label" for="pv_zaehler-1">
+                            <span class="funnel-option-text">&Auml;lter als 10 Jahre<small>Umbau m&ouml;glicherweise n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="pv_zaehler" id="pv_zaehler-2" value="Sehr alt oder unklar">
+                        <label class="funnel-option-label" for="pv_zaehler-2">
+                            <span class="funnel-option-text">Sehr alt oder unklar<small>Wir schauen es uns an</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-field">
+                    <label class="funnel-label" for="pv-flaeche">Ungef&auml;hre Dachfl&auml;che in m&sup2; (optional)</label>
+                    <input type="text" id="pv-flaeche" name="pv_flaeche" class="funnel-input"
+                           placeholder="z. B. 60" inputmode="numeric">
+                </div>
+                <div class="funnel-field">
+                    <label class="funnel-label" for="pv-verbrauch">Stromverbrauch pro Jahr in kWh (optional)</label>
+                    <input type="text" id="pv-verbrauch" name="pv_verbrauch" class="funnel-input"
+                           placeholder="z. B. 4500 – steht auf Ihrer Abrechnung" inputmode="numeric">
+                </div>
+            </div>
+
+            <!-- Sub-Options: Wallbox -->
+            <div class="funnel-suboptions" id="sub-wallbox">
+                <div class="funnel-suboptions-title">Welche Ladeleistung?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_leistung" id="wb_leistung-0" value="11 kW">
+                        <label class="funnel-option-label" for="wb_leistung-0">
+                            <span class="funnel-option-text">11 kW<small>Nur Anmeldung n&ouml;tig, f&uuml;r die meisten ausreichend</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_leistung" id="wb_leistung-1" value="22 kW">
+                        <label class="funnel-option-label" for="wb_leistung-1">
+                            <span class="funnel-option-text">22 kW<small>Genehmigung durch den Netzbetreiber n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_leistung" id="wb_leistung-2" value="Bitte beraten">
+                        <label class="funnel-option-label" for="wb_leistung-2">
+                            <span class="funnel-option-text">Bitte beraten<small>Wir empfehlen das Passende</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-suboptions-title" style="margin-top:1rem;">Wo soll die Wallbox hin?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_ort" id="wb_ort-0" value="Garage">
+                        <label class="funnel-option-label" for="wb_ort-0">
+                            <span class="funnel-option-text">Garage</span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_ort" id="wb_ort-1" value="Carport">
+                        <label class="funnel-option-label" for="wb_ort-1">
+                            <span class="funnel-option-text">Carport</span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_ort" id="wb_ort-2" value="Außenwand / Stellplatz">
+                        <label class="funnel-option-label" for="wb_ort-2">
+                            <span class="funnel-option-text">Au&szlig;enwand oder Stellplatz</span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_ort" id="wb_ort-3" value="Tiefgarage">
+                        <label class="funnel-option-label" for="wb_ort-3">
+                            <span class="funnel-option-text">Tiefgarage<small>Oft Abstimmung mit der Verwaltung n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="funnel-suboptions-title" style="margin-top:1rem;">Wie alt ist Ihr Z&auml;hlerschrank?</div>
+                <div class="funnel-option-grid">
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_zaehler" id="wb_zaehler-0" value="Neu, unter 10 Jahre">
+                        <label class="funnel-option-label" for="wb_zaehler-0">
+                            <span class="funnel-option-text">Neu, unter 10 Jahre<small>Vermutlich kein Umbau n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_zaehler" id="wb_zaehler-1" value="&Auml;lter als 10 Jahre">
+                        <label class="funnel-option-label" for="wb_zaehler-1">
+                            <span class="funnel-option-text">&Auml;lter als 10 Jahre<small>Umbau m&ouml;glicherweise n&ouml;tig</small></span>
+                        </label>
+                    </div>
+                    <div class="funnel-option">
+                        <input type="radio" name="wb_zaehler" id="wb_zaehler-2" value="Sehr alt oder unklar">
+                        <label class="funnel-option-label" for="wb_zaehler-2">
+                            <span class="funnel-option-text">Sehr alt oder unklar<small>Wir schauen es uns an</small></span>
+                        </label>
+                    </div>
                 </div>
             </div>
 

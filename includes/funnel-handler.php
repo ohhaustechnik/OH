@@ -49,6 +49,18 @@ function cleanMultiline(string $value): string {
 
 // Schritt 1
 $kategorie   = clean($_POST['kategorie']   ?? '');
+
+// Smart Home, Photovoltaik und Wallbox - Angaben aus Schritt 2
+$shSystem    = clean($_POST['sh_system']    ?? '');
+$shBau       = clean($_POST['sh_bau']       ?? '');
+$pvDach      = clean($_POST['pv_dach']      ?? '');
+$pvSpeicher  = clean($_POST['pv_speicher']  ?? '');
+$pvZaehler   = clean($_POST['pv_zaehler']   ?? '');
+$pvFlaeche   = clean($_POST['pv_flaeche']   ?? '');
+$pvVerbrauch = clean($_POST['pv_verbrauch'] ?? '');
+$wbLeistung  = clean($_POST['wb_leistung']  ?? '');
+$wbOrt       = clean($_POST['wb_ort']       ?? '');
+$wbZaehler   = clean($_POST['wb_zaehler']   ?? '');
 $suboptionen = clean($_POST['suboptionen'] ?? '');
 $lampenAnzahl= clean($_POST['lampen_anzahl'] ?? '');
 
@@ -128,10 +140,13 @@ if (!empty($errors)) {
 // Kategorie-Label
 // ---------------------------------------------------------------
 $kategorieLabels = [
-    'elektro'  => 'Elektroinstallation & Sanierung',
-    'netzwerk' => 'Netzwerkverkabelung',
-    'fehler'   => 'Fehlersuche & Reparatur',
-    'lampen'   => 'Lampen & Leuchtenmontage',
+    'elektro'   => 'Elektroinstallation & Sanierung',
+    'netzwerk'  => 'Netzwerkverkabelung',
+    'fehler'    => 'Fehlersuche & Reparatur',
+    'lampen'    => 'Lampen & Leuchtenmontage',
+    'smarthome' => 'Smart Home (KNX / Loxone)',
+    'pv'        => 'Photovoltaik',
+    'wallbox'   => 'Wallbox',
 ];
 $kategorieLabel = $kategorieLabels[$kategorie] ?? $kategorie;
 
@@ -218,6 +233,22 @@ if (!empty($suboptionen)) {
 }
 if (!empty($lampenAnzahl) && $kategorie === 'lampen') {
     $body .= "Lampenanzahl:   ca. {$lampenAnzahl} Stück\n";
+}
+if ($kategorie === 'smarthome') {
+    if ($shSystem !== '') $body .= "System:         {$shSystem}\n";
+    if ($shBau !== '')    $body .= "Bausituation:   {$shBau}\n";
+}
+if ($kategorie === 'pv') {
+    if ($pvDach !== '')      $body .= "Dachart:        {$pvDach}\n";
+    if ($pvFlaeche !== '')   $body .= "Dachfläche:     ca. {$pvFlaeche} m²\n";
+    if ($pvSpeicher !== '')  $body .= "Speicher:       {$pvSpeicher}\n";
+    if ($pvVerbrauch !== '') $body .= "Verbrauch:      ca. {$pvVerbrauch} kWh/Jahr\n";
+    if ($pvZaehler !== '')   $body .= "Zählerschrank:  {$pvZaehler}\n";
+}
+if ($kategorie === 'wallbox') {
+    if ($wbLeistung !== '') $body .= "Ladeleistung:   {$wbLeistung}\n";
+    if ($wbOrt !== '')      $body .= "Montageort:     {$wbOrt}\n";
+    if ($wbZaehler !== '')  $body .= "Zählerschrank:  {$wbZaehler}\n";
 }
 $body .= "\n📐 SCHRITT 2 – OBJEKT\n";
 $body .= "-----------------------------------\n";

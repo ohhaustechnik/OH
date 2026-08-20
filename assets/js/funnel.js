@@ -323,6 +323,18 @@
             fd.append('suboptionen', subs.join(', '));
         }
 
+        // Smart Home, Photovoltaik und Wallbox: Radios und Freitextfelder
+        // der jeweils gewaehlten Kategorie mitschicken.
+        ['sh_system', 'sh_bau', 'pv_dach', 'pv_speicher', 'pv_zaehler',
+         'wb_leistung', 'wb_ort', 'wb_zaehler'].forEach(function (feld) {
+            const gewaehlt = document.querySelector('input[name="' + feld + '"]:checked');
+            if (gewaehlt) fd.append(feld, gewaehlt.value);
+        });
+        ['pv-flaeche', 'pv-verbrauch'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el && el.value.trim()) fd.append(el.name, el.value.trim());
+        });
+
         // Lampen count
         const lampenCount = document.getElementById('lampen-anzahl');
         if (lampenCount && lampenCount.value) {

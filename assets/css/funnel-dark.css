@@ -32,8 +32,21 @@
   font-weight:400 !important; color:#FFFFFF !important;
 }
 .funnel-header-title i{ display:none !important; }   /* Icon ohne Font Awesome */
-.funnel-header-sub,
-.funnel-privacy-note{ color:#9CA3AF !important; }
+.funnel-header-sub{ color:#9CA3AF !important; }
+
+/* Datenschutz-Hinweis: das Schloss-Emoji wird farbig gerendert und passt
+   nicht zum Dark-Design. Emoji ausblenden, Text als dezente Zeile setzen. */
+.funnel-privacy-note{
+  color:#9CA3AF !important;
+  font-size:12.5px !important;
+  letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+  display:flex; align-items:center; gap:7px;
+  font-size:0 !important;              /* blendet das Emoji im Textknoten aus */
+}
+.funnel-privacy-note::before{
+  content:"Ihre Daten bleiben vertraulich";
+  font-size:12.5px; letter-spacing:.08em; color:#9CA3AF;
+}
 /* Schliessen-Knopf: das X war ein Font-Awesome-Icon und bliebe ohne CDN
    unsichtbar. Wird hier durch ein echtes Zeichen ersetzt. */
 .funnel-close{
