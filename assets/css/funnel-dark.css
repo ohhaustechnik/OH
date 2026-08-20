@@ -34,9 +34,18 @@
 .funnel-header-title i{ display:none !important; }   /* Icon ohne Font Awesome */
 .funnel-header-sub,
 .funnel-privacy-note{ color:#9CA3AF !important; }
+/* Schliessen-Knopf: das X war ein Font-Awesome-Icon und bliebe ohne CDN
+   unsichtbar. Wird hier durch ein echtes Zeichen ersetzt. */
 .funnel-close{
   background:rgba(255,255,255,.10) !important;
   color:#F5F5F5 !important; border:1px solid rgba(255,255,255,.18) !important;
+  position:relative;
+}
+.funnel-close i{ display:none !important; }
+.funnel-close::after{
+  content:"\00D7"; position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; line-height:1; color:#F5F5F5; font-weight:400;
 }
 .funnel-close:hover{ background:rgba(255,255,255,.20) !important; }
 
