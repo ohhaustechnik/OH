@@ -6,6 +6,8 @@ $seo = [
   'service' => 'Photovoltaik-Installation und Speicheranbindung',
   'image'   => 'https://oh-haustechnik.de/assets/img/lp/uv.jpg',
   'faq'     => [
+    ['Was kostet eine Photovoltaikanlage?',
+     'Eine schlüsselfertige Anlage beginnt bei rund 12.000 € — das entspricht etwa 8 kWp mit Speicher, inklusive Montage, Wechselrichter, Zählerschrank-Anpassung und Anmeldung. Den Preis bestimmen vor allem die Dachfläche, die Dachart, die Speichergröße und ob der Zählerschrank erneuert werden muss. Seit § 12 Abs. 3 UStG fällt auf Anlagen auf Wohngebäuden keine Umsatzsteuer an, der genannte Betrag ist also der Endpreis.'],
     ['Montiert ihr auch die Module auf dem Dach?', 'Ja. Wir übernehmen die Montage auf dem Dach und den kompletten elektrischen Teil — Unterkonstruktion, Module, Wechselrichter, Speicher, Zählerschrank und die Anmeldung beim Netzbetreiber. Sie brauchen also keinen zweiten Betrieb zu koordinieren und haben einen Ansprechpartner, wenn etwas zu klären ist.'],
     ['Muss der Zählerschrank für PV getauscht werden?', 'Häufig ja. Ältere Zählerschränke erfüllen die heutigen Anforderungen des Netzbetreibers oft nicht mehr — es fehlt Platz für den Zweirichtungszähler, der Überspannungsschutz oder die geforderte Aufteilung. Wir prüfen den Bestand vorab und sagen Ihnen, ob ein Umbau nötig ist, bevor Sie die Anlage bestellen.'],
     ['Wer meldet die Anlage beim Netzbetreiber an?', 'Die Anmeldung und Inbetriebsetzung beim Netzbetreiber darf nur ein eingetragener Elektrofachbetrieb vornehmen. Diesen Teil übernehmen wir für Sie, einschließlich der erforderlichen Unterlagen und Messprotokolle. Die Registrierung im Marktstammdatenregister ist zusätzlich erforderlich.'],
@@ -27,6 +29,7 @@ $seo = [
     <div class="breadcrumb rv"><a href="/index.php">Start</a> · <a href="/leistungen.php">Leistungen</a> · Photovoltaik</div>
     <h1 class="rv"><span class="yellow">Photovoltaik</span> in Nürnberg</h1>
     <p class="rv">Montage und Elektrik aus einer Hand: Module, Wechselrichter, Speicher, Zählerschrank und die Anmeldung beim Netzbetreiber — ein Ansprechpartner von der Planung bis zur Inbetriebsetzung.</p>
+    <?php $lp_thema = 'Photovoltaik in Nürnberg'; $lp_cta = 'Kostenloses PV-Angebot anfordern'; $lp_preis = 'Montage und Elektrik aus einer Hand · Festpreis nach kurzem Vor-Ort-Termin'; include __DIR__ . '/includes/lp-cta.php'; ?>
     <div class="badges rv" style="margin-top:22px">
       <span class="badge">Montage &amp; Elektrik</span>
       <span class="badge">Speicher &amp; Wallbox</span>

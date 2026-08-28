@@ -19,6 +19,8 @@ $LP = [
     ['fa-wifi', 'WLAN & Access Points', 'Lückenloses WLAN für den ganzen Betrieb – professionelle Access Points statt Bastellösung.'],
   ],
   'faq' => [
+    ['Was kostet eine Netzwerkverkabelung?',
+     'Eine strukturierte Verkabelung beginnt bei 800 € — das deckt einige Datendosen mit Patchfeld im Schrank ab. Der Preis richtet sich nach der Zahl der Anschlüsse, den Leitungswegen und danach, ob unter Putz gearbeitet wird oder in Kanälen. Messprotokoll und Dokumentation sind immer enthalten.'],
     ['Stört die Verkabelung unseren Betrieb?', 'Nein – wir arbeiten auf Wunsch außerhalb Ihrer Geschäftszeiten oder abschnittsweise, damit Ihr Betrieb weiterläuft.'],
     ['Verlegen Sie auch Glasfaser?', 'Ja, von der LAN-Verkabelung bis zu Glasfaser-Anbindung und Serverschrank übernehmen wir alles aus einer Hand.'],
     ['Bekommen wir eine Dokumentation?', 'Ja, Sie erhalten eine saubere Dokumentation und Beschriftung – wichtig für Wartung und spätere Erweiterungen.'],
