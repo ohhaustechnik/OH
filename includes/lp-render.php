@@ -23,7 +23,10 @@ $ohCount   = (int)$ohReviews['count'];
 <title><?= htmlspecialchars($g('title')) ?></title>
 <meta name="description" content="<?= htmlspecialchars($g('meta')) ?>">
 <link rel="canonical" href="https://oh-haustechnik.de/<?= htmlspecialchars($g('slug')) ?>">
-<link rel="icon" href="assets/img/favicon.ico">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,7 +52,18 @@ $lpGraph = [
     'name'  => 'OH Haustechnik',
     'telephone' => '+49 175 7481006',
     'url'   => 'https://oh-haustechnik.de/' . $g('slug'),
-    'areaServed' => ['Nürnberg', 'Fürth', 'Erlangen', 'Schwabach', 'Stein', 'Zirndorf'],
+    /* sameAs verbindet die Website mit den gepflegten Profilen. Erst dadurch
+       erkennen Such- und KI-Systeme, dass Website, Kartenaeintrag und
+       Bewertungen zum selben Betrieb gehoeren. */
+    'sameAs' => [
+      'https://www.google.com/maps?cid=1312678619063109962',
+      'https://www.instagram.com/oh_haustechnik',
+      'https://www.tiktok.com/@oh.haustechnik',
+      'https://www.my-hammer.de/auftragnehmer/oh-haustechnik',
+    ],
+    'areaServed' => ['Nürnberg', 'Fürth', 'Erlangen', 'Schwabach', 'Stein', 'Zirndorf',
+                     'Oberasbach', 'Feucht', 'Wendelstein', 'Roth', 'Lauf an der Pegnitz',
+                     'Altdorf bei Nürnberg', 'Schwaig bei Nürnberg', 'Hersbruck'],
     'priceRange' => $g('preis_range', '€€'),
     'aggregateRating' => ['@type' => 'AggregateRating', 'ratingValue' => $ohReviews['rating'], 'reviewCount' => $ohCount],
   ],
@@ -119,9 +133,15 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
 @media (prefers-reduced-motion: reduce){.cta-row .btn-primary,.ctablock .btn-primary{animation:none}}
 .btn-ghost{color:#13294f;text-decoration:none;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:9px;padding:16px 24px;border:1.5px solid #cdd9ec;border-radius:14px;transition:border-color .16s,background .16s;background:#fff}
 .btn-ghost:hover{border-color:#2563eb;background:#f4f8ff}
-.rating{margin-top:28px;display:flex;align-items:center;gap:11px;font-size:14px;color:#5b6b80}
+.rating{margin:0 0 18px;display:flex;align-items:center;gap:9px;font-size:14px;color:#5b6b80;flex-wrap:wrap}
 .stars{color:#f5b301;letter-spacing:3px;font-size:15px}
 .rating b{color:#13294f}
+/* Preis-Orientierung direkt im Hero – nimmt die häufigste Hemmschwelle */
+.preisleiste{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid #dbe4f3;
+ border-left:3px solid var(--blue);border-radius:11px;padding:11px 15px;margin-bottom:22px;
+ font-size:14.5px;font-weight:600;color:#33425c;box-shadow:0 4px 14px rgba(20,30,50,.05)}
+.cta-neben{display:flex;gap:10px;flex-wrap:wrap}
+.ic-wa{vertical-align:-.125em;flex:0 0 auto}
 /* ---------- SECTIONS ---------- */
 .sec{padding:74px 0}
 .sec-cream{background:var(--cream)}
@@ -169,6 +189,36 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
   .steps,.cards{grid-template-columns:1fr}
   .sec{padding:52px 0}.hero{padding:24px 0 50px}
   .topbar{padding-bottom:34px}.tb-call span{display:none}
+}
+/* ── Handy: Hero kompakt halten, damit Angebot + Beweis früh sichtbar sind ── */
+@media(max-width:600px){
+  .hero{padding:16px 0 34px}
+  .topbar{padding-bottom:18px}
+  .eyebrow{margin-bottom:12px;font-size:11px;letter-spacing:1.6px}
+  .hero h1{font-size:clamp(28px,7.6vw,36px);line-height:1.1;margin-bottom:12px;max-width:100%}
+  .rating{margin-bottom:14px;font-size:13.5px}
+  .rating-lang{display:none}                 /* Zusatz kürzen, Kernaussage bleibt */
+  .hero .sub{font-size:16px;line-height:1.5;margin-bottom:16px}
+  .preisleiste{margin-bottom:16px;font-size:13.5px;padding:10px 13px;width:100%}
+  .trust{gap:7px;margin-bottom:20px}
+  .chip{font-size:12px;padding:7px 11px;border-radius:9px;gap:6px}
+  .cta-row{display:block}
+  .cta-row .btn-primary{width:100%;justify-content:center;padding:17px 20px;font-size:16px}
+  .cta-neben{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .cta-neben .btn-ghost{padding:13px 8px;font-size:14px;justify-content:center;gap:7px}
+  /* Am Handy zuerst handeln lassen, die Merkmale kommen danach:
+     der Anfrage-Knopf rutscht damit über die Sichtkante. */
+  .hero .wrap{display:flex;flex-direction:column}
+  .hero .topbar{order:1}
+  .hero .eyebrow{order:2}
+  .hero h1{order:3}
+  .hero .rating{order:4}
+  .hero .sub{order:5}
+  .hero .preisleiste{order:6}
+  .hero .cta-row{order:7}
+  .hero .trust{order:8;margin:22px 0 0}
+  /* Platz für die feste Kontaktleiste am unteren Rand */
+  .foot{padding-bottom:88px}
 }
 /* ── Funnel auf Landingpages: Design-Variablen & LP-Overrides (weiß/blau) ── */
 :root{
@@ -240,16 +290,22 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
     </div>
     <div class="eyebrow">Elektro-Fachbetrieb · Raum Nürnberg</div>
     <h1><?= $g('h1') ?></h1>
+    <!-- Bewertung steht bewusst VOR dem Handlungsaufruf: erst Vertrauen, dann Bitte. -->
+    <div class="rating"><span class="stars">★★★★★</span> <b><?= $ohRating ?></b> aus <?= $ohCount ?> Google-Bewertungen <span class="rating-lang">· echte Kunden aus der Region</span></div>
     <p class="sub"><?= htmlspecialchars($g('sub')) ?></p>
+    <?php if ($g('preis_hinweis')): ?>
+    <div class="preisleiste"><?= htmlspecialchars($g('preis_hinweis')) ?></div>
+    <?php endif; ?>
     <div class="trust">
       <?php foreach ($g('badges', []) as $b): ?><span class="chip"><i class="fas fa-check"></i><?= htmlspecialchars($b) ?></span><?php endforeach; ?>
     </div>
     <div class="cta-row">
       <button class="btn-primary" data-open-funnel><i class="fas fa-bolt"></i> <?= htmlspecialchars($g('cta', 'Kostenloses Angebot anfordern')) ?></button>
-      <a class="btn-ghost" href="festpreis-kalkulator.php"><i class="fas fa-calculator"></i> Preis in 2 Min berechnen</a>
-      <a class="btn-ghost" href="https://wa.me/491757481006?text=<?= rawurlencode('Hallo OH Haustechnik, ich interessiere mich für: ' . $g('h1')) ?>" target="_blank" rel="noopener" data-wa><i class="fab fa-whatsapp"></i> WhatsApp</a>
+      <div class="cta-neben">
+        <a class="btn-ghost" href="festpreis-kalkulator.php"><i class="fas fa-calculator"></i> Preis in 2 Min</a>
+        <a class="btn-ghost" href="https://wa.me/491757481006?text=<?= rawurlencode('Hallo OH Haustechnik, ich interessiere mich für: ' . strip_tags($g('h1'))) ?>" target="_blank" rel="noopener" data-wa><svg class="ic-wa" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 110.9L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg> WhatsApp</a>
+      </div>
     </div>
-    <div class="rating"><span class="stars">★★★★★</span> <b><?= $ohRating ?></b> aus <?= $ohCount ?> Google-Bewertungen · echte Kunden aus der Region</div>
   </div>
 </header>
 
@@ -331,7 +387,7 @@ h1,h2,h3,.num{font-family:'Sora',sans-serif;line-height:1.08;letter-spacing:-.02
 
 <div class="mobar">
   <a class="m-call" href="tel:+491757481006"><i class="fas fa-phone"></i> Anrufen</a>
-  <a class="m-wa" href="https://wa.me/491757481006?text=<?= rawurlencode('Hallo OH Haustechnik, ich interessiere mich für: ' . $g('h1')) ?>" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+  <a class="m-wa" href="https://wa.me/491757481006?text=<?= rawurlencode('Hallo OH Haustechnik, ich interessiere mich für: ' . $g('h1')) ?>" target="_blank" rel="noopener"><svg class="ic-wa" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 110.9L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg> WhatsApp</a>
   <button class="m-offer" data-open-funnel><i class="fas fa-bolt"></i> Angebot</button>
 </div>
 
