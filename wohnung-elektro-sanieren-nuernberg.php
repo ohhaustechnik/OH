@@ -7,7 +7,7 @@ $LP = [
   'h1'     => 'Wohnung & Haus in Nürnberg <span class="amber">elektrisch sanieren</span>',
   'sub'    => 'Sie nennen uns Zimmerzahl oder Fläche – wir kalkulieren Ihren Festpreis. Komplette Elektrik neu: Leitungen, Verteilung, Smart-Home-ready.',
   'cta'    => 'Festpreis-Angebot anfordern',
-  'preis_hinweis' => 'Richtwert 6.000–12.000 € je nach Größe · Festpreis nach kurzem Vor-Ort-Termin',
+  'preis_hinweis' => 'Ab 6.000 € je nach Größe · Festpreis nach kurzem Vor-Ort-Termin',
   'preis_range' => '€€',
   'badges' => ['Klarer Festpreis', 'Sie sagen die Größe – wir kalkulieren', 'Sauber & termintreu', 'Nürnberg · Fürth · Erlangen'],
   'schritte' => [
