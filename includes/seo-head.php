@@ -1,4 +1,8 @@
 <?php
+/* Bewertungen zentral aus daten/config.json – nie mehr fest eintippen. */
+require_once __DIR__ . '/buero-lib.php';
+$ohRev = function_exists('oh_google_reviews') ? oh_google_reviews() : ['rating'=>5.0,'count'=>31];
+?><?php
 /**
  * Gemeinsamer <head> für die Leistungs- und Standortseiten im Dark-Design.
  * Erwartet vorher gesetzt: $seo = [
@@ -32,9 +36,26 @@ $graph = [[
     'dayOfWeek' => ['Monday','Tuesday','Wednesday','Thursday','Friday'],
     'opens' => '07:00', 'closes' => '19:00',
   ]],
+  /* Verknuepfung mit den gepflegten Profilen. Erst dadurch erkennen Such-
+     und KI-Systeme, dass Website, Kartenaeintrag und Bewertungen zum selben
+     Betrieb gehoeren. Der Google-Eintrag steht ueber die dauerhafte CID,
+     nicht ueber einen geteilten Kurzlink. */
+  'sameAs' => [
+    'https://www.google.com/maps?cid=1312678619063109962',
+    'https://www.instagram.com/oh_haustechnik',
+    'https://www.tiktok.com/@oh.haustechnik',
+    'https://www.my-hammer.de/auftragnehmer/oh-haustechnik',
+  ],
   'areaServed' => array_map(fn($o) => ['@type' => 'City', 'name' => $o],
-                            ['Nürnberg','Fürth','Erlangen','Schwabach','Wendelstein']),
-  'aggregateRating' => ['@type' => 'AggregateRating', 'ratingValue' => '5.0', 'reviewCount' => '27'],
+                            ['Nürnberg','Fürth','Erlangen','Schwabach','Wendelstein',
+                             'Zirndorf','Stein','Oberasbach','Feucht','Roth',
+                             'Lauf an der Pegnitz','Altdorf bei Nürnberg',
+                             'Schwaig bei Nürnberg','Röthenbach an der Pegnitz',
+                             'Hersbruck','Herzogenaurach','Cadolzburg','Heroldsberg',
+                             'Burgthann','Schwarzenbruck','Rednitzhembach','Allersberg']),
+  'aggregateRating' => ['@type' => 'AggregateRating',
+                        'ratingValue' => number_format($ohRev['rating'], 1, '.', ''),
+                        'reviewCount' => (string)(int)$ohRev['count']],
 ]];
 
 if ($s('service')) {
@@ -69,8 +90,14 @@ if ($s('faq')) {
 <meta property="og:description" content="<?= htmlspecialchars($s('desc')) ?>">
 <meta property="og:image" content="<?= htmlspecialchars($image) ?>">
 <meta property="og:locale" content="de_DE">
-<link rel="icon" href="/assets/img/favicon.ico">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/css/site-dark.css">
+<!-- Anfrage-Formular (Funnel) auch auf den dunklen Seiten verfügbar -->
+<link rel="stylesheet" href="/assets/css/funnel.css">
+<link rel="stylesheet" href="/assets/css/funnel-dark.css">
 <title><?= htmlspecialchars($s('title')) ?></title>
 <script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@graph' => $graph], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 <!-- Google tag (gtag.js) -->
