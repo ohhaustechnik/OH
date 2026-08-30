@@ -257,7 +257,7 @@ h1,h2,h3,.num{font-family:'Anton',Impact,'Arial Narrow',system-ui,sans-serif;fon
 <header class="hero">
   <div class="wrap">
     <div class="topbar">
-      <a class="logo" href="/" aria-label="OH Haustechnik – Startseite"><img src="assets/img/logo-oh-320.png" alt="OH Haustechnik" width="52" height="50" loading="eager"><small>HAUSTECHNIK · FACHBETRIEB</small></a>
+      <a class="logo" href="/" aria-label="OH Haustechnik – Startseite"><img src="assets/img/logo-oh-320.png" alt="OH Haustechnik" width="55" height="50" loading="eager"><small>HAUSTECHNIK · FACHBETRIEB</small></a>
       <a class="tb-call" href="tel:+491757481006"><i class="fas fa-phone"></i> <span>0175 7481006</span></a>
     </div>
     <div class="eyebrow">Elektro-Fachbetrieb · Raum Nürnberg</div>
