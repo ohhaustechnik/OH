@@ -43,6 +43,11 @@ $ohCount   = (int)$ohReviews['count'];
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<!-- Conversion-Meldung an Google Ads: OHNE diese zwei Zeilen meldeten die
+     Landingpages weder Funnel-Anfragen noch Telefon-Klicks als Conversion.
+     Gleiche Kennungen wie auf der Startseite. -->
+<script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC","phone_click":"WVjGCJyxmeMcEKywsKhC"};</script>
+<script defer src="/assets/js/oh-track.js"></script>
 <?php
 /* Strukturierte Daten – jede Landingpage liefert jetzt LocalBusiness + Service(+Offer) + FAQ an Google.
    Das ist die Voraussetzung für Rich-Results und besseres lokales Ranking (Long-Tail). */
