@@ -114,8 +114,8 @@ h1,h2,h3,.num{font-family:'Anton',Impact,'Arial Narrow',system-ui,sans-serif;fon
   background-size:64px 64px;mask-image:radial-gradient(circle at 70% 0%,#000,transparent 75%)}
 .hero .wrap{position:relative;z-index:2}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 0 44px}
-.logo{font-family:'Anton',Impact,sans-serif;font-weight:400;font-size:22px;letter-spacing:3px;color:#F5F5F5;display:flex;align-items:center;gap:11px}
-.logo .dot{width:9px;height:9px;border-radius:50%;background:var(--blue);box-shadow:0 0 12px rgba(110,155,224,.6)}
+.logo{display:flex;align-items:center;gap:11px;text-decoration:none}
+.logo img{height:50px;width:auto;display:block}
 .logo small{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:2.5px;font-weight:600;color:#9CA3AF}
 .tb-call{color:#C9D3E4;text-decoration:none;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
 .tb-call i{color:var(--blue)}
@@ -257,7 +257,7 @@ h1,h2,h3,.num{font-family:'Anton',Impact,'Arial Narrow',system-ui,sans-serif;fon
 <header class="hero">
   <div class="wrap">
     <div class="topbar">
-      <div class="logo"><span class="dot"></span>OH <small>HAUSTECHNIK · FACHBETRIEB</small></div>
+      <a class="logo" href="/" aria-label="OH Haustechnik – Startseite"><img src="assets/img/logo-oh-320.png" alt="OH Haustechnik" width="52" height="50" loading="eager"><small>HAUSTECHNIK · FACHBETRIEB</small></a>
       <a class="tb-call" href="tel:+491757481006"><i class="fas fa-phone"></i> <span>0175 7481006</span></a>
     </div>
     <div class="eyebrow">Elektro-Fachbetrieb · Raum Nürnberg</div>
