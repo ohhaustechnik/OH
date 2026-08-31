@@ -586,7 +586,7 @@
                         <div class="funnel-option">
                             <input type="radio" name="kontaktweg" id="kw-whatsapp" value="WhatsApp">
                             <label class="funnel-option-label" for="kw-whatsapp">
-                                <span class="funnel-option-icon" style="font-size:0.9rem;"><i class="fab fa-whatsapp"></i></span>
+                                <span class="funnel-option-icon" style="font-size:0.9rem;"><svg class="ic-wa" viewBox="0 0 448 512" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 110.9L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg></span>
                                 <span class="funnel-option-text">WhatsApp</span>
                             </label>
                         </div>
@@ -628,10 +628,33 @@
         </div>
 
         <!-- ── SCHRITT 7: Details ── -->
+        <!-- ── SCHRITT 7: Kontaktdaten + optionale Details (zusammengelegt) ── -->
         <div class="funnel-step" id="funnel-step-7">
-            <div class="funnel-step-title">Weitere Details zu Ihrem Vorhaben</div>
-            <div class="funnel-step-desc">Optional: Beschreiben Sie kurz Ihre Situation oder laden Sie Fotos hoch.</div>
+            <div class="funnel-step-title">Fast geschafft! Ihre Kontaktdaten</div>
+            <div class="funnel-step-desc">Damit wir Ihnen Ihr kostenloses Angebot zusenden können. Beschreibung und Fotos sind optional.</div>
             <div class="funnel-field-group">
+                <div class="funnel-field-row">
+                    <div class="funnel-field">
+                        <label class="funnel-label" for="funnel-vorname">Vorname <span>*</span></label>
+                        <input type="text" id="funnel-vorname" name="vorname" class="funnel-input"
+                               placeholder="Max" autocomplete="given-name">
+                    </div>
+                    <div class="funnel-field">
+                        <label class="funnel-label" for="funnel-nachname">Nachname <span>*</span></label>
+                        <input type="text" id="funnel-nachname" name="nachname" class="funnel-input"
+                               placeholder="Mustermann" autocomplete="family-name">
+                    </div>
+                </div>
+                <div class="funnel-field">
+                    <label class="funnel-label" for="funnel-tel">Telefonnummer <span>*</span></label>
+                    <input type="tel" id="funnel-tel" name="telefon" class="funnel-input"
+                           placeholder="+49 176 12345678" autocomplete="tel">
+                </div>
+                <div class="funnel-field">
+                    <label class="funnel-label" for="funnel-email">E-Mail-Adresse <span>*</span></label>
+                    <input type="email" id="funnel-email" name="email" class="funnel-input"
+                           placeholder="max@beispiel.de" autocomplete="email">
+                </div>
                 <div class="funnel-field">
                     <label class="funnel-label" for="funnel-details">Ihre Beschreibung <small style="font-weight:400;color:var(--text-muted)">(optional)</small></label>
                     <textarea id="funnel-details" name="details" class="funnel-textarea"
@@ -647,36 +670,6 @@
                                accept="image/jpeg,image/png,image/heic,image/webp">
                     </label>
                     <div class="funnel-upload-name" id="funnel-photo-name"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ── SCHRITT 8: Kontaktdaten ── -->
-        <div class="funnel-step" id="funnel-step-8">
-            <div class="funnel-step-title">Fast geschafft! Ihre Kontaktdaten</div>
-            <div class="funnel-step-desc">Damit wir Ihnen Ihr kostenloses Angebot zusenden können.</div>
-            <div class="funnel-field-group">
-                <div class="funnel-field-row">
-                    <div class="funnel-field">
-                        <label class="funnel-label" for="funnel-vorname">Vorname <span>*</span></label>
-                        <input type="text" id="funnel-vorname" name="vorname" class="funnel-input"
-                               placeholder="Max" autocomplete="given-name">
-                    </div>
-                    <div class="funnel-field">
-                        <label class="funnel-label" for="funnel-nachname">Nachname <span>*</span></label>
-                        <input type="text" id="funnel-nachname" name="nachname" class="funnel-input"
-                               placeholder="Mustermann" autocomplete="family-name">
-                    </div>
-                </div>
-                <div class="funnel-field">
-                    <label class="funnel-label" for="funnel-email">E-Mail-Adresse <span>*</span></label>
-                    <input type="email" id="funnel-email" name="email" class="funnel-input"
-                           placeholder="max@beispiel.de" autocomplete="email">
-                </div>
-                <div class="funnel-field">
-                    <label class="funnel-label" for="funnel-tel">Telefonnummer <span>*</span></label>
-                    <input type="tel" id="funnel-tel" name="telefon" class="funnel-input"
-                           placeholder="+49 176 12345678" autocomplete="tel">
                 </div>
                 <div class="funnel-dsgvo">
                     <input type="checkbox" id="funnel-dsgvo" name="datenschutz">
@@ -707,7 +700,7 @@
         </button>
 
         <div class="funnel-dots">
-            <?php for ($i = 1; $i <= 8; $i++): ?>
+            <?php for ($i = 1; $i <= 7; $i++): ?>
             <div class="funnel-dot <?php echo $i === 1 ? 'active' : ''; ?>" data-step="<?php echo $i; ?>"></div>
             <?php endfor; ?>
         </div>

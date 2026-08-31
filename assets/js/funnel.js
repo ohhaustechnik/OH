@@ -8,7 +8,7 @@
     /* ---------------------------------------------------------------
        CONFIG
     --------------------------------------------------------------- */
-    const TOTAL_STEPS = 8;
+    const TOTAL_STEPS = 7;
 
     /* ---------------------------------------------------------------
        DOM REFS
@@ -75,7 +75,7 @@
         if (activeStep) activeStep.classList.add('active');
 
         // Progress bar
-        const pct = Math.round(((n - 1) / TOTAL_STEPS) * 100);
+        const pct = Math.round((n / TOTAL_STEPS) * 100);
         progressFill.style.width = pct + '%';
         progressLabel.textContent = 'Schritt ' + n + ' von ' + TOTAL_STEPS;
 
@@ -221,9 +221,7 @@
                 }
                 return true;
             }
-            case 7:
-                return true; // optional step
-            case 8: {
+            case 7: {
                 const vorname = document.getElementById('funnel-vorname');
                 const nachname = document.getElementById('funnel-nachname');
                 const email   = document.getElementById('funnel-email');
@@ -238,12 +236,12 @@
                     showError('Bitte geben Sie Ihren Nachnamen ein.');
                     return false;
                 }
-                if (!email || !email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
-                    showError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
-                    return false;
-                }
                 if (!tel || !tel.value.trim()) {
                     showError('Bitte geben Sie Ihre Telefonnummer ein.');
+                    return false;
+                }
+                if (!email || !email.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
+                    showError('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
                     return false;
                 }
                 if (!dsgvo || !dsgvo.checked) {
@@ -271,14 +269,14 @@
        SUBMIT
     --------------------------------------------------------------- */
     submitBtn && submitBtn.addEventListener('click', function () {
-        if (!validateStep(8)) return;
+        if (!validateStep(7)) return;
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Wird gesendet…';
 
         const formData = buildFormData();
 
-        fetch('includes/funnel-handler.php', {
+        fetch('/includes/funnel-handler.php', {
             method: 'POST',
             body: formData
         })
@@ -565,7 +563,7 @@
         fd.append('telefon',     document.getElementById('fi-tel')?.value?.trim()      || '');
         fd.append('datenschutz', document.getElementById('fi-dsgvo')?.checked ? '1' : '0');
 
-        fetch('includes/funnel-handler.php', { method: 'POST', body: fd })
+        fetch('/includes/funnel-handler.php', { method: 'POST', body: fd })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.success) {
