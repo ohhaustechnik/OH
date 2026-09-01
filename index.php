@@ -33,6 +33,27 @@ $ohRev = function_exists('oh_google_reviews') ? oh_google_reviews() : ['rating'=
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<!-- ChatGPT Ads Measurement Pixel (Basis-Tracking, misst von sich aus nichts -
+     Events werden nur per oaiq("measure", ...) gesendet, siehe danke.php) -->
+<script>
+  (function (w, d, s, u) {
+    if (w.oaiq) return;
+    var q = function () {
+      q.q.push(arguments);
+    };
+    q.q = [];
+    w.oaiq = q;
+    var js = d.createElement(s);
+    js.async = true;
+    js.src = u;
+    var f = d.getElementsByTagName(s)[0];
+    f.parentNode.insertBefore(js, f);
+  })(window, document, "script", "https://bzrcdn.openai.com/sdk/oaiq.min.js");
+
+  oaiq("init", {
+    pixelId: "2CGURaPThcg3RZkoYir97P"
+  });
+</script>
 <script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC","phone_click":"WVjGCJyxmeMcEKywsKhC"};</script>
 <script defer src="assets/js/oh-track.js"></script>
 <link rel="stylesheet" href="assets/css/funnel.css">

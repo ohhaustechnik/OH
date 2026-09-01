@@ -18,7 +18,10 @@ $canonical_url    = 'https://oh-haustechnik.de/kontakt.php';
 <meta property="og:description" content="<?= htmlspecialchars($meta_description) ?>">
 <meta property="og:image" content="https://oh-haustechnik.de/assets/img/lp/poster.jpg">
 <meta property="og:locale" content="de_DE">
-<link rel="icon" href="/assets/img/favicon.ico">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/css/site-dark.css">
 <title><?= htmlspecialchars($page_title) ?></title>
 <!-- Google tag (gtag.js) -->
@@ -29,6 +32,27 @@ $canonical_url    = 'https://oh-haustechnik.de/kontakt.php';
   gtag('js', new Date());
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
+</script>
+<!-- ChatGPT Ads Measurement Pixel (Basis-Tracking, misst von sich aus nichts -
+     Events werden nur per oaiq("measure", ...) gesendet, siehe danke.php) -->
+<script>
+  (function (w, d, s, u) {
+    if (w.oaiq) return;
+    var q = function () {
+      q.q.push(arguments);
+    };
+    q.q = [];
+    w.oaiq = q;
+    var js = d.createElement(s);
+    js.async = true;
+    js.src = u;
+    var f = d.getElementsByTagName(s)[0];
+    f.parentNode.insertBefore(js, f);
+  })(window, document, "script", "https://bzrcdn.openai.com/sdk/oaiq.min.js");
+
+  oaiq("init", {
+    pixelId: "2CGURaPThcg3RZkoYir97P"
+  });
 </script>
 <script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC","phone_click":"WVjGCJyxmeMcEKywsKhC"};</script>
 <script defer src="/assets/js/oh-track.js"></script>
