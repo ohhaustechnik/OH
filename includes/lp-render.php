@@ -43,6 +43,27 @@ $ohCount   = (int)$ohReviews['count'];
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
 </script>
+<!-- ChatGPT Ads Measurement Pixel (Basis-Tracking, misst von sich aus nichts -
+     Events werden nur per oaiq("measure", ...) gesendet, siehe danke.php) -->
+<script>
+  (function (w, d, s, u) {
+    if (w.oaiq) return;
+    var q = function () {
+      q.q.push(arguments);
+    };
+    q.q = [];
+    w.oaiq = q;
+    var js = d.createElement(s);
+    js.async = true;
+    js.src = u;
+    var f = d.getElementsByTagName(s)[0];
+    f.parentNode.insertBefore(js, f);
+  })(window, document, "script", "https://bzrcdn.openai.com/sdk/oaiq.min.js");
+
+  oaiq("init", {
+    pixelId: "2CGURaPThcg3RZkoYir97P"
+  });
+</script>
 <!-- Conversion-Meldung an Google Ads: OHNE diese zwei Zeilen meldeten die
      Landingpages weder Funnel-Anfragen noch Telefon-Klicks als Conversion.
      Gleiche Kennungen wie auf der Startseite. -->

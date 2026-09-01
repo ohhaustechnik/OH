@@ -6,6 +6,24 @@ $canonical_url    = 'https://oh-haustechnik.de/danke.php';
 include 'includes/header.php';
 ?>
 
+<!-- ChatGPT Ads: Lead-Conversion. Diese Seite ist nur nach erfolgreichem
+     Formularabschluss erreichbar; die event_id bleibt je Sitzung gleich, damit
+     ein Neuladen keine zweite Conversion erzeugt. -->
+<script>
+  (function () {
+    var id = sessionStorage.getItem("oh_lead_event_id");
+    if (!id) {
+      id = "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+      sessionStorage.setItem("oh_lead_event_id", id);
+    }
+    oaiq("measure", "lead_created", {
+      type: "customer_action"
+    }, {
+      event_id: id
+    });
+  })();
+</script>
+
 <style>
 /* ---------------------------------------------------------------
    DANKE PAGE STYLES

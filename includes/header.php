@@ -97,7 +97,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/funnel.css">
 
     <!-- Favicon Placeholder -->
-    <link rel="icon" type="image/x-icon" href="<?php echo $base_path; ?>assets/img/favicon.ico">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17801418796">
 </script>
@@ -108,6 +111,27 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
   gtag('config', 'AW-17801418796');
   gtag('config', 'G-004VQKCXXC');
+</script>
+<!-- ChatGPT Ads Measurement Pixel (Basis-Tracking, misst von sich aus nichts -
+     Events werden nur per oaiq("measure", ...) gesendet, siehe danke.php) -->
+<script>
+  (function (w, d, s, u) {
+    if (w.oaiq) return;
+    var q = function () {
+      q.q.push(arguments);
+    };
+    q.q = [];
+    w.oaiq = q;
+    var js = d.createElement(s);
+    js.async = true;
+    js.src = u;
+    var f = d.getElementsByTagName(s)[0];
+    f.parentNode.insertBefore(js, f);
+  })(window, document, "script", "https://bzrcdn.openai.com/sdk/oaiq.min.js");
+
+  oaiq("init", {
+    pixelId: "2CGURaPThcg3RZkoYir97P"
+  });
 </script>
 <?php
 /* Conversion-Label direkt & leichtgewichtig aus daten/config.json lesen (KEIN Laden der grossen Lib). */
