@@ -2,9 +2,9 @@
 $LP = [
   'slug'   => 'elektroinstallation-nuernberg.php',
   'quelle' => 'lp-elektro',
-  'title'  => 'Elektroinstallation Nürnberg · Fachbetrieb mit Festpreis | OH Haustechnik',
+  'title'  => 'Elektriker Nürnberg · Elektroinstallation mit Festpreis | OH Haustechnik',
   'meta'   => 'Elektroinstallation für Neubau, Umbau und Modernisierung im Raum Nürnberg: Steckdosen, Verteiler, Beleuchtung, Smart Home. Kostenloses Festpreis-Angebot in 2 Minuten.',
-  'h1'     => 'Elektroinstallation im Raum Nürnberg – sauber, sicher, zum Festpreis',
+  'h1'     => 'Ihr Elektriker in Nürnberg – sauber, sicher, zum Festpreis',
   'sub'    => 'Neubau, Umbau oder Modernisierung? Wir installieren Ihre Elektrik fachgerecht und termintreu – vom Fachbetrieb, ohne Baustellenchaos.',
   'cta'    => 'Kostenloses Festpreis-Angebot',
   'badges' => ['Rückmeldung am selben Tag', 'Faire Festpreise', 'Saubere Ausführung', 'Lokal & persönlich'],

@@ -30,8 +30,10 @@ $ohCount   = (int)$ohReviews['count'];
 <meta name="theme-color" content="#0A0A0A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<!-- Schriften und Symbole blockieren das erste Anzeigen nicht mehr (schneller am Handy) -->
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
 <link rel="stylesheet" href="assets/css/funnel.css">
 <link rel="stylesheet" href="assets/css/funnel-dark.css">
 <!-- Google tag (gtag.js) – Landingpages jetzt ebenfalls getrackt -->
@@ -68,7 +70,8 @@ $ohCount   = (int)$ohReviews['count'];
      Landingpages weder Funnel-Anfragen noch Telefon-Klicks als Conversion.
      Gleiche Kennungen wie auf der Startseite. -->
 <script>window.OH_ADS_CONV = {"lead_form_submit":"sMAOCPTShb8cEKywsKhC","phone_click":"WVjGCJyxmeMcEKywsKhC"};</script>
-<script defer src="/assets/js/oh-track.js"></script>
+<!-- oh-track.js wird nur noch einmal geladen (unten vor funnel.js), sonst zählte jeder Telefon-Klick doppelt -->
+
 <?php
 /* Strukturierte Daten – jede Landingpage liefert jetzt LocalBusiness + Service(+Offer) + FAQ an Google.
    Das ist die Voraussetzung für Rich-Results und besseres lokales Ranking (Long-Tail). */
